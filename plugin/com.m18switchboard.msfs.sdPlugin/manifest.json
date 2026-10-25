@@ -1,0 +1,40 @@
+{
+  "Actions": [
+    {
+      "Icon": "static/icon.png",
+      "Name": "Switchboard Slot",
+      "DisableAutomaticStates": true,
+      "States": [
+        {
+          "Image": "static/icon.png",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "Controllers": ["Keypad"],
+      "UserTitleEnabled": false,
+      "SupportedInMultiActions": false,
+      "Tooltip": "One key of the MSFS switchboard. Place this on every key.",
+      "UUID": "com.m18switchboard.msfs.slot"
+    }
+  ],
+  "SDKVersion": 1,
+  "Author": "m18-switchboard",
+  "Name": "MSFS Switchboard",
+  "Icon": "static/icon.png",
+  "CodePathWin": "plugin/index.js",
+  "CodePathMac": "plugin/index.js",
+  "Description": "Aircraft-aware MSFS 2024 switchboard for the Stream Dock M18",
+  "Category": "MSFS Switchboard",
+  "CategoryIcon": "static/icon.png",
+  "Version": "0.0.1",
+  "OS": [
+    { "Platform": "windows", "MinimumVersion": "10" }
+  ],
+  "Software": {
+    "MinimumVersion": "3.10.188.226"
+  },
+  "Nodejs": {
+    "Version": "20"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "m18-switchboard-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "main": "index.js",
+  "description": "Stream Dock plugin process (runs on Stream Dock's built-in Node 20)",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

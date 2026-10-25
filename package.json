@@ -1,0 +1,11 @@
+{
+  "name": "m18-switchboard",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Aircraft-aware MSFS 2024 switchboard for the VSDinside Stream Dock M18",
+  "scripts": {
+    "setup": "npm install --prefix plugin/com.m18switchboard.msfs.sdPlugin/plugin && node scripts/make-icons.js",
+    "deploy": "node scripts/deploy.js",
+    "test:host": "node test/fake-host.js"
+  }
+}

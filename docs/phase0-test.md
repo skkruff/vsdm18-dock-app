@@ -1,5 +1,7 @@
 # Phase 0 hardware test (on the Windows PC)
 
+The dock software is called **VSD Craft** on this PC; "Stream Dock" below means the same thing.
+
 ## One-time setup
 
 ### 1. Install Node.js

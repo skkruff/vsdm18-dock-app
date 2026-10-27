@@ -1,7 +1,7 @@
 # Icon library
 
-Location (user's PC): `D:\MFS2024\Flight Sim Dock\Button Icon PNGs` (1,803 files, from a
-screenshot on 2026-10-27).
+Location (user's PC): `D:\MFS2024\Flight Sim Dock\Button Icon PNGs`. 1,803 files, all 512x512,
+394 icon bases, every file matches the scheme below. Full list in `icon-index.md`.
 
 ## Naming, as seen in the screenshot
 

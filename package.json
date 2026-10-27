@@ -9,6 +9,7 @@
     "test:host": "node test/fake-host.js",
     "icons:index": "node scripts/index-icons.js",
     "test": "node test/icons.test.js && node test/simconnect.test.js && node test/fake-host.js",
-    "sim:spike": "node scripts/sim-spike.js"
+    "sim:spike": "node scripts/sim-spike.js",
+    "sim:explore": "node scripts/sim-explore.js"
   }
 }

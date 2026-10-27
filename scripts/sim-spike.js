@@ -60,7 +60,7 @@ sim.on('disconnected', () => { out('DISCONNECTED (sim closed?). Retrying every 5
 sim.on('exception', e => { exceptions.push(e); out(`SIM EXCEPTION ${e.name} about ${e.about}`); });
 sim.on('aircraftLoaded', file => out(`AIRCRAFT LOADED event: ${file}`));
 sim.onAircraftChanged(a => {
-  out(`AIRCRAFT title="${a.title}" atcModel="${a.atcModel}"`);
+  out(`AIRCRAFT title="${a.title}" atcModel="${a.atcModel}" path="${a.path}"`);
   if (!demoDone) setTimeout(landingDemo, 3000);
 });
 

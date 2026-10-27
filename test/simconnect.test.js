@@ -16,6 +16,13 @@ class FakeHandle extends EventEmitter {
   clearDataDefinition(...a) { return this.rec('clearDataDefinition', a); }
   mapClientEventToSimEvent(...a) { return this.rec('mapClientEventToSimEvent', a); }
   transmitClientEvent(...a) { return this.rec('transmitClientEvent', a); }
+  requestSystemState(...a) { return this.rec('requestSystemState', a); }
+  enumerateInputEvents(...a) { return this.rec('enumerateInputEvents', a); }
+  getInputEvent(...a) { return this.rec('getInputEvent', a); }
+  setInputEvent(...a) { return this.rec('setInputEvent', a); }
+  subscribeInputEvent(...a) { return this.rec('subscribeInputEvent', a); }
+  unsubscribeInputEvent(...a) { return this.rec('unsubscribeInputEvent', a); }
+  last(name) { return this.calls.filter(c => c[0] === name).pop(); }
   close() { this.emit('close'); }
   defIdFor(name) { return this.calls.filter(c => c[0] === 'addToDataDefinition' && c[2] === name).pop()[1]; }
   data(name, buf) { this.emit('simObjectData', { requestID: this.defIdFor(name), data: new RawBuffer(buf) }); }
@@ -25,10 +32,12 @@ const float64 = v => { const b = Buffer.alloc(8); b.writeDoubleLE(v); return b; 
 const str256 = s => { const b = Buffer.alloc(256); b.write(s, 'latin1'); return b; };
 const recvOpen = { applicationName: 'KittyHawk', applicationVersionMajor: 12, applicationVersionMinor: 1,
   applicationBuildMajor: 1, applicationBuildMinor: 0 };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const C172_PATH = 'd:\\...\\asobo_c172sp_g1000\\presets\\asobo\\c172sp_avionics_passengers\\config\\aircraft.cfg';
 
 (async () => {
   let handle = new FakeHandle();
-  const sim = new SimConnectBackend({ openFn: async () => ({ recvOpen, handle }) });
+  const sim = new SimConnectBackend({ openFn: async () => ({ recvOpen, handle }), aircraftDebounceMs: 20 });
   const seen = { connected: 0, disconnected: 0, aircraft: [], exceptions: [] };
   sim.on('connected', () => seen.connected++);
   sim.on('disconnected', () => seen.disconnected++);
@@ -56,10 +65,47 @@ const recvOpen = { applicationName: 'KittyHawk', applicationVersionMajor: 12, ap
   sim.subscribe([{ name: 'LIGHT LANDING', unit: 'bool', type: 'bool' }], (n, v) => late.push(v));
   assert.deepStrictEqual(late, [true]);
 
-  handle.data('TITLE', str256('Cessna Skyhawk G1000 Asobo'));
-  handle.data('ATC MODEL', str256('C172'));
-  assert.strictEqual(seen.aircraft.length, 1, 'announced once, not once per variable');
-  assert.deepStrictEqual(seen.aircraft.pop(), { title: 'Cessna Skyhawk G1000 Asobo', atcModel: 'C172' });
+  // Title, model and file path arrive separately (as seen in MSFS 2024) and are announced once.
+  assert.ok(handle.calls.some(c => c[0] === 'requestSystemState' && c[2] === 'AircraftLoaded'));
+  handle.data('TITLE', str256('C172SP G1000 Passengers'));
+  handle.data('ATC MODEL', str256('ATCCOM.AC_MODEL C172.0.text'));
+  await sleep(5);
+  handle.emit('systemState', { requestID: handle.last('requestSystemState')[1], dataString: C172_PATH });
+  await sleep(40);
+  assert.strictEqual(seen.aircraft.length, 1, 'announced once, after things settle');
+  assert.deepStrictEqual(seen.aircraft.pop(),
+    { title: 'C172SP G1000 Passengers', atcModel: 'ATCCOM.AC_MODEL C172.0.text', path: C172_PATH });
+
+  // Picking another aircraft: title changes before the model does. No in-between announcement.
+  handle.data('TITLE', str256('Black Square Caravan'));
+  handle.data('ATC MODEL', str256('ATCCOM.AC_MODEL C208.0.text'));
+  handle.emit('eventFilename', { clientEventId: 1, fileName: 'bksq\\aircraft.cfg' });
+  await sleep(40);
+  assert.deepStrictEqual(seen.aircraft.splice(0),
+    [{ title: 'Black Square Caravan', atcModel: 'ATCCOM.AC_MODEL C208.0.text', path: 'bksq\\aircraft.cfg' }]);
+
+  // Input events: list (two pages), subscribe, change, get, set.
+  const listing = sim.listInputEvents();
+  const listReq = handle.last('enumerateInputEvents')[1];
+  handle.emit('inputEventsList', { requestID: listReq, entryNumber: 0, outOf: 2,
+    inputEventDescriptors: [{ name: 'ELECTRICAL_Avionics_Bus_1', inputEventIdHash: 11n, type: 0 }] });
+  handle.emit('inputEventsList', { requestID: listReq, entryNumber: 1, outOf: 2,
+    inputEventDescriptors: [{ name: 'ELECTRICAL_Avionics_Bus_2', inputEventIdHash: 22n, type: 0 }] });
+  assert.deepStrictEqual((await listing).map(e => e.name), ['ELECTRICAL_Avionics_Bus_1', 'ELECTRICAL_Avionics_Bus_2']);
+  const inputSeen = [];
+  const unsubInput = sim.subscribeInput(['ELECTRICAL_Avionics_Bus_1'], (n, v) => inputSeen.push([n, v]));
+  assert.strictEqual(handle.last('subscribeInputEvent')[1], 11n);
+  handle.emit('subscribeInputEvent', { inputEventIdHash: 11n, type: 0, value: 1 });
+  handle.emit('subscribeInputEvent', { inputEventIdHash: 11n, type: 0, value: 1 });
+  assert.deepStrictEqual(inputSeen, [['ELECTRICAL_Avionics_Bus_1', 1]], 'repeats of the same value are dropped');
+  const getting = sim.getInput('ELECTRICAL_Avionics_Bus_2');
+  handle.emit('getInputEvent', { requestID: handle.last('getInputEvent')[1], type: 0, value: 0 });
+  assert.strictEqual(await getting, 0);
+  sim.setInput('ELECTRICAL_Avionics_Bus_2', 1);
+  assert.deepStrictEqual(handle.last('setInputEvent').slice(1), [22n, 1]);
+  assert.throws(() => sim.setInput('NOPE', 1), /unknown input event/);
+  unsubInput();
+  assert.strictEqual(handle.last('unsubscribeInputEvent')[1], 11n);
 
   // Events are mapped once, sent each time; exceptions name what they were about.
   sim.send({ event: 'LANDING_LIGHTS_TOGGLE' });
@@ -89,9 +135,12 @@ const recvOpen = { applicationName: 'KittyHawk', applicationVersionMajor: 12, ap
   await sim.connect();
   const names = handle.calls.filter(c => c[0] === 'addToDataDefinition').map(c => c[2]);
   assert.deepStrictEqual(names.sort(), ['ATC MODEL', 'LIGHT LANDING', 'TITLE']);
-  handle.data('TITLE', str256('Cessna Skyhawk G1000 Asobo'));
-  handle.data('ATC MODEL', str256('C172'));
-  assert.strictEqual(seen.aircraft.length, 1, 'aircraft announced once, again after reconnect');
+  handle.data('TITLE', str256('Black Square Caravan'));
+  handle.data('ATC MODEL', str256('ATCCOM.AC_MODEL C208.0.text'));
+  await sleep(40);
+  assert.strictEqual(seen.aircraft.length, 1, 'aircraft announced again after reconnect');
+  assert.throws(() => sim.setInput('ELECTRICAL_Avionics_Bus_2', 1), /unknown input event/, 'input list dropped on disconnect');
+  sim.close();
 
   console.log('simconnect: PASS');
 })().catch(e => { console.error('simconnect: FAIL', e); process.exitCode = 1; });

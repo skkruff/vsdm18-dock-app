@@ -5,8 +5,18 @@ architecture (single Node process; dock / sim / profile layers) and the phase pl
 
 ## Current state
 
-Phase 0 done on hardware (2026-10-27); see `docs/hardware.md`. Phase 1 code done
-(`scripts/sim-spike.js`), awaiting a run against MSFS per `docs/phase1-test.md`.
+Phase 0 done on hardware (2026-10-27); see `docs/hardware.md`. Phase 1 run in MSFS 2024
+(2026-10-27): everything works except the C172's avionics bus switches. Next: cockpit discovery
+run with `npm run sim:explore` (`docs/explore-test.md`), then Phase 2.
+
+## Profile content principles (user, 2026-10-27)
+
+- Cover the controls actually in each aircraft's cockpit, comprehensively, not only those named
+  in the brief. Inventory per aircraft (e.g. `docs/c172-controls.md`) before writing a profile.
+- Keep it readable and follow the real panel layout where possible.
+- Non-critical controls (e.g. cockpit lighting dimmers) go on their own page.
+- Multi-position switches may be simplified when space is tight (e.g. C172 standby battery as
+  ARM/OFF only, TEST not modelled), noted as a known simplification.
 
 The dock software on the user's PC is **VSD Craft** (VSDinside's branding of Stream Dock); its
 data folder is still `%APPDATA%\HotSpot\StreamDock`.
@@ -20,7 +30,8 @@ data folder is still `%APPDATA%\HotSpot\StreamDock`.
   - `plugin/sim/simconnect.js`: sim layer, `SimBackend` implemented on node-simconnect.
 - `scripts/`: `make-icons.js` (placeholder PNGs), `deploy.js` (copy to `%APPDATA%`, Windows),
   `index-icons.js` (lists the user's icon library into `docs/icon-index.md`),
-  `sim-spike.js` (Phase 1: standalone sim test, `npm run sim:spike`).
+  `sim-spike.js` (Phase 1: standalone sim test, `npm run sim:spike`), `sim-explore.js`
+  (lists an aircraft's input events and reports cockpit changes, `npm run sim:explore`).
 - `test/`: `fake-host.js` (stand-in Stream Dock host), `icons.test.js`, `simconnect.test.js`
   (backend against a fake SimConnect handle). Run all with `npm test`.
 - `docs/hardware.md`: M18 key layout and slot numbering. `docs/icons.md`, `docs/icon-index.md`:

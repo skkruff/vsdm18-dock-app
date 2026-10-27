@@ -12,8 +12,10 @@ Phase 0 (hardware and SDK spike), code done, awaiting the hardware test in `docs
 - `plugin/com.m18switchboard.msfs.sdPlugin/`: the Stream Dock plugin folder as deployed.
   - `plugin/dock.js`: dock layer, the only code that speaks the Stream Dock protocol.
   - `plugin/index.js`: currently the Phase 0 diagnostic.
-- `scripts/`: `make-icons.js` (placeholder PNGs), `deploy.js` (copy to `%APPDATA%`, Windows).
-- `test/fake-host.js`: stand-in Stream Dock host, `npm run test:host`.
+  - `plugin/icons.js`: icon library lookup (naming scheme in `docs/icons.md`).
+- `scripts/`: `make-icons.js` (placeholder PNGs), `deploy.js` (copy to `%APPDATA%`, Windows),
+  `index-icons.js` (lists the user's icon library into `docs/icon-index.md`).
+- `test/`: `fake-host.js` (stand-in Stream Dock host), `icons.test.js`. Run all with `npm test`.
 - `docs/sdk-notes.md`: SDK summary. `docs/verified.md`: verified vs assumed, keep it updated.
 
 ## Rules

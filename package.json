@@ -6,6 +6,8 @@
   "scripts": {
     "setup": "npm install --prefix plugin/com.m18switchboard.msfs.sdPlugin/plugin && node scripts/make-icons.js",
     "deploy": "node scripts/deploy.js",
-    "test:host": "node test/fake-host.js"
+    "test:host": "node test/fake-host.js",
+    "icons:index": "node scripts/index-icons.js",
+    "test": "node test/icons.test.js && node test/fake-host.js"
   }
 }

@@ -11,12 +11,17 @@ run with `npm run sim:explore` (`docs/explore-test.md`), then Phase 2.
 
 ## Profile content principles (user, 2026-10-27)
 
-- Cover the controls actually in each aircraft's cockpit, comprehensively, not only those named
-  in the brief. Inventory per aircraft (e.g. `docs/c172-controls.md`) before writing a profile.
+- Base profiles on the controls actually in each aircraft's cockpit, not only those named in the
+  brief. Inventory per aircraft (e.g. `docs/c172-controls.md`) before writing a profile.
+- Be thorough but judicious: 15 display keys. Leave out controls with no practical use in the sim
+  (e.g. C172 cabin 12V power, alternate static air). **When unsure whether a control matters,
+  ask the user.**
 - Keep it readable and follow the real panel layout where possible.
 - Non-critical controls (e.g. cockpit lighting dimmers) go on their own page.
 - Multi-position switches may be simplified when space is tight (e.g. C172 standby battery as
   ARM/OFF only, TEST not modelled), noted as a known simplification.
+- The user's ideas for later stages are collected in `docs/design-notes.md`; check it when
+  starting a phase.
 
 The dock software on the user's PC is **VSD Craft** (VSDinside's branding of Stream Dock); its
 data folder is still `%APPDATA%\HotSpot\StreamDock`.

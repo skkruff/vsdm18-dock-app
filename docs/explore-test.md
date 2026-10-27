@@ -13,8 +13,9 @@ the ones the classic events could not (the C172's avionics bus switches first).
 4. **Work every cockpit control once, one at a time, about 3 seconds apart**, saying nothing
    to the script. Do them in a fixed order and jot the order down, for example:
    standby battery (to ARM, then back to OFF), master ALT, master BAT, avionics bus 1, avionics
-   bus 2, beacon, land, taxi, nav, strobe, fuel pump, pitot heat, cabin power, each dimmer knob
-   (turn a little), magnetos (one click right, one back), alternate static air (pull, push).
+   bus 2, beacon, land, taxi, nav, strobe, fuel pump, pitot heat, each dimmer knob (turn a
+   little), then the magneto key through every position: OFF, R, L, BOTH, and hold START for
+   about two seconds before letting it spring back.
    Each should print one or more `INPUT ...` lines.
 5. Type `d` and press Enter. It re-reads everything and shows any control that changed but
    was not reported live. (Tells us whether live reporting can be trusted.)

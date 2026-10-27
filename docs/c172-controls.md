@@ -1,8 +1,8 @@
 # C172 SP G1000 (MSFS 2024): cockpit control inventory
 
 Source: the user's cockpit screenshot (2026-10-27). Principle (user, 2026-10-27): profiles cover
-the switches actually in the cockpit, comprehensively, laid out like the panel where possible,
-not just the ones named in the brief.
+the switches actually in the cockpit, laid out like the panel where possible, thorough but
+judicious (15 display keys). Ask the user when a control's importance is unclear.
 
 Status: **verified** = moved and read back by script in MSFS 2024; **broken** = tested, did not
 work; **to find** = not yet tested, explorer run needed.
@@ -23,9 +23,7 @@ work; **to find** = not yet tested, explorer run needed.
 | Strobe | lights row | off / on | verified: LIGHT STROBE + STROBES_TOGGLE |
 | Fuel pump | lower row, left | off / on | to find |
 | Pitot heat | lower row | off / on | verified: PITOT HEAT SWITCH + PITOT_HEAT_TOGGLE |
-| Cabin power 12V | lower row, right | off / on | to find |
-| Magnetos / ignition | key, bottom left | OFF / R / L / BOTH / START | to find (multi-state) |
-| Alternate static air | red pull knob, bottom right | in / out | to find |
+| Magnetos / ignition | key, bottom left | OFF / R / L / BOTH / START (spring-back) | to find. Important; design idea in `design-notes.md` |
 
 ## Lighting page (not flight-critical, user's suggestion)
 
@@ -43,6 +41,11 @@ AP, FD, HDG, ALT, NAV, VNV, APR, BC, VS, FLC, NOSE UP, NOSE DN; HDG and ALT knob
 | QNH | KOHLSMAN SETTING MB:1, millibars | e.g. 1013.25; display rounded to whole hPa |
 | COM1 active / standby | COM ACTIVE/STANDBY FREQUENCY:1, MHz | e.g. 124.655 (8.33 kHz steps); 3 decimals |
 | Transponder | TRANSPONDER CODE:1, number | plain decimal (1200), not BCD |
+
+## Left out (user decision, 2026-10-27)
+
+- Cabin power 12V: passenger power outlets, no use in the sim.
+- Alternate static air: never used in practice.
 
 ## Not yet placed
 

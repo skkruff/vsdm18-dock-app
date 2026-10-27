@@ -33,8 +33,8 @@ The engine maps the sim value to a state name and draws `<icon>_<state>_<theme>.
 value is not known yet (sim not connected, variable unavailable) it draws `clear`. If a file is
 missing, it falls back to a generated text tile so a gap in the library never blanks a key.
 
-## Open questions for the user
+## User notes (2026-10-27)
 
-1. What do the three themes mean (what is `B_C18`?), and which one should the dock use?
-2. Is `clear` meant as "unknown / unpowered", or something else?
-3. On `B_C18`, `on` and `off` look alike in the thumbnails (both pale blue bars). Intended?
+The themes are automated colour variations from the icon pack. The user has copied the icons they
+like from two of them, navy (`B_C18`) and RGB black/white; only the RGB variants have real red and
+green indicators. Which theme(s) to use, and the meaning of `clear`, are still to be discussed.

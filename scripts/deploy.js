@@ -15,7 +15,14 @@ if (!fs.existsSync(path.join(src, 'plugin', 'node_modules', 'ws'))) {
   process.exit(1);
 }
 
-const dest = path.join(process.env.APPDATA, 'HotSpot', 'StreamDock', 'plugins', name);
+const appDir = path.join(process.env.APPDATA, 'HotSpot', 'StreamDock');
+if (!fs.existsSync(appDir)) {
+  console.error(`Stream Dock's data folder was not found at ${appDir}`);
+  console.error('Has the Stream Dock software been run at least once on this PC? If it is installed,');
+  console.error('look in %APPDATA% for its folder and report the name so the script can be updated.');
+  process.exit(1);
+}
+const dest = path.join(appDir, 'plugins', name);
 fs.rmSync(dest, { recursive: true, force: true });
 fs.cpSync(src, dest, {
   recursive: true,

@@ -5,6 +5,7 @@
   "main": "index.js",
   "description": "Stream Dock plugin process (runs on Stream Dock's built-in Node 20)",
   "dependencies": {
+    "node-simconnect": "^4.2.1",
     "ws": "^8.18.0"
   }
 }

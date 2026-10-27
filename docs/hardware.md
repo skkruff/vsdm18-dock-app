@@ -10,8 +10,10 @@ screenshot, plugin log).
 - **3 plain buttons** (the round buttons under the LCDs) also accept the Switchboard Slot action.
   They report as `controller: "Keypad"` at **column 5**, rows 0, 1, 2, outside the advertised
   5x3 size. They send keyDown/keyUp like any key. They have no display.
-- Plain button order is **assumed** left = row 0, middle = row 1, right = row 2 (the user placed
-  and pressed them in that order). To confirm.
+- Plain button order: left = row 0, middle = row 1, right = row 2 (verified 2026-10-27 from the
+  coordinate labels VSD Craft shows on each round button).
+- All five display tests looked as intended on the device (user report, 2026-10-27): coordinates,
+  PNG test card, title text, yellow "QNH 1013" SVG readout, setState.
 - Images: 144x144 SVG and PNG data URIs display with all four edges visible and square, so the
   host scales to the key without cropping. Key icons in the user's library are 512x512.
 

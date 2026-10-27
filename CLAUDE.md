@@ -5,7 +5,8 @@ architecture (single Node process; dock / sim / profile layers) and the phase pl
 
 ## Current state
 
-Phase 0 done on hardware (2026-10-27); see `docs/hardware.md`. Next: Phase 1 (sim link spike).
+Phase 0 done on hardware (2026-10-27); see `docs/hardware.md`. Phase 1 code done
+(`scripts/sim-spike.js`), awaiting a run against MSFS per `docs/phase1-test.md`.
 
 The dock software on the user's PC is **VSD Craft** (VSDinside's branding of Stream Dock); its
 data folder is still `%APPDATA%\HotSpot\StreamDock`.
@@ -16,9 +17,12 @@ data folder is still `%APPDATA%\HotSpot\StreamDock`.
   - `plugin/dock.js`: dock layer, the only code that speaks the Stream Dock protocol.
   - `plugin/index.js`: currently the Phase 0 diagnostic.
   - `plugin/icons.js`: icon library lookup (naming scheme in `docs/icons.md`).
+  - `plugin/sim/simconnect.js`: sim layer, `SimBackend` implemented on node-simconnect.
 - `scripts/`: `make-icons.js` (placeholder PNGs), `deploy.js` (copy to `%APPDATA%`, Windows),
-  `index-icons.js` (lists the user's icon library into `docs/icon-index.md`).
-- `test/`: `fake-host.js` (stand-in Stream Dock host), `icons.test.js`. Run all with `npm test`.
+  `index-icons.js` (lists the user's icon library into `docs/icon-index.md`),
+  `sim-spike.js` (Phase 1: standalone sim test, `npm run sim:spike`).
+- `test/`: `fake-host.js` (stand-in Stream Dock host), `icons.test.js`, `simconnect.test.js`
+  (backend against a fake SimConnect handle). Run all with `npm test`.
 - `docs/hardware.md`: M18 key layout and slot numbering. `docs/icons.md`, `docs/icon-index.md`:
   icon library.
 - `docs/sdk-notes.md`: SDK summary. `docs/verified.md`: verified vs assumed, keep it updated.

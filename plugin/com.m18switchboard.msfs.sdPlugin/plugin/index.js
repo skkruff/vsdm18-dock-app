@@ -18,6 +18,7 @@ const DEFAULTS = {
   iconDir: 'D:\\MFS2024\\Flight Sim Dock\\Button Icon PNGs',
   theme: 'RGB',
   announcePages: true,
+  announceMs: 800,
   reconnectSeconds: 5,
 };
 
@@ -73,7 +74,8 @@ const display = {
 };
 
 const engine = new ProfileEngine({
-  sim, display, profiles, renderer: new Renderer(icons), announcePages: config.announcePages,
+  sim, display, profiles, renderer: new Renderer(icons),
+  announcePages: config.announcePages, announceMs: config.announceMs,
   log: (...a) => log.info(...a),
 });
 

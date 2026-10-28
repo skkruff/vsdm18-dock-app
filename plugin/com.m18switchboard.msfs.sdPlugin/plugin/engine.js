@@ -10,7 +10,8 @@ const { tiles } = require('./render');
 
 const LCD_SLOTS = 15;
 const NAV = { 15: 'prev', 16: 'main', 17: 'next' };
-const STATUS_SLOT = 7; // centre key carries status messages
+const STATUS_TEXT = { offline: 'MSFS\nNOT CONNECTED', loading: 'LOADING\nAIRCRAFT' };
+const STATUS_COLOR = '#9aa0a8';
 
 function sourceKey(src) {
   return src.input ? `input:${src.input}` : `var:${src.var}|${src.unit}`;
@@ -36,8 +37,10 @@ function formatValue(key, value) {
 }
 
 class ProfileEngine {
-  constructor({ sim, display, renderer, profiles, announcePages = true, announceMs = 1200, log = () => {} }) {
+  constructor({ sim, display, renderer, profiles, announcePages = true, announceMs = 800, log = () => {} }) {
     Object.assign(this, { sim, display, renderer, profiles, announcePages, announceMs, log });
+    this.announcing = null; // page name shown across the panel, or null
+    this.holdTimers = new Map(); // slot -> interval re-sending a held position
     this.status = 'offline'; // offline | loading | ready
     this.profile = null;
     this.pageIndex = 0;
@@ -48,7 +51,13 @@ class ProfileEngine {
 
   start() {
     this.sim.on('connected', () => { this.status = 'loading'; this.redrawAll(); });
-    this.sim.on('disconnected', () => { this._unwatchAll(); this.profile = null; this.status = 'offline'; this.redrawAll(); });
+    this.sim.on('disconnected', () => {
+      this._unwatchAll();
+      this._stopHolds();
+      this.profile = null;
+      this.status = 'offline';
+      this.redrawAll();
+    });
     this.sim.on('exception', e => this._onException(e));
     this.sim.onAircraftChanged(a => this.setAircraft(a));
     this.redrawAll();
@@ -74,6 +83,7 @@ class ProfileEngine {
   async _showPage() {
     const gen = ++this.generation;
     this._unwatchAll();
+    this._stopHolds();
     if (!this.profile) { this.status = 'loading'; return this.redrawAll(); }
     const sources = this._pageSources(this.page);
     if (sources.some(s => s.input)) {
@@ -88,8 +98,8 @@ class ProfileEngine {
     for (const src of sources) this._watch(src, gen);
     this.status = 'ready';
     this.log('page', { profile: this.profile.id, page: this.page.name });
-    this.redrawAll();
     this._announce(gen);
+    this.redrawAll();
   }
 
   _pageSources(page) {
@@ -155,28 +165,39 @@ class ProfileEngine {
   }
 
   _image(slot) {
-    if (this.status === 'offline') return slot === STATUS_SLOT ? tiles.message('MSFS\nnot connected') : tiles.blank();
-    if (this.status === 'loading') return slot === STATUS_SLOT ? tiles.message('Loading\naircraft') : tiles.blank();
+    if (this.status !== 'ready') return tiles.banner(STATUS_TEXT[this.status], slot, { color: STATUS_COLOR, size: 90 });
+    if (this.announcing) return tiles.banner(this.announcing, slot);
     const key = this.page.keys?.[slot];
     if (!key) return tiles.blank();
     const w = key.read ? this.watches.get(sourceKey(key.read)) : null;
     if (w && w.error) return tiles.unavailable(key.label || '');
     const value = w ? w.value : undefined;
-    if (key.type === 'readout') return tiles.readout(key.label || '', formatValue(key, value));
+    if (key.type === 'readout') {
+      const icon = this.renderer.icon(key.icon, key.iconState || null);
+      return icon ? tiles.iconReadout(icon, formatValue(key, value)) : tiles.readout(key.label || '', formatValue(key, value));
+    }
     if (key.type === 'button') return this.renderer.icon(key.icon, null) || tiles.button(key.label || '');
     const state = value === undefined ? 'clear' : (lookup(key.states, value) || key.otherwise || 'clear');
     return this.renderer.icon(key.icon, state) || tiles.switch(key.label || '', state, lookup(key.text, value));
   }
 
+  // Shows the page name across the whole panel for announceMs, then the keys. Value changes
+  // during the announcement are kept and drawn when it ends.
   _announce(gen) {
-    if (!this.announcePages) return;
     clearTimeout(this.announceTimer);
-    const name = this.profile.fallback ? `NO PROFILE\n${this.page.name}` : this.page.name;
-    for (let slot = 0; slot < LCD_SLOTS; slot++) this.display.title(slot, name);
+    this.announcing = null;
+    if (!this.announcePages) return;
+    this.announcing = this.profile.fallback ? `NO PROFILE\n${this.page.name}` : this.page.name;
     this.announceTimer = setTimeout(() => {
       if (gen !== this.generation) return;
-      for (let slot = 0; slot < LCD_SLOTS; slot++) this.display.title(slot, '');
+      this.announcing = null;
+      this.redrawAll();
     }, this.announceMs);
+  }
+
+  _stopHolds() {
+    for (const t of this.holdTimers.values()) clearInterval(t);
+    this.holdTimers.clear();
   }
 
   keyDown(slot) {
@@ -185,13 +206,27 @@ class ProfileEngine {
     if (!key || !key.press) return;
     try {
       this._press(key, 'down');
+      // Some aircraft drop spring-loaded positions (e.g. START) after a moment unless the input
+      // keeps arriving, like a "repeat input" binding. Re-send while the key is held.
+      if (key.press.hold !== undefined && key.press.repeatMs) {
+        clearInterval(this.holdTimers.get(slot));
+        this.holdTimers.set(slot, setInterval(() => {
+          try { this.sim.setInput(key.press.input || key.read.input, key.press.hold); } catch (e) { this._stopHold(slot); }
+        }, key.press.repeatMs));
+      }
     } catch (e) {
       this.log('press failed', { slot, error: e.message });
       this.display.alert(slot);
     }
   }
 
+  _stopHold(slot) {
+    clearInterval(this.holdTimers.get(slot));
+    this.holdTimers.delete(slot);
+  }
+
   keyUp(slot) {
+    this._stopHold(slot);
     const key = this.status === 'ready' ? this.page?.keys?.[slot] : null;
     if (!key || !key.press || key.press.release === undefined) return;
     try { this._press(key, 'up'); } catch (e) { this.log('release failed', { slot, error: e.message }); }

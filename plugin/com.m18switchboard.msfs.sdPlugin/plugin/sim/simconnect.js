@@ -35,7 +35,7 @@ const AIRCRAFT_VARS = [
 function specKey(s) { return `${s.name}|${s.unit}|${s.type}`; }
 
 class SimConnectBackend extends EventEmitter {
-  constructor({ appName = 'MSFS Switchboard', openFn = open, aircraftDebounceMs = 750 } = {}) {
+  constructor({ appName = 'MSFS Switchboard', openFn = open, aircraftDebounceMs = 750, pathWaitMs = 5000 } = {}) {
     super();
     this.appName = appName;
     this.openFn = openFn;
@@ -49,6 +49,10 @@ class SimConnectBackend extends EventEmitter {
     this.aircraft = { title: undefined, atcModel: undefined, path: undefined };
     this.aircraftPath = undefined;
     this.aircraftTimer = null;
+    this.pathWaitMs = pathWaitMs;
+    this.lastTitle = undefined;
+    this.titleChangedAt = 0;
+    this.pathAt = 0;
     this.inputs = new Map(); // input event name -> { hash, type }
     this.inputSubs = new Map(); // hash (bigint) -> { name, listeners: Set, value }
     this.inputLists = new Map(); // request id -> { found: [], resolve }
@@ -72,11 +76,13 @@ class SimConnectBackend extends EventEmitter {
       if (e.clientEventId !== AIRCRAFT_LOADED_EVENT) return;
       this.emit('aircraftLoaded', e.fileName);
       this.aircraftPath = e.fileName;
+      this.pathAt = Date.now();
       this._aircraftChanged();
     });
     handle.on('systemState', s => {
       if (s.requestID !== AIRCRAFT_STATE_REQUEST) return;
       this.aircraftPath = s.dataString;
+      this.pathAt = Date.now();
       this._aircraftChanged();
     });
     handle.on('inputEventsList', r => this._onInputList(r));
@@ -97,6 +103,7 @@ class SimConnectBackend extends EventEmitter {
       clearTimeout(this.aircraftTimer);
       this.aircraft = { title: undefined, atcModel: undefined, path: undefined };
       this.aircraftPath = undefined;
+      this.lastTitle = undefined;
       this._forgetInputs();
       this.emit('disconnected');
     };
@@ -287,12 +294,22 @@ class SimConnectBackend extends EventEmitter {
   }
 
   // TITLE, ATC MODEL and the aircraft file arrive separately and up to seconds apart during a
-  // load, so wait for them to settle before announcing.
+  // load (the file path about 2.7 s after the title in MSFS 2024), so wait for them to settle
+  // before announcing. A path that arrived before the latest title change belongs to the previous
+  // aircraft: wait up to pathWaitMs for the new one, then announce without a path.
   _aircraftChanged() {
+    const get = name => this.subs.get(specKey(AIRCRAFT_VARS.find(v => v.name === name)))?.value;
+    const title = get('TITLE');
+    if (title !== undefined && title !== this.lastTitle) {
+      this.lastTitle = title;
+      this.titleChangedAt = Date.now();
+      if (this.handle) this._track(this.handle.requestSystemState(AIRCRAFT_STATE_REQUEST, 'AircraftLoaded'), 'system state AircraftLoaded');
+    }
     clearTimeout(this.aircraftTimer);
     this.aircraftTimer = setTimeout(() => {
-      const get = name => this.subs.get(specKey(AIRCRAFT_VARS.find(v => v.name === name)))?.value;
-      const next = { title: get('TITLE'), atcModel: get('ATC MODEL'), path: this.aircraftPath };
+      const pathStale = this.pathAt < this.titleChangedAt;
+      if (pathStale && Date.now() - this.titleChangedAt < this.pathWaitMs) return this._aircraftChanged();
+      const next = { title: get('TITLE'), atcModel: get('ATC MODEL'), path: pathStale ? undefined : this.aircraftPath };
       if (next.title === undefined || next.atcModel === undefined) return;
       const a = this.aircraft;
       if (next.title === a.title && next.atcModel === a.atcModel && next.path === a.path) return;

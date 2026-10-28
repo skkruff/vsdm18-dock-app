@@ -31,6 +31,9 @@ const r = new Renderer(lib);
 assert.ok(r.icon('alt_hold', 'on').startsWith('data:image/png;base64,'), 'library icon used when present');
 assert.strictEqual(r.icon('alt_hold', 'clear'), null, 'missing state falls back to a generated tile');
 assert.strictEqual(new Renderer(null).icon('alt_hold', 'on'), null, 'no library at all');
+const { tiles } = require('../plugin/com.m18switchboard.msfs.sdPlugin/plugin/render');
+const combined = decodeURIComponent(tiles.iconReadout(r.icon('alt_hold', 'on'), '1013'));
+assert.ok(combined.includes('<image href="data:image/png;base64,') && combined.includes('>1013<'), 'icon above readout');
 fs.rmSync(dir, { recursive: true });
 
 console.log('icons: PASS');

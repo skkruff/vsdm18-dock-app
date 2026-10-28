@@ -10,7 +10,7 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 | 1 | Which keys are LCD, grid, key resolution | Verified (2026-10-27) | 15 LCD keys in 5 columns x 3 rows, row 0 at the bottom. 3 plain buttons below, reported as column 5. Images scale to the key without cropping. Native LCD resolution still unknown (not needed so far). Details and slot map in `hardware.md`. |
 | 2 | SDK calls: setImage, setTitle, setState, profile/page switching | Partly verified (2026-10-27) | setImage (PNG/JPG/GIF base64, SVG), setTitle, setState documented. `switchToProfile` not documented, so the plugin redraws keys itself for pages. Key icon size per docs: 128x128. On the M18: SVG and base64 PNG setImage both display correctly. setTitle and the SVG readout also display as intended (user report). |
 | 3 | Does Stream Dock load Elgato plugins | Open | Protocol is Elgato-compatible (Qt SDK even names `connectElgatoStreamDeckSocket`), which makes it likely for simple JS plugins. Not tested. Not required. |
-| 4 | SimConnect library for MSFS 2024 | Verified (2026-10-27) on user's Node v24; VSD Craft's Node 20.8.1 still open | `node-simconnect` 4.2.1 (2026-10-03): pure TypeScript over TCP, no native DLL, README lists MSFS 2024 and a `SunRise` (2024) protocol, includes input event APIs (useful for Phase 5). **Conflict:** 4.2.x declares Node >= 20.17; Stream Dock bundles 20.8.1. 4.1.0 declares Node >= 18. See open decision below. |
+| 4 | SimConnect library for MSFS 2024 | Verified: user's Node v24 (2026-10-27) and inside VSD Craft on Node 20.8.1 (2026-10-28) | `node-simconnect` 4.2.1 (2026-10-03): pure TypeScript over TCP, no native DLL, README lists MSFS 2024 and a `SunRise` (2024) protocol, includes input event APIs (useful for Phase 5). **Conflict:** 4.2.x declares Node >= 20.17; Stream Dock bundles 20.8.1. 4.1.0 declares Node >= 18. See open decision below. |
 | 5 | C172 variables and events | Verified (2026-10-27/28) | All section 5 variables read and track cockpit changes; all events move their variable, except avionics: AVIONICS MASTER SWITCH / AVIONICS_MASTER_SET do not touch the cockpit's two bus switches. The **input events** ELECTRICAL_LINE_BUS_n_TO_AVIONICS_BUS_n do, both ways. Every C172 switch is available as an input event. Full table in `aircraft/c172-controls.md`. |
 | 6 | Detecting aircraft change | Verified (2026-10-27) | See "Aircraft detection" below. |
 
@@ -47,6 +47,13 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-10-28, dock + sim (user test, plugin log): Phase 2 works. node-simconnect 4.2.1 runs on VSD
+  Craft's Node 20.8.1. All C172 keys control the cockpit, stay in sync and update instantly;
+  setting input events works for every switch. Paging, generic fallback and restarts work.
+  COM_STBY_RADIO_SWAP works. Found: (1) holding ENGINE_MAGNETO_1 at 4 from the dock does not keep
+  START: the sim drops it to BOTH after a few seconds, like a single click; (2) on aircraft change
+  the old aircraft's path was paired with the new title for about 2.5 s (log 06:54:29). Both fixed
+  in code, unit tested, to recheck on the device.
 - 2026-10-28, unit tests only: Phase 2 engine and profiles (`test/engine.test.js`, fake sim):
   state display, press-sends-but-icon-follows-sim, cycle/step/hold actions, magneto stops,
   paging on round buttons, only active page watched, generic fallback, N/A for missing sources,

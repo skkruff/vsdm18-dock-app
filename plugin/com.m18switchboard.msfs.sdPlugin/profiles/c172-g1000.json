@@ -1,7 +1,7 @@
 {
   "id": "c172-g1000",
   "name": "Cessna 172 SP G1000 (Asobo, MSFS 2024)",
-  "notes": "Controls and values: docs/aircraft/c172-controls.md. Standby battery modelled as ARM/OFF only (TEST not modelled).",
+  "notes": "Controls and values: docs/aircraft/c172-controls.md. Standby battery modelled as ARM/OFF only (TEST not modelled). Pitot heat left out (user, 2026-10-28).",
   "match": {
     "path": ["asobo_c172sp_g1000", "c172sp-as1000"]
   },
@@ -42,7 +42,7 @@
                 "press": { "step": 1, "max": 3 } },
         "14": { "type": "switch", "label": "START", "read": { "input": "ENGINE_MAGNETO_1" },
                 "states": { "4": "on" }, "otherwise": "off",
-                "press": { "hold": 4, "release": 3 } }
+                "press": { "hold": 4, "release": 3, "repeatMs": 250 } }
       }
     },
     {
@@ -51,16 +51,15 @@
         "0": { "type": "readout", "label": "COM1", "read": { "var": "COM ACTIVE FREQUENCY:1", "unit": "MHz" }, "decimals": 3 },
         "1": { "type": "readout", "label": "COM1 STBY", "read": { "var": "COM STANDBY FREQUENCY:1", "unit": "MHz" }, "decimals": 3 },
         "2": { "type": "button", "label": "COM1\nSWAP", "press": { "event": "COM_STBY_RADIO_SWAP" } },
-        "3": { "type": "readout", "label": "QNH", "read": { "var": "KOHLSMAN SETTING MB:1", "unit": "millibars" }, "decimals": 0 },
+        "3": { "type": "readout", "label": "QNH", "icon": "set_altimeter", "read": { "var": "KOHLSMAN SETTING MB:1", "unit": "millibars" }, "decimals": 0,
+               "press": { "event": "BAROMETRIC" } },
         "4": { "type": "readout", "label": "XPDR", "read": { "var": "TRANSPONDER CODE:1", "unit": "number" }, "pad": 4 },
 
-        "5": { "type": "switch", "label": "PITOT\nHEAT", "icon": "pitot_heat", "read": { "input": "DEICE_PITOT_1" },
-               "states": { "0": "off", "1": "on" }, "press": { "cycle": [0, 1] } },
-        "6": { "type": "button", "label": "◀ FUEL", "read": { "input": "FUEL_SELECTOR_1" },
+        "5": { "type": "button", "label": "◀ FUEL", "read": { "input": "FUEL_SELECTOR_1" },
                "press": { "step": -1, "min": 0 } },
-        "7": { "type": "readout", "label": "FUEL SEL", "read": { "input": "FUEL_SELECTOR_1" },
+        "6": { "type": "readout", "label": "FUEL SEL", "read": { "input": "FUEL_SELECTOR_1" },
                "text": { "0": "LEFT", "1": "BOTH", "2": "RIGHT" } },
-        "8": { "type": "button", "label": "FUEL ▶", "read": { "input": "FUEL_SELECTOR_1" },
+        "7": { "type": "button", "label": "FUEL ▶", "read": { "input": "FUEL_SELECTOR_1" },
                "press": { "step": 1, "max": 2 } }
       }
     }

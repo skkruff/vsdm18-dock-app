@@ -66,26 +66,31 @@ const text = uri => decodeURIComponent(uri);
     FUEL_PUMP_1: 0, ENGINE_MAGNETO_1: 3, DEICE_PITOT_1: 0, FUEL_SELECTOR_1: 1,
   });
   const images = new Map();
-  const titles = new Map();
+  const history = []; // every image drawn: [slot, decoded svg]
   const alerts = [];
   const display = {
-    image: (s, u) => images.set(s, u), title: (s, t) => titles.set(s, t), alert: s => alerts.push(s),
+    image: (s, u) => { images.set(s, u); history.push([s, decodeURIComponent(u)]); },
+    title: () => {}, alert: s => alerts.push(s),
   };
-  const engine = new ProfileEngine({ sim, display, profiles, renderer: new Renderer(null), announceMs: 20 });
+  const engine = new ProfileEngine({ sim, display, profiles, renderer: new Renderer(null), announceMs: 1 });
+  const announced = name => history.some(([s, svg]) => s === 0 && svg.includes(`>${name}<`) && svg.includes('font-size="110"'));
   engine.start();
 
   // Not connected: status message in the centre, other keys dark.
-  assert.match(text(images.get(7)), /not connected/);
-  assert.doesNotMatch(text(images.get(0)), /<text/);
+  // Not connected: one message across the whole panel; each key holds its piece of it.
+  assert.match(text(images.get(7)), /NOT CONNECTED/);
+  assert.match(text(images.get(0)), /viewBox="0 0 144 144"/);
+  assert.match(text(images.get(7)), /viewBox="288 144 144 144"/);
 
   sim.emit('connected');
   sim.emit('aircraft', C172);
   await tick();
   assert.strictEqual(engine.profile.id, 'c172-g1000');
   assert.strictEqual(engine.page.name, 'Main');
-  assert.strictEqual(titles.get(0), 'Main', 'page announced');
+  assert.ok(history.some(([, svg]) => svg.includes('LOADING')), 'loading banner while input events are listed');
+  assert.ok(announced('Main'), 'page name shown across the panel');
   await new Promise(r => setTimeout(r, 30));
-  assert.strictEqual(titles.get(0), '', 'announcement cleared');
+  assert.doesNotMatch(text(images.get(2)), /font-size="110"/, 'announcement over, keys back');
 
   // Keys show the sim's state.
   assert.match(text(images.get(2)), /BAT/);
@@ -118,11 +123,17 @@ const text = uri => decodeURIComponent(uri);
   sim.input('ENGINE_MAGNETO_1', 3);
   engine.keyDown(14);
   assert.deepStrictEqual(sim.sets.pop(), ['ENGINE_MAGNETO_1', 4]);
+  await new Promise(r => setTimeout(r, 600));
+  assert.ok(sim.sets.length >= 2, 'START re-sent while held');
+  assert.ok(sim.sets.every(s => s[0] === 'ENGINE_MAGNETO_1' && s[1] === 4));
+  sim.sets.length = 0;
   sim.input('ENGINE_MAGNETO_1', 4);
   assert.match(text(images.get(14)), /#b8f01c/, 'START lit while cranking');
   assert.match(text(images.get(12)), /START/);
   engine.keyUp(14);
   assert.deepStrictEqual(sim.sets.pop(), ['ENGINE_MAGNETO_1', 3]);
+  await new Promise(r => setTimeout(r, 300));
+  assert.strictEqual(sim.sets.length, 0, 'repeat stops on release');
   engine.keyUp(2);
   assert.strictEqual(sim.sets.length, 0, 'key up only acts on keys with a release');
 
@@ -130,7 +141,8 @@ const text = uri => decodeURIComponent(uri);
   engine.keyDown(17);
   await tick();
   assert.strictEqual(engine.page.name, 'Auxiliary');
-  assert.deepStrictEqual(sim.activeInputSubs(), ['DEICE_PITOT_1', 'FUEL_SELECTOR_1']);
+  assert.ok(announced('Auxiliary'));
+  assert.deepStrictEqual(sim.activeInputSubs(), ['FUEL_SELECTOR_1']);
   assert.ok(sim.varSubs.get('TRANSPONDER CODE:1').size === 1);
   sim.simvar('TRANSPONDER CODE:1', 7);
   assert.match(text(images.get(4)), />0007</);
@@ -138,11 +150,13 @@ const text = uri => decodeURIComponent(uri);
   assert.match(text(images.get(0)), />124\.655</);
   sim.simvar('KOHLSMAN SETTING MB:1', 1013.25);
   assert.match(text(images.get(3)), />1013</);
-  assert.match(text(images.get(7)), /BOTH/, 'fuel selector');
+  engine.keyDown(3);
+  assert.deepStrictEqual(sim.sent.pop(), { event: 'BAROMETRIC', value: 0 }, 'QNH key is a readout and a button');
+  assert.match(text(images.get(6)), /BOTH/, 'fuel selector');
   assert.doesNotMatch(text(images.get(14)), /<text/, 'unused key is dark');
   engine.keyDown(2);
   assert.deepStrictEqual(sim.sent.pop(), { event: 'COM_STBY_RADIO_SWAP', value: 0 });
-  engine.keyDown(8);
+  engine.keyDown(7);
   assert.deepStrictEqual(sim.sets.pop(), ['FUEL_SELECTOR_1', 2]);
 
   // Round buttons wrap around and return to main.
@@ -161,7 +175,7 @@ const text = uri => decodeURIComponent(uri);
   sim.emit('aircraft', CARAVAN);
   await tick();
   assert.strictEqual(engine.profile.id, 'generic');
-  assert.strictEqual(titles.get(0), 'NO PROFILE\nGeneric');
+  assert.ok(history.some(([, svg]) => svg.includes('>NO PROFILE<') && svg.includes('>Generic<')));
   sim.simvar('LIGHT BEACON', true);
   assert.match(text(images.get(5)), /#b8f01c/);
   engine.keyDown(2);
@@ -183,7 +197,7 @@ const text = uri => decodeURIComponent(uri);
 
   // Sim gone: back to the status message.
   sim.emit('disconnected');
-  assert.match(text(images.get(7)), /not connected/);
+  assert.match(text(images.get(7)), /NOT CONNECTED/);
   const sentBefore = sim.sent.length + sim.sets.length;
   engine.keyDown(2);
   engine.keyDown(17);

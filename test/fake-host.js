@@ -49,14 +49,16 @@ const appear = (context, row, column) => sock.send(JSON.stringify({
     const reg = await waitFor(m => m.event === 'registerPlugin');
     assert.strictEqual(reg.uuid, 'PLUGIN-UUID');
 
-    // Row 1 column 2 is the centre key, slot 7: status message. Row 2 column 0 is slot 0: dark.
+    // "MSFS not connected" spans the panel: row 1 column 2 is slot 7 (centre piece), row 2
+    // column 0 is slot 0 (top-left piece).
     appear('CENTRE', 1, 2);
     appear('TOPLEFT', 2, 0);
     appear('ROUND_RIGHT', 2, 5);
     const centre = await waitFor(m => m.event === 'setImage' && m.context === 'CENTRE');
-    assert.match(decodeURIComponent(centre.payload.image), /not connected/);
+    assert.match(decodeURIComponent(centre.payload.image), /NOT CONNECTED/);
+    assert.match(decodeURIComponent(centre.payload.image), /viewBox="288 144 144 144"/);
     const topLeft = await waitFor(m => m.event === 'setImage' && m.context === 'TOPLEFT');
-    assert.doesNotMatch(decodeURIComponent(topLeft.payload.image), /<text/);
+    assert.match(decodeURIComponent(topLeft.payload.image), /viewBox="0 0 144 144"/);
     await sleep(200);
     assert.ok(!received.some(m => m.event === 'setImage' && m.context === 'ROUND_RIGHT'), 'round buttons get no image');
 

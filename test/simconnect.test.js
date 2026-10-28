@@ -37,7 +37,7 @@ const C172_PATH = 'd:\\...\\asobo_c172sp_g1000\\presets\\asobo\\c172sp_avionics_
 
 (async () => {
   let handle = new FakeHandle();
-  const sim = new SimConnectBackend({ openFn: async () => ({ recvOpen, handle }), aircraftDebounceMs: 20 });
+  const sim = new SimConnectBackend({ openFn: async () => ({ recvOpen, handle }), aircraftDebounceMs: 20, pathWaitMs: 150 });
   const seen = { connected: 0, disconnected: 0, aircraft: [], exceptions: [] };
   sim.on('connected', () => seen.connected++);
   sim.on('disconnected', () => seen.disconnected++);
@@ -76,13 +76,23 @@ const C172_PATH = 'd:\\...\\asobo_c172sp_g1000\\presets\\asobo\\c172sp_avionics_
   assert.deepStrictEqual(seen.aircraft.pop(),
     { title: 'C172SP G1000 Passengers', atcModel: 'ATCCOM.AC_MODEL C172.0.text', path: C172_PATH });
 
-  // Picking another aircraft: title changes before the model does. No in-between announcement.
+  // Picking another aircraft (as in the user's 2026-10-28 log): title and model change first, the
+  // new path arrives seconds later. The old C172 path must never be paired with the Caravan.
   handle.data('TITLE', str256('Black Square Caravan'));
   handle.data('ATC MODEL', str256('ATCCOM.AC_MODEL C208.0.text'));
+  assert.strictEqual(handle.last('requestSystemState')[2], 'AircraftLoaded', 'asks for the new path');
+  await sleep(80);
+  assert.strictEqual(seen.aircraft.length, 0, 'waits for the new path');
   handle.emit('eventFilename', { clientEventId: 1, fileName: 'bksq\\aircraft.cfg' });
   await sleep(40);
   assert.deepStrictEqual(seen.aircraft.splice(0),
     [{ title: 'Black Square Caravan', atcModel: 'ATCCOM.AC_MODEL C208.0.text', path: 'bksq\\aircraft.cfg' }]);
+
+  // If no new path comes, announce without one rather than with the stale one.
+  handle.data('TITLE', str256('Some Other Aircraft'));
+  await sleep(200);
+  assert.deepStrictEqual(seen.aircraft.splice(0),
+    [{ title: 'Some Other Aircraft', atcModel: 'ATCCOM.AC_MODEL C208.0.text', path: undefined }]);
 
   // Input events: list (two pages), subscribe, change, get, set.
   const listing = sim.listInputEvents();
@@ -137,7 +147,7 @@ const C172_PATH = 'd:\\...\\asobo_c172sp_g1000\\presets\\asobo\\c172sp_avionics_
   assert.deepStrictEqual(names.sort(), ['ATC MODEL', 'LIGHT LANDING', 'TITLE']);
   handle.data('TITLE', str256('Black Square Caravan'));
   handle.data('ATC MODEL', str256('ATCCOM.AC_MODEL C208.0.text'));
-  await sleep(40);
+  await sleep(200);
   assert.strictEqual(seen.aircraft.length, 1, 'aircraft announced again after reconnect');
   assert.throws(() => sim.setInput('ELECTRICAL_Avionics_Bus_2', 1), /unknown input event/, 'input list dropped on disconnect');
   sim.close();

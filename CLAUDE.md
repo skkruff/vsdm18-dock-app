@@ -5,9 +5,10 @@ architecture (single Node process; dock / sim / profile layers) and the phase pl
 
 ## Current state
 
-Phases 0 and 1 done (hardware 2026-10-27, sim 2026-10-27/28). Phase 2 code done (2026-10-28):
-profile engine, C172 profile (Main + Auxiliary pages, layout approved by the user, see
-`docs/design-notes.md`) and generic fallback. Awaiting the user's test (`docs/phase2-test.md`).
+Phases 0, 1 and 2 done and tested by the user (2026-10-28). Follow-ups from the Phase 2 test in
+code, to recheck (`docs/phase2-followup-test.md`): START repeat while held, panel-wide banners,
+QNH press, icon above readout, stale aircraft path fix. Open: the editor (see
+`docs/design-notes.md`), keypad entry.
 
 ## Profile content principles (user, 2026-10-27)
 

@@ -2,5 +2,6 @@
   "iconDir": "D:\\MFS2024\\Flight Sim Dock\\Button Icon PNGs",
   "theme": "RGB",
   "announcePages": true,
+  "announceMs": 800,
   "reconnectSeconds": 5
 }

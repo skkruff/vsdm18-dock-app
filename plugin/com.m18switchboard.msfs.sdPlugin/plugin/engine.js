@@ -42,6 +42,13 @@ function keySources(key) {
   return out;
 }
 
+// Sublabel: per-value text if there is one for this value, else the fixed sublabel. Switches made
+// before sublabels existed kept theirs in `text` ("word under the label"), still honoured.
+function sublabelFor(key, value) {
+  const perValue = lookup(key.sublabels || (key.type === 'switch' ? key.text : null), value);
+  return perValue !== undefined ? perValue : key.sublabel;
+}
+
 function formatValue(key, value) {
   if (value === undefined) return '---';
   const text = lookup(key.text, value);
@@ -58,10 +65,12 @@ function formatValue(key, value) {
 
 class ProfileEngine {
   constructor({ sim, display, renderer, profiles, announcePages = true, announceMs = 800,
-    announceAircraftMs = 2500, logoIcon = 'fs_logo_icon', log = () => {} }) {
-    Object.assign(this, { sim, display, renderer, profiles, announcePages, announceMs, announceAircraftMs, logoIcon, log });
+    announceAircraftMs = 2500, logoIcon = 'fs_logo_icon', animateScenes = true, sceneFps = 10, log = () => {} }) {
+    Object.assign(this, { sim, display, renderer, profiles, announcePages, announceMs, announceAircraftMs, logoIcon, animateScenes, sceneFps, log });
     this.scene = null; // panel-wide picture shown instead of the keys (aircraft or page name)
     this.sceneTimer = null;
+    this.slide = 0; // sideways offset of panel-wide text, animated (see _slide)
+    this.slideTimer = null;
     this.holdTimers = new Map(); // slot -> interval re-sending a held position
     this.swallowed = new Set(); // slots whose key down only dismissed an announcement
     this.status = 'offline'; // offline | loading | ready
@@ -72,14 +81,14 @@ class ProfileEngine {
   }
 
   start() {
-    this.sim.on('connected', () => { this.status = 'loading'; this.redrawAll(); });
+    this.sim.on('connected', () => { this.status = 'loading'; this._slide(1500); });
     this.sim.on('disconnected', () => {
       this._unwatchAll();
       this._stopHolds();
       this.profile = null;
       this.status = 'offline';
       this._clearScene();
-      this.redrawAll();
+      this._slide(1500);
     });
     this.sim.on('exception', e => this._onException(e));
     this.sim.onAircraftChanged(a => this.setAircraft(a));
@@ -177,16 +186,42 @@ class ProfileEngine {
   _showScene(scene, ms) {
     clearTimeout(this.sceneTimer);
     this.scene = scene;
-    this.redrawAll();
+    this._slide(ms);
     this.sceneTimer = setTimeout(() => {
       if (this.scene !== scene) return;
       this.scene = null;
+      this._stopSlide();
       this.redrawAll();
     }, ms);
   }
 
+  // Slides panel-wide text from left to right over ms, so the letters hidden behind the bezels
+  // between keys pass into view (user, 2026-10-28). Only keys showing text are redrawn per frame.
+  _slide(ms) {
+    this._stopSlide();
+    if (!this.animateScenes) { this.slide = 0; return this.redrawAll(); }
+    const amplitude = 24; // canvas units either side; the gap between keys is 36
+    const start = Date.now();
+    const frame = () => {
+      const p = Math.min(1, (Date.now() - start) / ms);
+      const eased = p < 0.5 ? 2 * p * p : 1 - 2 * (1 - p) * (1 - p);
+      this.slide = Math.round(-amplitude + 2 * amplitude * eased);
+      this.redrawAll();
+      if (p >= 1) this._stopSlide(false);
+    };
+    frame();
+    this.slideTimer = setInterval(frame, 1000 / this.sceneFps);
+  }
+
+  _stopSlide(reset = true) {
+    clearInterval(this.slideTimer);
+    this.slideTimer = null;
+    if (reset) this.slide = 0;
+  }
+
   _clearScene() {
     clearTimeout(this.sceneTimer);
+    this._stopSlide();
     this.scene = null;
   }
 
@@ -253,9 +288,9 @@ class ProfileEngine {
   }
 
   _image(slot) {
-    if (this.status === 'offline') return tiles.scene(this._statusScene('offline'), slot);
-    if (this.scene) return tiles.scene(this.scene, slot);
-    if (this.status === 'loading') return tiles.scene(this._statusScene('loading'), slot);
+    if (this.status === 'offline') return tiles.scene({ ...this._statusScene('offline'), offset: this.slide }, slot);
+    if (this.scene) return tiles.scene({ ...this.scene, offset: this.slide }, slot);
+    if (this.status === 'loading') return tiles.scene({ ...this._statusScene('loading'), offset: this.slide }, slot);
     const key = this.page.keys?.[slot];
     if (!key) return tiles.blank();
     const w = key.read ? this.watches.get(sourceKey(key.read)) : null;
@@ -291,12 +326,12 @@ class ProfileEngine {
     if (key.type === 'readout') {
       const icon = this.renderer.icon(key.icon, key.iconState || null);
       return icon
-        ? tiles.iconReadout(icon, formatValue(key, value), this.renderer.iconBox(key.icon, key.iconState || null))
-        : tiles.readout(key.label || '', formatValue(key, value));
+        ? tiles.iconReadout(icon, formatValue(key, value), this.renderer.iconBox(key.icon, key.iconState || null), sublabelFor(key, value))
+        : tiles.readout(key.label || '', formatValue(key, value), sublabelFor(key, value));
     }
-    if (key.type === 'button') return this.renderer.icon(key.icon, null) || tiles.button(key.label || '');
+    if (key.type === 'button') return this.renderer.icon(key.icon, null) || tiles.button(key.label || '', sublabelFor(key, value));
     const state = value === undefined ? 'clear' : (lookup(key.states, value) || key.otherwise || 'clear');
-    return this.renderer.icon(key.icon, state) || tiles.switch(key.label || '', state, lookup(key.text, value));
+    return this.renderer.icon(key.icon, state) || tiles.switch(key.label || '', state, sublabelFor(key, value));
   }
 
   _stopHolds() {

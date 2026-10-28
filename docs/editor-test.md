@@ -1,20 +1,22 @@
-# Editor test, round 3 (Windows PC)
+# Editor test, round 4 (Windows PC)
 
 Install as before: download the ZIP, `npm run setup`, quit VSD Craft, `npm run deploy`, start
-VSD Craft. Your profiles, library and settings in Documents are kept.
+VSD Craft. Your profiles, library and settings in Documents are kept. Your library's older groups
+stay in Groups; new ones also go in a category you choose.
 
-1. **Text position**: compare a key in the editor with the dock. Readout values and labels should
-   now sit in the same place on both (no bleeding off the top).
-2. **Font**: open the editor's **Look** panel and try the fonts against your PNG keys on the dock.
-   The change applies to the dock straight away. Default is Oswald Bold.
-3. **Bars and colours**: drawn keys (AVN BUS, STBY BATT, FUEL PUMP if drawn) should now have bars the
-   same size, shape and colour as your PNG keys; readouts in the sky blue of SET ALTIMETER. The Look
-   panel says what was measured; adjust colours there if needed.
-4. **Faces per value**: on a key with values (e.g. MAGS), "+ face for a value" and design one.
-5. **Several values on a key**: in a face, "+ Live value", "its own source", Browse… a simvar (try
-   "nav1" for NAV ACTIVE FREQUENCY:1), Test it, choose it.
-6. **Browse input events**: on a key's source, Browse… shows the aircraft's input events with
-   values. Learn: flip a switch; if several things change, you're asked which.
-7. **Events**: on a press action "Send a sim event", Browse… and Send to try one.
-8. The two face designer glitches you saw (edits stopped taking; pixelated text): tell me if
-   either comes back.
+1. **Splash**: load an aircraft. The announcement text should slide left to right so letters behind
+   the bezels show at some point. Also on "MSFS / NOT CONNECTED".
+2. **Font and bars**: default font is Barlow Condensed Bold (if you saved another font in Look, that
+   one stays; pick Barlow there). Drawn bars use corner 9.5.
+3. **Face designer**: "Design a custom face" on a drawn switch (e.g. AVN BUS). Nothing should jump.
+4. **Library**: categories appear once each, however much you search, save or change the look.
+5. **Save to library**: pick a category from the list or "New category…". Save a group: it shows in
+   its category and in Groups.
+6. **Group drop**: drag a group over the dock picture: dashed outlines on every key it will land on
+   (orange where it replaces a key; a note under the picture if keys fall off the edge).
+7. **Insert**: inserting LOCAL TIME (or any simvar) asks nothing. A key whose input event this
+   aircraft lacks offers "Choose from this aircraft…" with the aircraft's list.
+8. **Sublabel**: in Look, "Sublabel" sets its colour. In the key editor every key has a Sublabel,
+   fixed, and per value when the key reads the sim. Readout labels are in the Labels colour.
+   Sublabels are a little bigger than before.
+9. **Empty key**: shows "Add key", no "null".

@@ -56,16 +56,28 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     // Save the magneto group to the library, then insert it on the Auxiliary page with a new source.
     await page.click(slot(11));
     for (const s of [12, 13, 14]) await page.click(slot(s), { modifiers: ['Control'] });
-    page.prompts = ['My magnetos', 'My keys'];
     await page.click('#saveToLibrary');
-    await page.waitForSelector('.lib-item:has-text("My magnetos")');
+    await page.fill('dialog.small-dialog input >> nth=0', 'My magnetos');
+    assert.ok(!(await page.$$eval('dialog.small-dialog select option', o => o.map(x => x.textContent))).includes('Groups'), 'Groups is not offered');
+    await page.selectOption('dialog.small-dialog select', '__new__');
+    await page.fill('dialog.small-dialog input[placeholder="New category name"]', 'My keys');
+    await page.click('#libSaveOk');
+    await page.waitForSelector('.lib-cat[data-cat="My keys"] .lib-item:has-text("My magnetos")');
     const mine = library().find(i => i.name === 'My magnetos');
     assert.strictEqual(mine.category, 'My keys');
     assert.strictEqual(mine.keys.length, 4);
+    // A group shows in its own category and in Groups, once each.
+    assert.strictEqual(await page.locator('.lib-cat[data-cat="Groups"] .lib-item:has-text("My magnetos")').count(), 1);
+    assert.strictEqual(await page.locator('.lib-cat[data-cat="My keys"] .lib-item:has-text("My magnetos")').count(), 1);
+    assert.strictEqual(await page.locator('.lib-cat[data-cat="Groups"]').count(), 1, 'categories not repeated');
     await page.click('.tab:nth-child(2)');
     await page.click(slot(10));
-    page.prompts = ['ENGINE_MAGNETO_2'];
-    await page.click('.lib-item:has-text("My magnetos") button:has-text("Insert")');
+    // As if another aircraft were loaded, one without ENGINE_MAGNETO_1: insert asks for its equivalent.
+    await page.evaluate(() => { S.inputs = S.inputs.filter(n => n !== 'ENGINE_MAGNETO_1'); });
+    await page.click('.lib-cat[data-cat="My keys"] .lib-item:has-text("My magnetos") button:has-text("Insert")');
+    await page.click('dialog.small-dialog button:has-text("Choose from this aircraft")');
+    await page.fill('dialog.browse .dialog-head input', 'MAGNETO_2');
+    await page.click('dialog.browse .browse-row:has-text("ENGINE_MAGNETO_2")');
     await save();
     let aux = file().pages[1].keys;
     // Anchored at slot 10: ◀ MAG 10, MAGS 11, MAG ▶ 12, START 13.
@@ -77,7 +89,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     // Drag a single shipped key from the library onto an empty slot.
     await page.fill('#libSearch', 'BAT (C172');
     await sleep(400);
-    await page.dragAndDrop('.lib-item:has-text("BAT (C172 G1000)")', slot(14));
+    await page.dragAndDrop('.lib-item:has-text("BAT (C172 G1000)") >> nth=0', slot(14));
     await save();
     aux = file().pages[1].keys;
     assert.strictEqual(aux['14'].read.input, 'ELECTRICAL_BATTERY_1', 'dragged from the library');
@@ -170,16 +182,19 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     // Empty slot: add a key, make it a toggle on a learned input event.
     await page.click(slot(8));
-    await page.click('#inspector button:has-text("Add a key here")');
+    await page.click('#inspector button:has-text("Add key")');
     await page.selectOption('#inspector select >> nth=0', 'switch');
     await page.selectOption('#inspector .field:has-text("Source") select', 'input');
     await page.click('#inspector button:has-text("Learn")');
     await page.waitForFunction(() => /LIGHTING_TAXI_1/.test(document.querySelector('#inspector input[list="inputList"]').value), null, { timeout: 6000 });
     await page.selectOption('#inspector .field:has-text("Action") select', 'cycle');
+    await page.fill('#inspector .field:has-text("Sublabel") input >> nth=0', 'GROUND');
+    await page.keyboard.press('Tab');
     await save();
     const learned = file().pages[1].keys['8'];
     assert.deepStrictEqual(learned.read, { input: 'LIGHTING_TAXI_1' });
     assert.deepStrictEqual(learned.press, { cycle: [0, 1] });
+    assert.strictEqual(learned.sublabel, 'GROUND', 'sublabel on any key');
 
     // A save that fails validation is refused with a message, and the file is untouched.
     await page.click(slot(8));

@@ -36,13 +36,16 @@ const text = uri => decodeURIComponent(uri);
   };
   const engine = new ProfileEngine({ sim, display, profiles, renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
   // Scenes span the panel: text is centred on the 864-wide canvas (5 keys + 4 gaps).
-  const announced = name => history.some(([s, svg]) => s === 0 && svg.includes(`aria-label="${name}"`) && svg.includes('id="scene"'));
-  const sceneCount = name => history.filter(([s, svg]) => s === 0 && svg.includes(`aria-label="${name}"`)).length;
+  // Each key carries only its own row of a panel-wide text, so look across all keys.
+  const announced = name => history.some(([, svg]) => svg.includes(`aria-label="${name}"`) && svg.includes('id="scene"'));
+  const sceneCount = name => history.filter(([, svg]) => svg.includes(`aria-label="${name}"`) && svg.includes('id="scene"')).length;
   engine.start();
 
   // Not connected: status message in the centre, other keys dark.
   // Not connected: one message across the whole panel; each key holds its piece of it.
-  assert.match(text(images.get(7)), /NOT CONNECTED/);
+  assert.match(text(images.get(12)), /NOT CONNECTED/, 'bottom row carries the second line');
+  assert.match(text(images.get(2)), /MSFS/, 'top row the first');
+  assert.doesNotMatch(text(images.get(7)), /aria-label/, 'middle row has no text (logo only)');
   assert.match(text(images.get(0)), /viewBox="0 0 144 144"/);
   assert.match(text(images.get(7)), /viewBox="360 180 144 144"/, 'centre key cut from the panel, gaps included');
 
@@ -177,7 +180,7 @@ const text = uri => decodeURIComponent(uri);
 
   // Sim gone: back to the status message.
   sim.emit('disconnected');
-  assert.match(text(images.get(7)), /NOT CONNECTED/);
+  assert.match(text(images.get(12)), /NOT CONNECTED/);
   const sentBefore = sim.sent.length + sim.sets.length;
   engine.keyDown(2);
   engine.keyDown(17);
@@ -197,6 +200,24 @@ const text = uri => decodeURIComponent(uri);
   assert.match(two, /aria-label="110\.50"/, 'second value from its own source');
   assert.match(text(engine.keyImage(fk, 1)), /aria-label="ONE"/, 'face for value 1');
   assert.strictEqual(formatValue({ format: 'time' }, 13 * 3600 + 7 * 60 + 30), '13:07');
+
+  // Page names slide sideways while shown; keys without text are not resent each frame.
+  {
+    const sim2 = new FakeSim({ ...sim.inputValues, LIGHTING_STROBE_0: 0 });
+    const frames = new Map(); // slot -> distinct images
+    const disp = { image: (s, u) => { if (!frames.has(s)) frames.set(s, new Set()); frames.get(s).add(u); }, title() {}, alert() {} };
+    const e2 = new ProfileEngine({ sim: sim2, display: disp, profiles, renderer: new Renderer(null), announceMs: 400, announceAircraftMs: 1, sceneFps: 20 });
+    e2.start();
+    sim2.emit('connected');
+    sim2.emit('aircraft', C172);
+    await new Promise(r => setTimeout(r, 50));
+    frames.clear();
+    e2.keyDown(17);
+    await new Promise(r => setTimeout(r, 450));
+    const sceneFrames = s => [...(frames.get(s) || [])].filter(u => u.includes('id%3D%22scene%22')).length;
+    assert.ok(sceneFrames(7) >= 4, `middle row slides (${sceneFrames(7)} frames)`);
+    assert.strictEqual(sceneFrames(2), 1, 'top row has no text: drawn once');
+  }
 
   assert.strictEqual(formatValue({ decimals: 1 }, 1013.25), '1013.3');
   assert.strictEqual(formatValue({}, undefined), '---');

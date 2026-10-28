@@ -41,13 +41,14 @@
 
       <details id="lookPanel">
         <summary>Look: font and colours of drawn keys</summary>
-        <p class="muted">Applies to every key drawn by the plugin (not to your PNG icons). Bar size,
-          corners and colours are measured from your icons; change them here if you want.</p>
+        <p class="muted">Applies to every key drawn by the plugin (not to your PNG icons). Bar and
+          readout colours are measured from your icons; change them here if you want. Bar size and
+          corners are fixed.</p>
         <div class="look-grid">
           <label>Font <select id="lookFont"></select></label>
           <label>Readout values <span class="inline"><input type="color" id="lookReadout"> <button data-reset="readout" title="Back to the colour measured from your icons">↺</button></span></label>
           <label>Labels <span class="inline"><input type="color" id="lookLabel"> <button data-reset="label">↺</button></span></label>
-          <label>Small labels <span class="inline"><input type="color" id="lookDim"> <button data-reset="dim">↺</button></span></label>
+          <label>Sublabel <span class="inline"><input type="color" id="lookDim"> <button data-reset="dim">↺</button></span></label>
           <label>Bar on <span class="inline"><input type="color" id="lookOn"> <button data-reset="on">↺</button></span></label>
           <label>Bar off <span class="inline"><input type="color" id="lookOff"> <button data-reset="off">↺</button></span></label>
         </div>

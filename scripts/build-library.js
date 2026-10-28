@@ -50,7 +50,7 @@ const c172 = profiles[0].pages[0].keys;
 items.unshift({
   id: 'group.magneto-set',
   name: 'Magneto set (◀ MAG, state, MAG ▶, START)',
-  category: 'Groups',
+  category: 'Engine',
   notes: 'From the C172. Steps OFF/R/L/BOTH and stops at BOTH; START is held to crank and re-sent every 250 ms. '
     + 'Values 0 OFF, 1 R, 2 L, 3 BOTH, 4 START: check the aircraft uses the same.',
   shipped: true,
@@ -60,7 +60,7 @@ const aux = profiles[0].pages[1].keys;
 items.unshift({
   id: 'group.fuel-selector',
   name: 'Fuel selector (◀ FUEL, state, FUEL ▶)',
-  category: 'Groups',
+  category: 'Fuel',
   notes: 'From the C172. Values 0 LEFT, 1 BOTH, 2 RIGHT.',
   shipped: true,
   keys: [5, 6, 7].map((s, i) => ({ dr: 0, dc: i, key: aux[s] })),
@@ -68,7 +68,7 @@ items.unshift({
 items.unshift({
   id: 'group.c172-lights-row',
   name: 'Exterior lights row (BCN, LAND, TAXI, NAV, STRB)',
-  category: 'Groups',
+  category: 'Lights',
   notes: 'From the C172 G1000 (input events).',
   shipped: true,
   keys: [5, 6, 7, 8, 9].map((s, i) => ({ dr: 0, dc: i, key: c172[s] })),

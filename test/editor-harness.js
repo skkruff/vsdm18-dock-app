@@ -24,7 +24,7 @@ async function startHarness({ iconDir = '', port = 0, profilesDir } = {}) {
     ELECTRICAL_BATTERY_STBY_2: 1, ELECTRICAL_ALTERNATOR_1: 1, ELECTRICAL_BATTERY_1: 1,
     ELECTRICAL_LINE_BUS_1_TO_AVIONICS_BUS_1: 1, ELECTRICAL_LINE_BUS_2_TO_AVIONICS_BUS_2: 0,
     LIGHTING_BEACON_1: 1, LIGHTING_LANDING_1: 0, LIGHTING_TAXI_1: 0, LIGHTING_NAV_0: 1, LIGHTING_STROBE_0: 0,
-    FUEL_PUMP_1: 0, ENGINE_MAGNETO_1: 3, DEICE_PITOT_1: 0, FUEL_SELECTOR_1: 1,
+    FUEL_PUMP_1: 0, ENGINE_MAGNETO_1: 3, ENGINE_MAGNETO_2: 3, DEICE_PITOT_1: 0, FUEL_SELECTOR_1: 1,
   });
   sim.aircraft = { title: 'C172SP G1000 Passengers', atcModel: 'ATCCOM.AC_MODEL C172.0.text',
     path: 'd:\\mfs2024\\official2024\\onestore\\asobo-aircraft-c172sp-as1000\\simobjects\\airplanes\\asobo_c172sp_g1000\\presets\\asobo\\c172sp_avionics_passengers\\config\\aircraft.cfg' };
@@ -36,7 +36,8 @@ async function startHarness({ iconDir = '', port = 0, profilesDir } = {}) {
   store.watch(() => engine.setProfiles(store.load().profiles), 100);
   const timer = setInterval(() => sim.input('LIGHTING_TAXI_1', sim.inputValues.LIGHTING_TAXI_1 ? 0 : 1), 4000);
   sim.simvars = { 'NAV ACTIVE FREQUENCY:1': 110.5, 'COM ACTIVE FREQUENCY:1': 124.85, 'KOHLSMAN SETTING MB:1': 1013.2 };
-  const look = { measured: measure(icons) };
+  const { bar, ...colours } = measure(icons);
+  const look = { measured: colours };
   const applyLook = s => { setStyle({ ...DEFAULT_STYLE, ...look.measured, ...s }); engine.redrawAll(); };
   applyLook(store.readSettings());
   const server = createEditorServer({ store, engine, sim, icons, config: { theme: 'RGB', iconDir }, look, applyLook });

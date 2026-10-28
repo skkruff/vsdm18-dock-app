@@ -131,3 +131,8 @@ dialog.browse[open] { display: flex; }
 .browse-cat { color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin: 12px 0 4px; }
 .mono { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
 .test-out { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--good); }
+.slot.drop-replace { outline: 3px dashed #ff8a3d; }
+.live-note.warn, .warn { color: var(--warn); }
+dialog.small-dialog { width: min(480px, 92vw); height: auto; padding: 16px 18px; }
+dialog.small-dialog h3 { margin: 0 0 10px; font-size: 15px; }
+.dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }

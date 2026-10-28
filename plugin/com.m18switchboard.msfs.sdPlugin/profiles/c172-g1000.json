@@ -11,7 +11,7 @@
       "name": "Main",
       "keys": {
         "0": { "type": "switch", "label": "STBY\nBATT", "read": { "input": "ELECTRICAL_BATTERY_STBY_2" },
-               "states": { "0": "on", "1": "off", "2": "on" }, "text": { "0": "ARM", "1": "OFF", "2": "TEST" },
+               "states": { "0": "on", "1": "off", "2": "on" }, "sublabels": { "0": "ARM", "1": "OFF", "2": "TEST" },
                "press": { "cycle": [1, 0] } },
         "1": { "type": "switch", "label": "ALT", "icon": "master_alternator", "read": { "input": "ELECTRICAL_ALTERNATOR_1" },
                "states": { "0": "off", "1": "on" }, "press": { "cycle": [0, 1] } },

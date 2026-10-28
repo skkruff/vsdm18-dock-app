@@ -23,6 +23,8 @@ const DEFAULTS = {
   announcePages: true,
   announceMs: 800,
   announceAircraftMs: 2500,
+  animateScenes: true, // slide panel-wide text so letters behind the bezels show
+  sceneFps: 10,
   reconnectSeconds: 5,
   // Profiles you edit live here, outside the plugin folder, so redeploying never touches them.
   profilesDir: path.join(os.homedir(), 'Documents', 'MSFS Switchboard', 'profiles'),
@@ -69,9 +71,13 @@ function loadAll() {
 }
 const profiles = loadAll();
 
-// Look of drawn keys: defaults, then what was measured from the icons, then the user's settings.
+// Look of drawn keys: defaults, then colours measured from the icons, then the user's settings.
+// The bar's size and shape are fixed in render.js (user, 2026-10-28); only colours are measured.
 const look = { measured: {} };
-try { look.measured = measure(icons); } catch (e) { log.warn('icon measurement failed', e.message); }
+try {
+  const { bar, ...colours } = measure(icons);
+  look.measured = colours;
+} catch (e) { log.warn('icon measurement failed', e.message); }
 log.info('look measured from icons', look.measured);
 function applyLook(settings) {
   setStyle({ ...DEFAULT_STYLE, ...look.measured, ...settings });
@@ -105,6 +111,7 @@ const display = {
 const engine = new ProfileEngine({
   sim, display, profiles, renderer: new Renderer(icons),
   announcePages: config.announcePages, announceMs: config.announceMs, announceAircraftMs: config.announceAircraftMs,
+  animateScenes: config.animateScenes, sceneFps: config.sceneFps,
   log: (...a) => log.info(...a),
 });
 

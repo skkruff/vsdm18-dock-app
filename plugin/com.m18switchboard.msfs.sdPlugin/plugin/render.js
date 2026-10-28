@@ -18,7 +18,7 @@ const FONTS = {
   'Roboto Condensed Bold': 'roboto-condensed-latin-700-normal.woff',
   Anton: 'anton-latin-400-normal.woff',
 };
-const DEFAULT_FONT = 'Oswald Bold';
+const DEFAULT_FONT = 'Barlow Condensed Bold'; // user's choice, 2026-10-28
 
 // The look of generated tiles. Colours and bar geometry are replaced by values measured from the
 // user's icons when available (theme.js), so drawn keys sit next to library keys without a seam.
@@ -31,7 +31,9 @@ const DEFAULT_STYLE = {
   off: '#f0204c',
   clearStroke: '#8a8f98',
   clearWidth: 3,
-  bar: { x: 34, y: 96, w: 76, h: 20, r: 5 },
+  // Measured from the user's master_battery icons (2026-10-28), corner set by the user. Fixed
+  // rather than re-measured at start-up: the style is settled (user, 2026-10-28).
+  bar: { x: 21.4, y: 93.4, w: 101.3, h: 34.9, r: 9.5 },
 };
 const style = { ...DEFAULT_STYLE, bar: { ...DEFAULT_STYLE.bar } };
 
@@ -156,24 +158,30 @@ function placedIcon(uri, box, area, id, crop = 'auto') {
     `width="${(full.w * s).toFixed(1)}" height="${(full.h * s).toFixed(1)}" clip-path="url(#${id})"/>`;
 }
 
+// Sublabels: a smaller line under the main label, in the sublabel colour (Look panel).
+const SUBLABEL_SIZE = 19;
+
 const tiles = {
-  // state: on | off | clear (unknown). stateText: optional word under the label, e.g. ARM.
-  switch(label, state, stateText) {
+  // state: on | off | clear (unknown). sublabel: optional line under the label, e.g. ARM.
+  switch(label, state, sublabel) {
     const top = style.bar.y;
-    const labelY = stateText ? top * 0.36 : top * 0.48;
-    return svgUri(lines(label, labelY, { size: stateText ? 26 : 30, width: 128 }) +
-      (stateText ? lines(stateText, top * 0.82, { size: 15, color: style.dim }) : '') + bar(state));
+    return svgUri(lines(label, sublabel ? top * 0.34 : top * 0.48, { size: sublabel ? 26 : 30, width: 128 }) +
+      (sublabel ? lines(sublabel, top * 0.78, { size: SUBLABEL_SIZE, color: style.dim }) : '') + bar(state));
   },
-  button(label) {
-    return svgUri(lines(label, 72, { size: 34, width: 128 }));
+  button(label, sublabel) {
+    return svgUri(lines(label, sublabel ? 58 : 72, { size: 34, width: 128 }) +
+      (sublabel ? lines(sublabel, 104, { size: SUBLABEL_SIZE, color: style.dim }) : ''));
   },
-  readout(label, value) {
-    return svgUri(lines(label, 34, { size: 22, color: style.dim }) + lines(value, 92, { size: 46, color: style.readout, width: 132 }));
+  readout(label, value, sublabel) {
+    return svgUri(lines(label, 28, { size: 24, width: 130 }) +
+      (sublabel ? lines(sublabel, 52, { size: SUBLABEL_SIZE, color: style.dim }) : '') +
+      lines(value, sublabel ? 100 : 94, { size: sublabel ? 42 : 46, color: style.readout, width: 132 }));
   },
   // A library icon's content scaled into the top of the key, with a live value below.
-  iconReadout(iconUri, value, box) {
-    return svgUri(placedIcon(iconUri, box, { x: 6, y: 6, w: 132, h: 70 }, 'top') +
-      lines(value, 108, { size: 42, color: style.readout, width: 132 }));
+  iconReadout(iconUri, value, box, sublabel) {
+    return svgUri(placedIcon(iconUri, box, { x: 6, y: 6, w: 132, h: sublabel ? 56 : 70 }, 'top') +
+      (sublabel ? lines(sublabel, 76, { size: SUBLABEL_SIZE, color: style.dim }) : '') +
+      lines(value, sublabel ? 112 : 108, { size: sublabel ? 38 : 42, color: style.readout, width: 132 }));
   },
   // A key face designed in the editor: layers drawn in order on a 144 x 144 key.
   //   { kind: 'icon', icon, crop: 'auto' | 'full', x, y, w, h }   icon fitted into the box
@@ -187,7 +195,9 @@ const tiles = {
   face(face, ctx) {
     let body = '';
     (face.layers || []).forEach((L, n) => {
-      const x = num(L.x, 0), y = num(L.y, 0), w = num(L.w, 144), h = num(L.h, 144);
+      // A bar without its own position sits where the standard bar does.
+      const d = L.kind === 'bar' ? style.bar : { x: 0, y: 0, w: 144, h: 144 };
+      const x = num(L.x, d.x), y = num(L.y, d.y), w = num(L.w, d.w), h = num(L.h, d.h);
       if (L.kind === 'icon') {
         const ic = ctx.iconFor(L.icon);
         if (ic) body += placedIcon(ic.uri, ic.box, { x, y, w, h }, `c${n}`, L.crop);
@@ -195,7 +205,7 @@ const tiles = {
         const text = L.kind === 'value' ? ctx.valueFor(L) : (L.text || '');
         body += lines(text, y, { size: num(L.size, 26), color: L.color || (L.kind === 'value' ? style.readout : style.label), x, width: num(L.w, 136) });
       } else if (L.kind === 'bar') {
-        body += bar(ctx.state, { x, y, w: num(L.w, style.bar.w), h: num(L.h, style.bar.h), r: num(L.r, style.bar.r) });
+        body += bar(ctx.state, { x, y, w, h, r: num(L.r, style.bar.r) });
       } else if (L.kind === 'rect') {
         body += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${num(L.r, 0)}" fill="${esc(L.color || '#333333')}"/>`;
       }
@@ -203,15 +213,20 @@ const tiles = {
     return svgUri(body, face.background || '#000000');
   },
   // One slot's piece of a scene drawn across the whole panel.
-  // scene: { rows: { 0: 'MSFS', 2: 'NOT CONNECTED' }, icons: { 7: dataUri }, color }
-  // Each text row is centred on its row of keys, as large as fits across the panel.
+  // scene: { rows: { 0: 'MSFS', 2: 'NOT CONNECTED' }, icons: { 7: dataUri }, color, offset }
+  // Each text row is centred on its row of keys, as large as fits across the panel. offset slides
+  // the text sideways (canvas units), so letters behind the bezels come into view (engine animates).
   scene(scene, slot) {
     const { cols, key, gap } = PANEL;
     const pitch = key + gap;
     const w = cols * key + (cols - 1) * gap;
     let body = '';
+    const slotRow = Math.floor(slot / cols);
     for (const [row, text] of Object.entries(scene.rows || {})) {
-      body += lines(text, Number(row) * pitch + key / 2, { size: scene.size || 128, color: scene.color || style.label, x: w / 2, width: w - 30 });
+      // Only this key's own row of text: keys elsewhere stay byte-identical while text slides,
+      // so they are not resent.
+      if (Number(row) !== slotRow) continue;
+      body += lines(text, Number(row) * pitch + key / 2, { size: scene.size || 128, color: scene.color || style.label, x: w / 2 + (scene.offset || 0), width: w - 30 });
     }
     for (const [s, uri] of Object.entries(scene.icons || {})) {
       const ix = (Number(s) % cols) * pitch;

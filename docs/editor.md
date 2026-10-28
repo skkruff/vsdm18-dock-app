@@ -15,11 +15,12 @@ never touches this folder: shipped profiles are copied in only when you don't ha
 - **Profile settings**: ID, name, the two announcement lines shown when the aircraft loads, and
   what the profile matches. "Use the aircraft loaded now" fills in the aircraft's folder name.
   "Preview announcement" shows it on the dock picture.
-- **Look**: the font of all drawn text (7 bundled condensed fonts; text is drawn as shapes, so it
-  looks the same in the editor and on the dock) and the colours of readouts, labels and the state
-  bar. Bar size, corners and colours, and the readout colour, are measured from your icons at
-  start-up (`master_battery` on/off/clear, `set_altimeter`); ↺ goes back to the measured value.
-  Saved in `settings.json` next to the profiles folder.
+- **Look**: the font of all drawn text (7 bundled condensed fonts, default Barlow Condensed Bold;
+  text is drawn as shapes, so it looks the same in the editor and on the dock) and the colours of
+  readouts, labels, sublabels and the state bar. Bar and readout colours are measured from your
+  icons at start-up (`master_battery` on/off/clear, `set_altimeter`); ↺ goes back to the measured
+  value. Bar size and corners are fixed (corner 9.5). Saved in `settings.json` next to the
+  profiles folder.
 - **Pages**: tabs (the first is the main page; "● on dock" marks the page the dock shows), add,
   rename, reorder, delete, and "Show on dock".
 - **Dock picture**: drawn by the plugin itself, so it looks exactly like the dock. If the page is
@@ -39,7 +40,11 @@ never touches this folder: shipped profiles are copied in only when you don't ha
       aircraft has it. Any other name (also L:vars) can be typed in.
   - Sim events for presses: **Browse…** lists about 80 common events; **Send** fires one now so
     you can see what it does.
-  - Look per value (switch), text per value, icon per value (e.g. the magneto icons).
+  - Look per value (switch), icon per value (e.g. the magneto icons).
+  - **Sublabel** (any key type): a smaller line under the label, either fixed or per sim value
+    (e.g. ARM / OFF on the standby battery). A per-value sublabel wins; the fixed one covers the
+    rest.
+  - Value text per value (readouts): a word instead of the number (e.g. magneto 3 -> BOTH).
   - Decimals / padding for readouts.
   - When pressed: toggle/cycle, step (with min/max), hold (with release value and repeat for
     spring-loaded positions), set, or a sim event.
@@ -53,12 +58,18 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     back to the automatic look.
   - Preview value: type a value to see that look.
   - Advanced: the key as JSON.
+  - An empty key shows **Add key** (and Paste when something is copied).
 - **Library**: reusable keys and groups of keys, searchable, by category. It ships with every key
   built so far (each C172 and generic key, plus groups: magneto set, fuel selector, exterior
-  lights row). Save any key or selection with "Save to library" (name and category). To use one,
-  drag it onto the dock picture, or click the target key and press Insert (groups go in with their
-  top-left key there). If the item reads one source, you're asked whether this aircraft uses a
-  different one. Deleting a shipped item keeps it deleted; new shipped items arrive with updates.
+  lights row). Save any key or selection with "Save to library": a name, and a category from the
+  list of existing ones or "New category…". **Groups** fills itself: every item of more than one
+  key appears there as well as in its own category, so it can't be chosen when saving. To use an
+  item, drag it onto the dock picture (dashed outlines show every key it will land on: yellow for
+  empty, orange for a key it replaces; keys that would fall off the panel are counted under the
+  picture), or click the target key and press Insert (groups go in with their top-left key there).
+  If the item works one input event the loaded aircraft doesn't have, you can choose this
+  aircraft's equivalent from its list, or keep it. Simvars are the same in every aircraft and are
+  never asked about. Deleting a shipped item keeps it deleted; new shipped items arrive with updates.
   The library is `library.json` next to the profiles folder.
 
 ## Saving rules

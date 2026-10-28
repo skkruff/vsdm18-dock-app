@@ -12,7 +12,9 @@ key and group, plus anything the user saves) and an optional face designer per k
 2026-10-28). Round 3 (2026-10-28): text as font outlines (fixes dock/preview mismatch), look
 measured from icons + Look panel, faces per value, value layers with their own source, Browse
 dialogs (input events with values, simvar/event catalogs with Test/Send), Learn with candidates,
-save-in-place bug fix. Awaiting the user's test (`docs/editor-test.md`). Next after that: keypad entry for XPDR / COM standby.
+save-in-place bug fix. Round 4 (2026-10-28): fixed bars and Barlow default, sliding splash,
+library categories (dropdown, automatic Groups, duplicate fix), group drop outlines, Sublabel on all
+keys, insert asks only about missing input events. Awaiting the user's test (`docs/editor-test.md`). Next after that: keypad entry for XPDR / COM standby.
 
 ## Profile content principles (user, 2026-10-27)
 

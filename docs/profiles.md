@@ -42,8 +42,10 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
 
 - **states** (switch): sim value to `on`, `off` or `clear`. `otherwise`: state for values not in
   the map. Unknown value (not yet read, sim reconnecting) shows `clear`.
-- **text**: sim value to a word, shown on readouts (e.g. magneto `3` -> `BOTH`) and under the
-  label on generated switch tiles (e.g. `ARM`).
+- **text** (readout): sim value to a word shown instead of the number (e.g. magneto `3` -> `BOTH`).
+- **sublabel** (any type): a smaller line under the label on drawn tiles. **sublabels**: sim value
+  to a sublabel (e.g. `{ "0": "ARM", "1": "OFF" }`); a value not listed shows `sublabel`. Older
+  switch profiles with `text` still work (read as `sublabels`); the editor moves it over.
 - **decimals**, **pad**: readout number format (`decimals: 3` -> 124.655, `pad: 4` -> 0007).
 - **valueIcons** (any type): sim value to a library icon name shown as the whole key, e.g.
   `{ "3": "magneto_both" }`. Values not listed fall back to the normal look.
@@ -64,7 +66,7 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
     sets decimals/pad/format); with `read` (`{ "input" }` or `{ "var", "unit" }`), its own source,
     so one key can show several values.
   - `{ "kind": "bar", "x", "y", "w", "h", "r" }`: green / red / outline by state; missing fields use
-    the bar measured from the user's icons.
+    the standard bar (x 21.4, y 93.4, w 101.3, h 34.9, corner 9.5).
   - `{ "kind": "rect", "x", "y", "w", "h", "r", "color" }`: a filled box.
   Layers without a `color` follow the global look (editor Look panel). A text-only key with no
   sim source is a `button` with a face.

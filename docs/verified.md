@@ -47,6 +47,13 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-10-28, user test of editor round 3 (Windows, dock + sim): NAV1 lookups from the simvar
+  catalog, swap events, a Chrono LOCAL TIME key and a custom library category work. Reported and
+  since fixed in code (unit + browser tests only, not yet on the dock): face designer layers jumping
+  to the top-left, library categories repeated (overlapping redraws), "null" beside the empty-key
+  button. Changed on request: default font Barlow Condensed Bold, fixed bar geometry with corner
+  9.5, category dropdown with an automatic Groups category, drop outlines for groups, a sliding
+  splash, Sublabel on every key type, insert asks only about input events the aircraft lacks.
 - 2026-10-28, dock + sim (user follow-up test, plugin log): START repeat works (the Asobo C172 still
   drops briefly to BOTH between repeats, then cranks again; accepted). BAROMETRIC syncs the
   altimeter. An SVG with an embedded PNG draws on the device. Panel-wide text drawn as if the keys

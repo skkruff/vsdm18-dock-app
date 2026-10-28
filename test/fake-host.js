@@ -56,14 +56,16 @@ const appear = (context, row, column) => sock.send(JSON.stringify({
     const reg = await waitFor(m => m.event === 'registerPlugin');
     assert.strictEqual(reg.uuid, 'PLUGIN-UUID');
 
-    // "MSFS not connected" spans the panel: row 1 column 2 is slot 7 (centre piece), row 2
-    // column 0 is slot 0 (top-left piece).
+    // "MSFS / NOT CONNECTED" spans the panel: row 1 column 2 is slot 7 (centre piece, logo), row 0
+    // column 2 the bottom centre (second line), row 2 column 0 slot 0 (top-left piece).
     appear('CENTRE', 1, 2);
+    appear('BOTTOM_CENTRE', 0, 2);
     appear('TOPLEFT', 2, 0);
     appear('ROUND_RIGHT', 2, 5);
     const centre = await waitFor(m => m.event === 'setImage' && m.context === 'CENTRE');
-    assert.match(decodeURIComponent(centre.payload.image), /NOT CONNECTED/);
     assert.match(decodeURIComponent(centre.payload.image), /viewBox="360 180 144 144"/);
+    const bottom = await waitFor(m => m.event === 'setImage' && m.context === 'BOTTOM_CENTRE');
+    assert.match(decodeURIComponent(bottom.payload.image), /NOT CONNECTED/);
     const topLeft = await waitFor(m => m.event === 'setImage' && m.context === 'TOPLEFT');
     assert.match(decodeURIComponent(topLeft.payload.image), /viewBox="0 0 144 144"/);
     await sleep(200);

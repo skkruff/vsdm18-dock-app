@@ -98,3 +98,17 @@ Dimmer knobs are not flight critical: put them on their own page.
 - Make creating new functions practical: searchable list of the aircraft's input events (with
   values), a way to find simvars (e.g. NAV1 frequency) without reading documentation, and a
   Learn that copes with several inputs firing at once.
+
+## LED accent strip (asked 2026-10-28, not built)
+
+- The plugin SDK (what VSD Craft gives plugins) has no LED or brightness control: nothing in the
+  event docs or any template (checked 2026-10-28).
+- MiraboxSpace/StreamDock-Device-SDK (C++, Python, and a ready-made WebSocket server) talks to the
+  device directly over USB and lists the M18 with LED commands: whole-strip colour
+  (`setLEDColor`), LED brightness 0-255, reset to default. Its Python source gives the M18
+  `hasRGBLed = True`, 24 LEDs; per-LED colours appear not to be enabled for the M18.
+- Unknown, must be tested before relying on it: whether it works while VSD Craft is running (both
+  talk to the same USB device; VSD Craft may also overwrite the colour with its own effects).
+- Possible uses: master caution / warning colour (stall, low fuel, low voltage), autopilot
+  disconnect flash, parking brake set reminder, gear unsafe, colour per page or per aircraft,
+  sim connected / disconnected.

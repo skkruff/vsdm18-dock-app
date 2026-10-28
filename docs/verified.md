@@ -11,7 +11,7 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 | 2 | SDK calls: setImage, setTitle, setState, profile/page switching | Partly verified (2026-10-27) | setImage (PNG/JPG/GIF base64, SVG), setTitle, setState documented. `switchToProfile` not documented, so the plugin redraws keys itself for pages. Key icon size per docs: 128x128. On the M18: SVG and base64 PNG setImage both display correctly. setTitle and the SVG readout also display as intended (user report). |
 | 3 | Does Stream Dock load Elgato plugins | Open | Protocol is Elgato-compatible (Qt SDK even names `connectElgatoStreamDeckSocket`), which makes it likely for simple JS plugins. Not tested. Not required. |
 | 4 | SimConnect library for MSFS 2024 | Verified (2026-10-27) on user's Node v24; VSD Craft's Node 20.8.1 still open | `node-simconnect` 4.2.1 (2026-10-03): pure TypeScript over TCP, no native DLL, README lists MSFS 2024 and a `SunRise` (2024) protocol, includes input event APIs (useful for Phase 5). **Conflict:** 4.2.x declares Node >= 20.17; Stream Dock bundles 20.8.1. 4.1.0 declares Node >= 18. See open decision below. |
-| 5 | C172 variables and events | Verified, except avionics (2026-10-27) | All section 5 variables read and track cockpit changes; all events move their variable. **Avionics:** AVIONICS MASTER SWITCH / AVIONICS_MASTER_SET change each other but not the cockpit's two avionics bus switches (user observed). Full table in `c172-controls.md`. |
+| 5 | C172 variables and events | Verified (2026-10-27/28) | All section 5 variables read and track cockpit changes; all events move their variable, except avionics: AVIONICS MASTER SWITCH / AVIONICS_MASTER_SET do not touch the cockpit's two bus switches. The **input events** ELECTRICAL_LINE_BUS_n_TO_AVIONICS_BUS_n do, both ways. Every C172 switch is available as an input event. Full table in `aircraft/c172-controls.md`. |
 | 6 | Detecting aircraft change | Verified (2026-10-27) | See "Aircraft detection" below. |
 
 ## Aircraft detection (MSFS 2024, 2026-10-27 sim-spike run)
@@ -46,7 +46,11 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   of the protocol, nothing about the device.
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
-  the table above and `c172-controls.md`. Transponder code reads as plain decimal (1200).
+  the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-10-28, sim: explorer run in the C172 G1000 and the Black Square Caravan. Input event
+  listing, live change reports and `set` all work against MSFS 2024. C172: every control the
+  user worked was reported; full re-read found nothing missed. Caravan: standard controls
+  reported, Black Square's own systems not at all. See `aircraft/`.
 - 2026-10-27, unit test only: input event support and aircraft debounce added to the backend
   (`test/simconnect.test.js`), not yet run against MSFS. `npm run sim:explore` is the tool.
 - 2026-10-27, unit test only: `SimConnectBackend` bookkeeping (subscribe, decode, send, exceptions,

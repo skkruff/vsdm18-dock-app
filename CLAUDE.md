@@ -5,14 +5,14 @@ architecture (single Node process; dock / sim / profile layers) and the phase pl
 
 ## Current state
 
-Phase 0 done on hardware (2026-10-27); see `docs/hardware.md`. Phase 1 run in MSFS 2024
-(2026-10-27): everything works except the C172's avionics bus switches. Next: cockpit discovery
-run with `npm run sim:explore` (`docs/explore-test.md`), then Phase 2.
+Phases 0 and 1 done (hardware 2026-10-27, sim 2026-10-27/28). The C172 is fully mapped through
+input events (`docs/aircraft/c172-controls.md`). Next: Phase 2, once the user approves the C172
+page layout.
 
 ## Profile content principles (user, 2026-10-27)
 
 - Base profiles on the controls actually in each aircraft's cockpit, not only those named in the
-  brief. Inventory per aircraft (e.g. `docs/c172-controls.md`) before writing a profile.
+  brief. Inventory per aircraft (e.g. `docs/aircraft/c172-controls.md`) before writing a profile.
 - Be thorough but judicious: 15 display keys. Leave out controls with no practical use in the sim
   (e.g. C172 cabin 12V power, alternate static air). **When unsure whether a control matters,
   ask the user.**
@@ -39,6 +39,7 @@ data folder is still `%APPDATA%\HotSpot\StreamDock`.
   (lists an aircraft's input events and reports cockpit changes, `npm run sim:explore`).
 - `test/`: `fake-host.js` (stand-in Stream Dock host), `icons.test.js`, `simconnect.test.js`
   (backend against a fake SimConnect handle). Run all with `npm test`.
+- `docs/aircraft/`: per-aircraft control inventories and input event lists.
 - `docs/hardware.md`: M18 key layout and slot numbering. `docs/icons.md`, `docs/icon-index.md`:
   icon library.
 - `docs/sdk-notes.md`: SDK summary. `docs/verified.md`: verified vs assumed, keep it updated.

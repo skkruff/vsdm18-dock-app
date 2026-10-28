@@ -10,7 +10,8 @@ process.on('unhandledRejection', e => log.error('unhandled rejection', e && e.st
 
 const { Dock } = require('./dock');
 const { IconLibrary } = require('./icons');
-const { Renderer } = require('./render');
+const { Renderer, setStyle, DEFAULT_STYLE } = require('./render');
+const { measure } = require('./theme');
 const { ProfileEngine } = require('./engine');
 const { ProfileStore } = require('./store');
 const { createEditorServer } = require('./editor/server');
@@ -68,6 +69,15 @@ function loadAll() {
 }
 const profiles = loadAll();
 
+// Look of drawn keys: defaults, then what was measured from the icons, then the user's settings.
+const look = { measured: {} };
+try { look.measured = measure(icons); } catch (e) { log.warn('icon measurement failed', e.message); }
+log.info('look measured from icons', look.measured);
+function applyLook(settings) {
+  setStyle({ ...DEFAULT_STYLE, ...look.measured, ...settings });
+}
+applyLook(store.readSettings());
+
 // Loaded only after logging is set up, so a failure to load the SimConnect library is logged.
 const { SimConnectBackend } = require('./sim/simconnect');
 const sim = new SimConnectBackend();
@@ -102,7 +112,11 @@ const engine = new ProfileEngine({
 store.watch(() => engine.setProfiles(loadAll()));
 
 const editorUrl = `http://localhost:${config.editorPort}/`;
-createEditorServer({ store, engine, sim, icons, config, log: (...a) => log.warn(...a) })
+createEditorServer({
+  store, engine, sim, icons, config, look,
+  applyLook: s => { applyLook(s); engine.redrawAll(); },
+  log: (...a) => log.warn(...a),
+})
   .listen(config.editorPort)
   .then(port => log.info('editor', { url: `http://localhost:${port}/` }))
   .catch(e => log.error('editor not started', e.message));

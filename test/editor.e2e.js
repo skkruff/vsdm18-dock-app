@@ -29,6 +29,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.goto(`http://localhost:${h.port}/`);
     await page.waitForSelector(`${slot(0)} img`);
     assert.match(await page.textContent('#simStatus'), /MSFS connected/);
+    await page.waitForSelector('.tab.active .ondock', { timeout: 5000 }); // after the first status poll
     assert.match(await page.textContent('.tab.active'), /on dock/, 'the page on the dock is marked');
 
     // Edit a label and save: the file changes and the engine reloads it.
@@ -98,6 +99,67 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.strictEqual(face.layers[2].y, 26, 'dragged up 20 px on the 2x preview = 10 key units');
     assert.ok((await page.getAttribute(`${slot(3)} img`, 'src')).includes('BARO'), 'the dock picture uses the face');
 
+    // Regression (user report): after saving, further edits to the open face must still save.
+    await page.fill('#inspector .layer.active textarea', 'BARO 2');
+    await save();
+    assert.strictEqual(file().pages[1].keys['3'].face.layers[2].text, 'BARO 2', 'edit after save is kept');
+
+    // A second live value on the same key, from its own simvar picked in the catalog.
+    await page.click('#inspector button:has-text("+ Live value")');
+    await page.click('#inspector .layer.active label:has-text("its own source") input');
+    await page.click('#inspector .layer.active button:has-text("Browse…")');
+    await page.fill('dialog.browse .dialog-head input', 'nav1 active');
+    await page.click('dialog.browse .browse-row:has-text("NAV ACTIVE FREQUENCY:1") button:has-text("Test")');
+    await page.waitForSelector('dialog.browse .browse-row:has-text("NAV ACTIVE FREQUENCY:1") .test-out:has-text("110.5")');
+    await page.click('dialog.browse .browse-row:has-text("NAV ACTIVE FREQUENCY:1") .mono');
+    await save();
+    const nav = file().pages[1].keys['3'].face.layers[3];
+    assert.deepStrictEqual(nav.read, { var: 'NAV ACTIVE FREQUENCY:1', unit: 'MHz' });
+    assert.strictEqual(nav.decimals, 2, 'catalog suggests the format');
+    await sleep(300);
+    assert.ok(h.engine.watches.has('var:NAV ACTIVE FREQUENCY:1|MHz') || h.engine.page.name !== 'Auxiliary', 'engine watches the layer source when that page shows');
+
+    // A face for one value: the BAT switch dragged in earlier gets its own look when on.
+    await page.click(slot(14));
+    page.prompts = ['1'];
+    await page.click('#inspector button:has-text("+ face for a value")');
+    await page.click('#inspector button:has-text("+ Text")');
+    await page.fill('#inspector .layer.active textarea', 'BATT ON');
+    await save();
+    const bat = file().pages[1].keys['14'];
+    assert.ok(bat.valueFaces && bat.valueFaces['1'].layers.some(l => l.text === 'BATT ON'), 'face stored for value 1');
+    assert.ok(!bat.face, 'default stays automatic');
+
+    // Learn when two controls change at once: the editor asks which.
+    await page.click(slot(6));
+    page.prompts = [];
+    const learning = page.click('#inspector button:has-text("Learn")');
+    await learning;
+    await sleep(200);
+    h.sim.input('FUEL_PUMP_1', 1);
+    h.sim.input('LIGHTING_BEACON_1', 0);
+    await page.waitForSelector('dialog.browse:has-text("changed")', { timeout: 5000 });
+    await page.click('dialog.browse .browse-row:has-text("FUEL_PUMP_1")');
+    await save();
+    assert.deepStrictEqual(file().pages[1].keys['6'].read, { input: 'FUEL_PUMP_1' }, 'picked from the candidates');
+
+    // Events: browse the catalog and fire one.
+    await page.click(slot(2));
+    await page.click('#inspector button:has-text("Browse…") >> nth=-1');
+    await page.fill('dialog.browse .dialog-head input', 'altimeter weather');
+    await page.click('dialog.browse .browse-row:has-text("BAROMETRIC") button:has-text("Send")');
+    await sleep(200);
+    assert.deepStrictEqual(h.sim.sent.pop(), { event: 'BAROMETRIC', value: 0 });
+    await page.click('dialog.browse .browse-row:has-text("BAROMETRIC") .mono');
+    await save();
+    assert.strictEqual(file().pages[1].keys['2'].press.event, 'BAROMETRIC');
+
+    // Look: the font is a global setting.
+    await page.click('#lookPanel summary');
+    await page.selectOption('#lookFont', 'Oswald Bold');
+    await sleep(500);
+    assert.strictEqual(JSON.parse(fs.readFileSync(path.join(path.dirname(h.dir), 'settings.json'), 'utf8')).font, 'Oswald Bold');
+
     // Copy and paste a key.
     await page.click(slot(3));
     await page.keyboard.press('Control+c');
@@ -130,7 +192,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.deepStrictEqual(file().pages[1].keys['8'].read, { input: 'LIGHTING_TAXI_1' });
 
     assert.deepStrictEqual(errors, [], 'no page errors');
-    console.log('editor e2e: PASS (edit+save+reload, drag swap, library save/insert/drag, face designer, copy/paste, learn, validation)');
+    console.log('editor e2e: PASS (edit+save+reload, drag swap, library, face designer incl. per-value faces and extra live values, save regression, learn candidates, catalogs, look, copy/paste, validation)');
   } catch (e) {
     console.error('editor e2e: FAIL', e);
     await page.screenshot({ path: path.join(__dirname, '..', 'editor-e2e-failure.png'), fullPage: true });

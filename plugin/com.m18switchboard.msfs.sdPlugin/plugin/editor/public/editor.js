@@ -97,23 +97,24 @@ async function openFile(file) {
   renderAll();
 }
 
-// Drops empty optional tables the inspector creates while editing.
-function cleaned(profile) {
-  const p = clone(profile);
+// Drops empty optional tables the inspector creates while editing. Works in place: the open
+// inspector holds references into the profile, and replacing it with a copy made later edits
+// go to the copy nobody saves (user report 2026-10-28: a face layer stopped taking edits).
+function clean(p) {
   for (const pg of p.pages || []) {
     for (const key of Object.values(pg.keys || {})) {
       for (const m of ['text', 'valueIcons']) {
         if (key[m]) for (const [k, v] of Object.entries(key[m])) if (v === '') delete key[m][k];
         if (key[m] && !Object.keys(key[m]).length) delete key[m];
       }
+      if (key.valueFaces && !Object.keys(key.valueFaces).length) delete key.valueFaces;
     }
   }
-  return p;
 }
 
 async function save() {
   try {
-    S.profile = cleaned(S.profile);
+    clean(S.profile);
     await api('PUT', `/api/profiles/${encodeURIComponent(S.file)}`, S.profile);
     setDirty(false);
     status('Saved. The dock picks it up within a second.', 'good');
@@ -132,7 +133,9 @@ async function loadFilesQuiet() {
 
 async function pollState() {
   try {
-    S.sim = await api('GET', '/api/state');
+    bindLook();
+  await loadLook();
+  S.sim = await api('GET', '/api/state');
     const a = S.sim.aircraft || {};
     $('#simStatus').innerHTML = '';
     $('#simStatus').append(
@@ -275,12 +278,9 @@ async function renderGrid() {
   const k = keys();
   const live = isLivePage();
   const values = {};
-  for (const slot of Object.keys(k)) {
-    const typed = S.previewValues[`${S.page}:${slot}`];
-    values[slot] = typed !== undefined && typed !== '' ? typed : live ? S.live.values[slot] : defaultPreview(k[slot]);
-  }
+  for (const slot of Object.keys(k)) values[slot] = previewValueFor(k[slot], slot);
   $('#liveNote').textContent = live ? 'Showing live values from the sim.' : '';
-  const { images } = await api('POST', '/api/render', { keys: k, values });
+  const { images } = await api('POST', '/api/render', { keys: k, values, sources: previewSources() });
   if (seq !== renderSeq) return;
   showImages(images);
 }
@@ -610,21 +610,14 @@ function renderInspector() {
 
   // Source
   box.append(el('h4', {}, 'Reads from the sim'));
-  const kind = !key.read ? 'none' : key.read.input !== undefined ? 'input' : 'var';
-  box.append(field('Source', select_([['none', 'Nothing'], ['input', 'Input event'], ['var', 'Simvar']], kind, v => {
-    if (v === 'none') delete key.read;
-    else if (v === 'input') key.read = { input: '' };
-    else key.read = { var: '', unit: 'number' };
-    redraw();
-  })));
-  if (kind === 'input') {
-    const inp = input(key.read.input, v => { key.read.input = v; changed(); }, { list: 'inputList', placeholder: 'e.g. ELECTRICAL_BATTERY_1' });
-    box.append(field('Input event', el('div', { class: 'inline' }, inp,
-      el('button', { title: 'Then move the control in the cockpit', on: { click: () => learnInto(inp, v => { key.read.input = v; redraw(); }) } }, 'Learn'))));
-  } else if (kind === 'var') {
-    box.append(field('Simvar', input(key.read.var, v => { key.read.var = v; changed(); }, { placeholder: 'e.g. KOHLSMAN SETTING MB:1' })));
-    box.append(field('Unit', input(key.read.unit, v => { key.read.unit = v; changed(); }, { list: 'unitList' })));
-  }
+  box.append(sourceEditor(key.read, r => {
+    if (r) key.read = r; else delete key.read;
+    // A simvar chosen from the catalog brings a sensible number format for an unformatted readout.
+    if (r && r.hint && key.type === 'readout') {
+      for (const k of ['decimals', 'pad', 'format']) if (r.hint[k] !== undefined && key[k] === undefined) key[k] = r.hint[k];
+    }
+    if (r) delete r.hint;
+  }, { allowNone: true }));
 
   // Look per value
   if (key.type === 'switch') {
@@ -646,6 +639,7 @@ function renderInspector() {
   if (key.type === 'readout') {
     box.append(field('Decimals', input(key.decimals, v => { if (v === '') delete key.decimals; else key.decimals = Number(v); changed(); }, { type: 'number', min: 0, max: 6 })));
     box.append(field('Pad to digits', input(key.pad, v => { if (v === '') delete key.pad; else key.pad = Number(v); changed(); }, { type: 'number', min: 0, max: 8 }), 'e.g. 4 shows 7 as 0007'));
+    box.append(field('Show as', select_([['', 'Number'], ['time', 'Time HH:MM (from seconds)']], key.format || '', v => { if (v) key.format = v; else delete key.format; changed(); })));
   }
 
   // Press
@@ -673,18 +667,25 @@ function renderInspector() {
   }
   if (pkind === 'set') box.append(field('Value', input(p.set, v => setP('set', num(v)), { type: 'number' })));
   if (pkind === 'event') {
-    box.append(field('Event', input(p.event, v => { key.press.event = v; changed(); }, { placeholder: 'e.g. BAROMETRIC' })));
+    const evInput = input(p.event, v => { key.press.event = v; changed(); }, { placeholder: 'e.g. BAROMETRIC' });
+    box.append(field('Event', el('div', { class: 'inline' }, evInput,
+      el('button', { on: { click: () => browse('events', choice => { key.press.event = choice.name; if (choice.value !== undefined) key.press.value = choice.value; redraw(); }) } }, 'Browse…'),
+      el('button', { title: 'Send it to the sim now, to see what it does', on: { click: async () => {
+        try { await api('POST', '/api/send-event', { event: key.press.event, value: key.press.value }); status(`Sent ${key.press.event}`, 'good'); } catch (e) { status(e.message, 'bad'); }
+      } } }, 'Send now'))));
     box.append(field('Value', input(p.value, v => setP('value', num(v)), { type: 'number' })));
     box.append(field('Send 1/0 opposite of current', el('input', { type: 'checkbox', checked: p.toggleValue ? true : null, on: { change: e => setP('toggleValue', e.target.checked || undefined) } })));
   }
   if (['cycle', 'step', 'hold', 'set'].includes(pkind)) {
-    box.append(field('Acts on', input(p.input, v => setP('input', v || undefined), { list: 'inputList', placeholder: key.read && key.read.input ? `(same as source: ${key.read.input})` : 'input event' })));
+    const actsOn = input(p.input, v => setP('input', v || undefined), { list: 'inputList', placeholder: key.read && key.read.input ? `(same as source: ${key.read.input})` : 'input event' });
+    box.append(field('Acts on', el('div', { class: 'inline' }, actsOn,
+      el('button', { on: { click: () => browse('inputs', c => { setP('input', c.name); renderInspector(); }) } }, 'Browse…'))));
   }
 
   // Preview value
   box.append(el('h4', {}, 'Preview'));
   const pvKey = `${S.page}:${slot}`;
-  box.append(field('Preview value', input(S.previewValues[pvKey], v => { S.previewValues[pvKey] = v; renderGrid(); }, { placeholder: isLivePage() ? 'live from sim' : `default: ${defaultPreview(key) ?? 'unknown'}` }),
+  box.append(field('Preview value', input(S.previewValues[pvKey], v => { S.previewValues[pvKey] = v; renderGrid(); renderInspector(); }, { placeholder: isLivePage() ? 'live from sim' : `default: ${defaultPreview(key) ?? 'unknown'}` }),
     'Try values to see each look. Empty = live value (when this page is on the dock) or a default.'));
 
   // Raw JSON
@@ -698,13 +699,22 @@ function renderInspector() {
     el('button', { on: { click: deleteSel } }, 'Delete this key')));
 }
 
+// Learn: the user moves a control; everything that changed in the next moment comes back. One
+// candidate is taken directly; several are listed to choose from (user, 2026-10-28: be sure the
+// right one is picked when several inputs fire).
 async function learnInto(inputEl, apply) {
   status('Learning: move the control in the cockpit now (30 s)…');
   inputEl.disabled = true;
   try {
-    const { name, value } = await api('POST', '/api/learn');
-    apply(name);
-    status(`Learned ${name} (now ${value})`, 'good');
+    const { candidates } = await api('POST', '/api/learn');
+    if (candidates.length === 1) {
+      apply(candidates[0].name);
+      status(`Learned ${candidates[0].name} (now ${candidates[0].value})`, 'good');
+    } else {
+      chooseFrom(`${candidates.length} controls changed. Which one is it?`,
+        candidates.map(c => ({ name: c.name, detail: `now ${c.value}${c.changes > 1 ? `, changed ${c.changes} times` : ''}` })),
+        c => { apply(c.name); status(`Chose ${c.name}`, 'good'); });
+    }
   } catch (e) {
     status(`Learn failed: ${e.message}`, 'bad');
   } finally {
@@ -712,53 +722,213 @@ async function learnInto(inputEl, apply) {
   }
 }
 
+// Editor for a sim source: { input } or { var, unit }. onChange(newRead | null).
+function sourceEditor(read, onChange, { allowNone = false } = {}) {
+  const box = el('div', { class: 'source' });
+  const kind = !read ? 'none' : read.input !== undefined ? 'input' : 'var';
+  const set = r => { onChange(r); changed(); renderInspector(); };
+  const kinds = [['input', 'Input event (cockpit control)'], ['var', 'Simvar (sim value)']];
+  box.append(field('Source', select_(allowNone ? [['none', 'Nothing'], ...kinds] : kinds, kind, v => {
+    set(v === 'none' ? null : v === 'input' ? { input: '' } : { var: '', unit: 'number' });
+  })));
+  if (kind === 'input') {
+    const inp = input(read.input, v => { read.input = v; changed(); }, { list: 'inputList', placeholder: 'e.g. ELECTRICAL_BATTERY_1' });
+    box.append(field('Input event', el('div', { class: 'inline' }, inp,
+      el('button', { title: 'Click, then move the control in the cockpit', on: { click: () => learnInto(inp, v => set({ input: v })) } }, 'Learn'),
+      el('button', { title: 'Search this aircraft\'s input events, with their current values', on: { click: () => browse('inputs', c => set({ input: c.name })) } }, 'Browse…'))));
+  } else if (kind === 'var') {
+    const testOut = el('span', { class: 'muted' });
+    box.append(field('Simvar', el('div', { class: 'inline' },
+      input(read.var, v => { read.var = v; changed(); }, { placeholder: 'e.g. NAV ACTIVE FREQUENCY:1' }),
+      el('button', { title: 'Search common simvars', on: { click: () => browse('simvars', c => set({ var: c.name, unit: c.unit, hint: c })) } }, 'Browse…'))));
+    box.append(field('Unit', el('div', { class: 'inline' },
+      input(read.unit, v => { read.unit = v; changed(); }, { list: 'unitList' }),
+      el('button', { title: 'Read it from the sim once', on: { click: async () => {
+        testOut.textContent = 'reading…';
+        try { testOut.textContent = `= ${(await api('POST', '/api/test-var', { var: read.var, unit: read.unit })).value}`; } catch (e) { testOut.textContent = e.message; }
+      } } }, 'Test'), testOut)));
+  }
+  return box;
+}
+
+// ---------- browse dialog: input events, simvars, events ----------
+
+function chooseFrom(title, rows, onPick) {
+  const dlg = el('dialog', { class: 'browse' });
+  const close = () => { dlg.close(); dlg.remove(); };
+  dlg.append(el('div', { class: 'dialog-head' }, el('strong', {}, title), el('span', { class: 'spacer' }), el('button', { on: { click: close } }, 'Close')),
+    el('div', { class: 'browse-list' }, rows.map(r => el('div', { class: 'browse-row', on: { click: () => { close(); onPick(r); } } },
+      el('span', { class: 'mono' }, r.name), el('span', { class: 'muted' }, r.detail || '')))));
+  document.body.append(dlg);
+  dlg.showModal();
+}
+
+const browseCache = {};
+async function browse(what, onPick) {
+  const titles = { inputs: 'Input events of the loaded aircraft', simvars: 'Common simvars', events: 'Common sim events' };
+  const dlg = el('dialog', { class: 'browse' });
+  const close = () => { dlg.close(); dlg.remove(); };
+  const search = el('input', { placeholder: what === 'inputs' ? 'Search (e.g. LIGHTING, FUEL, AVIONICS)' : 'Search by name, description or category (e.g. NAV1, heading, fuel)' });
+  const list = el('div', { class: 'browse-list' }, el('p', { class: 'muted' }, 'Loading…'));
+  const custom = el('div', { class: 'browse-custom' });
+  dlg.append(el('div', { class: 'dialog-head' }, el('strong', {}, titles[what]), search, el('button', { on: { click: close } }, 'Close')), custom, list);
+  document.body.append(dlg);
+  dlg.showModal();
+  search.focus();
+
+  let rows = [];
+  try {
+    if (what === 'inputs') {
+      list.innerHTML = '';
+      list.append(el('p', { class: 'muted' }, 'Reading current values from the sim…'));
+      const r = await api('GET', '/api/input-values');
+      if (!r.connected) { list.innerHTML = ''; list.append(el('p', { class: 'muted' }, 'MSFS is not connected.')); return; }
+      rows = r.inputs.map(i => ({ name: i.name, detail: i.value === null ? '' : `now ${i.value}`, search: i.name }));
+      custom.append(el('p', { class: 'muted' }, `${rows.length} input events in ${r.aircraft || 'this aircraft'}. Values are as of opening this list; reopen to refresh, or use Learn.`));
+    } else {
+      browseCache[what] = browseCache[what] || await api('GET', `/api/catalog/${what}`);
+      rows = browseCache[what].map(c => ({ ...c, detail: `${c.desc}${c.unit ? ` · ${c.unit}` : ''}`, search: `${c.name} ${c.desc} ${c.cat}` }));
+      const name = el('input', { placeholder: what === 'simvars' ? 'or type any simvar name (also L:vars)' : 'or type any event name' });
+      const unit = what === 'simvars' ? el('input', { placeholder: 'unit', list: 'unitList', value: 'number', style: 'width:120px' }) : null;
+      custom.append(el('div', { class: 'inline' }, name, unit, el('button', { on: { click: () => {
+        if (!name.value.trim()) return;
+        close();
+        onPick({ name: name.value.trim().toUpperCase().replace(/^L:/, 'L:'), unit: unit ? unit.value : undefined });
+      } } }, 'Use')),
+      el('p', { class: 'muted' }, what === 'simvars'
+        ? 'Names from the MSFS SDK. Use Test to check one gives a value in this aircraft. Third-party aircraft often use their own L:vars instead.'
+        : 'Names from the MSFS SDK. "Send" fires it in the sim right away, so you can see what it does.'));
+    }
+  } catch (e) {
+    list.innerHTML = '';
+    list.append(el('p', { class: 'muted' }, e.message));
+    return;
+  }
+
+  const draw = () => {
+    const q = search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const shown = rows.filter(r => q.every(w => r.search.toLowerCase().includes(w)));
+    list.innerHTML = '';
+    let cat = null;
+    for (const r of shown.slice(0, 300)) {
+      if (r.cat && r.cat !== cat) { cat = r.cat; list.append(el('div', { class: 'browse-cat' }, cat)); }
+      const out = el('span', { class: 'test-out' });
+      const actions = [];
+      if (what === 'simvars') {
+        actions.push(el('button', { on: { click: async e => {
+          e.stopPropagation();
+          out.textContent = '…';
+          try { out.textContent = `= ${(await api('POST', '/api/test-var', { var: r.name, unit: r.unit })).value}`; } catch (err) { out.textContent = 'no value'; }
+        } } }, 'Test'));
+      }
+      if (what === 'events') {
+        actions.push(el('button', { on: { click: async e => {
+          e.stopPropagation();
+          try { await api('POST', '/api/send-event', { event: r.name, value: r.value || 0 }); out.textContent = 'sent'; } catch (err) { out.textContent = err.message; }
+        } } }, 'Send'));
+      }
+      list.append(el('div', { class: 'browse-row', on: { click: () => { close(); onPick(r); } } },
+        el('span', { class: 'mono' }, r.name), el('span', { class: 'muted' }, r.detail), el('span', { class: 'spacer' }), out, ...actions));
+    }
+    if (!shown.length) list.append(el('p', { class: 'muted' }, 'Nothing matches.'));
+    if (shown.length > 300) list.append(el('p', { class: 'muted' }, `${shown.length - 300} more: narrow the search.`));
+  };
+  search.addEventListener('input', draw);
+  draw();
+}
+
 // ---------- face designer ----------
 
-const COLORS = { label: '#ffffff', dim: '#9aa0a8', value: '#ffd040' };
+// Default colours shown in the colour pickers; layers without their own colour follow the global
+// look (Look panel), so changing it there restyles every key.
+const COLORS = () => ({ label: lookValue('label', '#ffffff'), value: lookValue('readout', '#4fc3f7') });
 
 // A starting face that looks like the key's automatic look, ready to adjust.
 function defaultFace(key) {
   const label = key.label || '';
   if (key.type === 'readout') {
     return key.icon
-      ? { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 4, w: 132, h: 72 }, { kind: 'value', x: 72, y: 110, size: 40, color: COLORS.value }] }
-      : { layers: [{ kind: 'text', text: label, x: 72, y: 32, size: 20, color: COLORS.dim }, { kind: 'value', x: 72, y: 88, size: 40, color: COLORS.value }] };
+      ? { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: 70 }, { kind: 'value', x: 72, y: 108, size: 42 }] }
+      : { layers: [{ kind: 'text', text: label, x: 72, y: 34, size: 22, color: '#9aa0a8' }, { kind: 'value', x: 72, y: 92, size: 46 }] };
   }
   if (key.type === 'switch') {
     return key.icon
       ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }] }
-      : { layers: [{ kind: 'text', text: label, x: 72, y: 50, size: 26, color: COLORS.label }, { kind: 'bar', x: 30, y: 100, w: 84, h: 22 }] };
+      : { layers: [{ kind: 'text', text: label, x: 72, y: 46, size: 30 }, { kind: 'bar' }] };
   }
   return key.icon
     ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }] }
-    : { layers: [{ kind: 'text', text: label, x: 72, y: 72, size: 30, color: COLORS.label }] };
+    : { layers: [{ kind: 'text', text: label, x: 72, y: 72, size: 34 }] };
 }
 
 const NEW_LAYER = {
-  icon: () => ({ kind: 'icon', crop: 'auto', x: 6, y: 4, w: 132, h: 72 }),
-  text: () => ({ kind: 'text', text: 'TEXT', x: 72, y: 36, size: 24, color: COLORS.label }),
-  value: () => ({ kind: 'value', x: 72, y: 104, size: 40, color: COLORS.value }),
-  bar: () => ({ kind: 'bar', x: 30, y: 118, w: 84, h: 16 }),
+  icon: () => ({ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: 70 }),
+  text: () => ({ kind: 'text', text: 'TEXT', x: 72, y: 36, size: 26 }),
+  value: () => ({ kind: 'value', x: 72, y: 104, size: 40 }),
+  bar: () => ({ kind: 'bar' }),
   rect: () => ({ kind: 'rect', x: 0, y: 0, w: 144, h: 40, color: '#1e2a3a' }),
 };
 const LAYER_NAMES = { icon: 'Icon', text: 'Text', value: 'Live value', bar: 'State bar', rect: 'Box' };
 
 let faceLayer = 0; // which layer dragging on the preview moves
+let faceTarget = 'default'; // which face is being edited: 'default' or a sim value
+let faceTargetKey = null; // the key faceTarget belongs to
+let editingValue = null; // value to preview while editing a per-value face
+
+// The value a key's preview shows: typed in the inspector, live from the dock, or a default.
+function previewValueFor(key, slot) {
+  const pv = S.previewValues[`${S.page}:${slot}`];
+  if (pv !== undefined && pv !== '') return pv;
+  return isLivePage() ? S.live.values[slot] : defaultPreview(key);
+}
+
+// Values of other sources (value layers with their own source), live when available.
+function previewSources() {
+  return S.live && S.live.sources ? S.live.sources : {};
+}
 
 function faceDesigner(key, slot) {
   const box = el('div', { class: 'face' });
-  if (!key.face) {
-    box.append(el('p', { class: 'muted' }, 'This key uses the automatic look. Design your own to place a library icon, the live value, your own text and a state bar exactly where you want.'),
+  if (faceTargetKey !== key) { faceTargetKey = key; faceTarget = 'default'; faceLayer = 0; }
+  const valueFaces = key.valueFaces || {};
+  if (faceTarget !== 'default' && !valueFaces[faceTarget]) faceTarget = 'default';
+  editingValue = faceTarget === 'default' ? null : faceTarget;
+
+  // Which face: the default one, or one per sim value (e.g. a different look for each magneto
+  // position). Values without their own face use the default.
+  const tabs = el('div', { class: 'face-tabs' },
+    el('button', { class: faceTarget === 'default' ? 'active' : '', on: { click: () => { faceTarget = 'default'; faceLayer = 0; renderInspector(); } } },
+      key.face ? 'Default face' : 'Default (automatic)'),
+    ...Object.keys(valueFaces).map(v => el('button', { class: faceTarget === v ? 'active' : '', on: { click: () => { faceTarget = v; faceLayer = 0; renderInspector(); } } },
+      `value ${v}${key.text && key.text[v] ? ` (${key.text[v]})` : ''}`)),
+    el('button', { title: 'Design a separate face shown when the sim value is this', on: { click: () => {
+      const v = prompt('Face for which sim value? (e.g. 0, 1, 3)', String(Object.keys(key.states || key.text || {})[0] ?? '0'));
+      if (v === null || v.trim() === '') return;
+      key.valueFaces = key.valueFaces || {};
+      key.valueFaces[v.trim()] = clone(key.face || defaultFace(key));
+      faceTarget = v.trim();
+      faceLayer = 0;
+      changed(); renderInspector();
+    } } }, '+ face for a value'));
+  box.append(tabs);
+
+  const face = faceTarget === 'default' ? key.face : valueFaces[faceTarget];
+  if (!face) {
+    box.append(el('p', { class: 'muted' }, 'This key uses the automatic look. Design your own to place a library icon, live values, your own text and a state bar exactly where you want.'),
       el('button', { on: { click: () => { key.face = defaultFace(key); faceLayer = 0; changed(); renderInspector(); } } }, 'Design a custom face'));
     return box;
   }
-  const face = key.face;
+  if (faceTarget !== 'default') box.append(el('p', { class: 'muted' }, `Shown while the sim value is ${faceTarget}. The preview shows that value.`));
+
   const preview = el('img', { class: 'face-preview', alt: 'face preview', draggable: 'false' });
+  // Only the newest request may update the picture: answers can arrive out of order while a
+  // colour or position is being dragged.
+  let seq = 0;
   const refresh = async () => {
-    const pv = S.previewValues[`${S.page}:${slot}`];
-    const value = pv !== undefined && pv !== '' ? pv : isLivePage() ? S.live.values[slot] : defaultPreview(key);
-    const { images } = await api('POST', '/api/render', { keys: { 0: key }, values: { 0: value } });
-    preview.src = images[0];
+    const mine = ++seq;
+    const value = editingValue !== null ? editingValue : previewValueFor(key, slot);
+    const { images } = await api('POST', '/api/render', { keys: { 0: key }, values: { 0: value }, sources: previewSources() });
+    if (mine === seq) preview.src = images[0];
   };
   const update = () => { changed(); refresh(); };
 
@@ -768,7 +938,8 @@ function faceDesigner(key, slot) {
     const L = face.layers[faceLayer];
     if (!L) return;
     preview.setPointerCapture(e.pointerId);
-    drag = { x: e.clientX, y: e.clientY, lx: Number(L.x) || 0, ly: Number(L.y) || 0, L };
+    const defaults = L.kind === 'bar' ? S.look.style.bar : { x: 0, y: 0 };
+    drag = { x: e.clientX, y: e.clientY, lx: Number(L.x ?? defaults.x) || 0, ly: Number(L.y ?? defaults.y) || 0, L };
   });
   preview.addEventListener('pointermove', e => {
     if (!drag) return;
@@ -780,7 +951,7 @@ function faceDesigner(key, slot) {
   preview.addEventListener('pointerup', () => { if (drag) { drag = null; changed(); renderInspector(); } });
 
   box.append(el('div', { class: 'face-top' }, preview, el('div', {},
-    el('p', { class: 'muted' }, 'Drag on the picture to move the selected layer. Coordinates are in key units (0-144); text and values are centred on x, y.'),
+    el('p', { class: 'muted' }, 'Drag on the picture to move the selected layer. Positions are in key units (0-144); text and values are centred on x, y.'),
     field('Background', el('input', { type: 'color', value: face.background || '#000000', on: { input: e => { face.background = e.target.value; update(); } } })),
     el('div', { class: 'inline' }, ...Object.keys(NEW_LAYER).map(k => el('button', { on: { click: () => {
       face.layers.push(NEW_LAYER[k]());
@@ -789,8 +960,13 @@ function faceDesigner(key, slot) {
     } } }, `+ ${LAYER_NAMES[k]}`))))));
 
   face.layers.forEach((L, i) => {
-    const n = (k, label, attrs = {}) => el('label', { class: 'mini' }, label, input(L[k], v => { if (v === '') delete L[k]; else L[k] = Number(v); update(); }, { type: 'number', ...attrs }));
-    const color = (k, d) => el('label', { class: 'mini' }, 'colour', el('input', { type: 'color', value: L[k] || d, on: { input: e => { L[k] = e.target.value; update(); } } }));
+    const n = (k, label, attrs = {}) => el('label', { class: 'mini' }, label,
+      input(L[k] ?? (L.kind === 'bar' ? S.look.style.bar[k] : ''), v => { if (v === '') delete L[k]; else L[k] = Number(v); update(); }, { type: 'number', ...attrs }));
+    // Colour: empty follows the global look; "reset" goes back to it.
+    const color = (k, d) => el('label', { class: 'mini' }, L[k] ? 'colour' : 'colour (look)',
+      el('span', { class: 'inline' },
+        el('input', { type: 'color', value: L[k] || d, on: { input: e => { L[k] = e.target.value; update(); } } }),
+        L[k] ? el('button', { title: 'Use the global look colour', on: { click: () => { delete L[k]; changed(); renderInspector(); } } }, '↺') : null));
     const fields = [];
     if (L.kind === 'icon') {
       fields.push(el('span', { class: 'icon-chip' }, iconThumb(L.icon || (key.icon && (key.type === 'switch' ? `${key.icon}_on` : key.icon))),
@@ -800,11 +976,21 @@ function faceDesigner(key, slot) {
       n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'));
     } else if (L.kind === 'text') {
       fields.push(el('label', { class: 'mini wide' }, 'text', el('textarea', { rows: 1, on: { input: e => { L.text = e.target.value; update(); } } }, L.text || '')),
-        n('x', 'x'), n('y', 'y'), n('size', 'size'), n('w', 'max width'), color('color', COLORS.label));
+        n('x', 'x'), n('y', 'y'), n('size', 'size'), n('w', 'max width'), color('color', COLORS().label));
     } else if (L.kind === 'value') {
-      fields.push(n('x', 'x'), n('y', 'y'), n('size', 'size'), n('w', 'max width'), color('color', COLORS.value));
+      fields.push(n('x', 'x'), n('y', 'y'), n('size', 'size'), n('w', 'max width'), color('color', COLORS().value),
+        n('decimals', 'decimals', { min: 0, max: 6 }), n('pad', 'pad', { min: 0, max: 8 }),
+        el('label', { class: 'mini' }, 'show as', select_([['', 'number'], ['time', 'HH:MM']], L.format || '', v => { if (v) L.format = v; else delete L.format; update(); })));
+      // Each value layer can show its own source, so one key can show several live values.
+      const own = !!L.read;
+      const srcBox = el('div', { class: 'layer-source' },
+        el('label', { class: 'row' }, el('input', { type: 'radio', name: `vsrc${i}`, checked: own ? null : true, on: { change: () => { delete L.read; changed(); renderInspector(); } } }), ' the key\'s value'),
+        el('label', { class: 'row' }, el('input', { type: 'radio', name: `vsrc${i}`, checked: own ? true : null, on: { change: () => { L.read = { var: '', unit: 'number' }; changed(); renderInspector(); } } }), ' its own source'));
+      if (own) srcBox.append(sourceEditor(L.read, r => { L.read = r; if (r && r.hint) { for (const k of ['decimals', 'pad', 'format']) if (r.hint[k] !== undefined && L[k] === undefined) L[k] = r.hint[k]; delete r.hint; } }));
+      fields.push(srcBox);
     } else if (L.kind === 'bar') {
-      fields.push(n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'));
+      fields.push(n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'), n('r', 'corner'),
+        el('span', { class: 'muted' }, 'Empty fields use the bar measured from your icons.'));
     } else if (L.kind === 'rect') {
       fields.push(n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'), n('r', 'corner'), color('color', '#1e2a3a'));
     }
@@ -822,14 +1008,24 @@ function faceDesigner(key, slot) {
     el('div', { class: 'layer-head' },
       el('input', { type: 'radio', name: 'faceLayer', checked: i === faceLayer ? true : null, title: 'Drag moves this layer', on: { change: () => { faceLayer = i; renderInspector(); } } }),
       el('strong', {}, LAYER_NAMES[L.kind] || L.kind),
-      el('span', { class: 'muted' }, L.kind === 'bar' ? ' green / red / outline by state' : L.kind === 'value' ? ' formatted as set below' : ''),
+      el('span', { class: 'muted' }, L.kind === 'bar' ? ' green / red / outline by state' : L.kind === 'value' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' the key\'s value') : ''),
       el('span', { class: 'spacer' }),
       el('button', { title: 'Draw earlier (behind)', on: { click: () => move(-1) } }, '↑'),
       el('button', { title: 'Draw later (in front)', on: { click: () => move(1) } }, '↓'),
       el('button', { title: 'Remove layer', on: { click: () => { face.layers.splice(i, 1); faceLayer = Math.max(0, faceLayer - 1); changed(); renderInspector(); } } }, '✕')),
     el('div', { class: 'layer-fields' }, fields)));
   });
-  box.append(el('button', { on: { click: () => { if (!confirm('Go back to the automatic look?')) return; delete key.face; changed(); renderInspector(); } } }, 'Remove custom face'));
+  box.append(el('button', { on: { click: () => {
+    if (faceTarget === 'default') {
+      if (!confirm('Go back to the automatic look?')) return;
+      delete key.face;
+    } else {
+      if (!confirm(`Remove the face for value ${faceTarget}?`)) return;
+      delete key.valueFaces[faceTarget];
+      faceTarget = 'default';
+    }
+    changed(); renderInspector();
+  } } }, faceTarget === 'default' ? 'Remove custom face' : `Remove face for value ${faceTarget}`));
   refresh();
   return box;
 }
@@ -865,6 +1061,57 @@ function drawIcons() {
       el('img', { src: `/icons/${encodeURIComponent(n.thumb)}.png`, loading: 'lazy', alt: '' }), el('span', {}, n.name)));
   }
   if (!names.length) grid.append(el('p', { class: 'muted' }, 'No icons match.'));
+}
+
+// ---------- look (font and colours) ----------
+
+function lookValue(k, d) {
+  return (S.look && S.look.style && S.look.style[k]) || d;
+}
+
+const LOOK_FIELDS = { readout: '#lookReadout', label: '#lookLabel', dim: '#lookDim', on: '#lookOn', off: '#lookOff' };
+const SAMPLE_KEYS = {
+  0: { type: 'switch', label: 'FUEL\nPUMP', read: { input: 'X' }, states: { 0: 'off', 1: 'on' } },
+  1: { type: 'switch', label: 'AVN\nBUS 1', read: { input: 'X' }, states: { 0: 'off', 1: 'on' } },
+  2: { type: 'switch', label: 'STBY\nBATT', read: { input: 'X' }, states: { 0: 'off', 1: 'on' } },
+  3: { type: 'readout', label: 'COM1', read: { var: 'X', unit: 'MHz' }, decimals: 3 },
+  4: { type: 'button', label: '◀ MAG' },
+};
+
+async function loadLook() {
+  S.look = await api('GET', '/api/settings');
+  const font = $('#lookFont');
+  font.innerHTML = '';
+  for (const f of S.look.fonts) font.append(el('option', { value: f, selected: f === S.look.style.font ? true : null }, f));
+  for (const [k, sel] of Object.entries(LOOK_FIELDS)) $(sel).value = S.look.style[k];
+  const m = S.look.measured;
+  $('#lookMeasured').textContent = m.barSource
+    ? `Measured from your icons: bar from ${m.barSource}${m.readoutSource ? `, readout colour from ${m.readoutSource}` : ''}.`
+    : 'Could not measure your icons (icon folder not found?); using built-in defaults.';
+  const { images } = await api('POST', '/api/render', { keys: SAMPLE_KEYS, values: { 0: 1, 1: 0, 2: undefined, 3: 124.85 } });
+  const box = $('#lookSamples');
+  box.innerHTML = '';
+  for (const i of Object.keys(SAMPLE_KEYS)) box.append(el('img', { src: images[i], alt: '' }));
+}
+
+async function saveLook(change) {
+  const settings = { ...S.look.settings, ...change };
+  for (const [k, v] of Object.entries(settings)) if (v === null) delete settings[k];
+  await api('PUT', '/api/settings', settings);
+  await loadLook();
+  renderGrid();
+  loadLibrary();
+}
+
+function bindLook() {
+  $('#lookFont').addEventListener('change', e => saveLook({ font: e.target.value }));
+  let t = null;
+  for (const [k, sel] of Object.entries(LOOK_FIELDS)) {
+    $(sel).addEventListener('input', e => { clearTimeout(t); t = setTimeout(() => saveLook({ [k]: e.target.value }), 250); });
+  }
+  for (const b of document.querySelectorAll('#lookPanel [data-reset]')) {
+    b.addEventListener('click', e => { e.preventDefault(); saveLook({ [b.dataset.reset]: null }); });
+  }
 }
 
 // ---------- profiles: new / duplicate / delete ----------
@@ -938,6 +1185,8 @@ async function init() {
   });
   window.addEventListener('beforeunload', e => { if (S.dirty) { e.preventDefault(); e.returnValue = ''; } });
 
+  bindLook();
+  await loadLook();
   S.sim = await api('GET', '/api/state');
   $('#folderNote').textContent = `Profiles are saved in ${S.sim.profilesDir}`;
   S.icons = await api('GET', '/api/icons');

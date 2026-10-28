@@ -15,6 +15,11 @@ never touches this folder: shipped profiles are copied in only when you don't ha
 - **Profile settings**: ID, name, the two announcement lines shown when the aircraft loads, and
   what the profile matches. "Use the aircraft loaded now" fills in the aircraft's folder name.
   "Preview announcement" shows it on the dock picture.
+- **Look**: the font of all drawn text (7 bundled condensed fonts; text is drawn as shapes, so it
+  looks the same in the editor and on the dock) and the colours of readouts, labels and the state
+  bar. Bar size, corners and colours, and the readout colour, are measured from your icons at
+  start-up (`master_battery` on/off/clear, `set_altimeter`); ↺ goes back to the measured value.
+  Saved in `settings.json` next to the profiles folder.
 - **Pages**: tabs (the first is the main page; "● on dock" marks the page the dock shows), add,
   rename, reorder, delete, and "Show on dock".
 - **Dock picture**: drawn by the plugin itself, so it looks exactly like the dock. If the page is
@@ -24,15 +29,25 @@ never touches this folder: shipped profiles are copied in only when you don't ha
 - **Inspector** (right): everything about the selected key.
   - Type: switch (on/off look), readout (live value), button.
   - Label and icon (picker shows your library; switch icons use their on/off/clear versions).
-  - Source: an input event (with **Learn**: click it, then move the control in the cockpit) or a
-    simvar and unit.
+  - Source: an input event or a simvar and unit.
+    - **Learn**: click it, then move the control in the cockpit. If several controls change at
+      once, you choose which one from the list.
+    - **Browse…** (input events): every input event of the loaded aircraft with its current value,
+      searchable.
+    - **Browse…** (simvars): about 120 common simvars by category with descriptions and units,
+      searchable ("nav1", "fuel", "heading"); **Test** reads one from the sim to check this
+      aircraft has it. Any other name (also L:vars) can be typed in.
+  - Sim events for presses: **Browse…** lists about 80 common events; **Send** fires one now so
+    you can see what it does.
   - Look per value (switch), text per value, icon per value (e.g. the magneto icons).
   - Decimals / padding for readouts.
   - When pressed: toggle/cycle, step (with min/max), hold (with release value and repeat for
     spring-loaded positions), set, or a sim event.
   - **Face (optional)**: design the key's look yourself from layers drawn in order: a library
-    icon (cropped to its content or whole, fitted into a box you place), your own text, the live
-    value, a state bar (green / red / outline) and coloured boxes. Drag on the big preview to move
+    icon (cropped to its content or whole, fitted into a box you place), your own text, live
+    values (the key's own, or each from its own source), a state bar (green / red / outline) and
+    coloured boxes. "+ face for a value" adds a separate face shown for one sim value (e.g. per
+    switch position). Drag on the big preview to move
     the selected layer, or type positions (key units 0-144). Use it to put a PNG above a readout,
     or make a clean text-only key when the library has no suitable PNG. "Remove custom face" goes
     back to the automatic look.

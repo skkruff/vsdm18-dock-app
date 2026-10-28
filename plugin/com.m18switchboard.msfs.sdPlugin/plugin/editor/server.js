@@ -5,10 +5,14 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { parseName } = require('../icons');
+const { sourceKey, keySources } = require('../engine');
+const { FONTS, style } = require('../render');
 
 const PUBLIC = path.join(__dirname, 'public');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
 const LEARN_TIMEOUT_MS = 30000;
+const LEARN_WINDOW_MS = 1500; // after the first change, keep collecting for this long
+const CATALOG = path.join(__dirname, '..', '..', 'catalog');
 
 function send(res, status, body, type = 'application/json; charset=utf-8') {
   res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store' });
@@ -30,7 +34,7 @@ function readBody(req, limit = 4 * 1024 * 1024) {
   });
 }
 
-function createEditorServer({ store, engine, sim, icons, config, openOnDock, log = () => {} }) {
+function createEditorServer({ store, engine, sim, icons, config, look = {}, applyLook = () => {}, log = () => {} }) {
   // Every icon name in the library for the configured theme, without the theme suffix:
   // { name: 'magneto_off', base: 'magneto', state: 'off' }
   function iconList() {
@@ -43,19 +47,61 @@ function createEditorServer({ store, engine, sim, icons, config, openOnDock, log
     return out.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  // Waits for the first input event that changes while the user works the cockpit.
+  // Waits for input events to change while the user works the cockpit. Everything that changes
+  // within LEARN_WINDOW_MS of the first change is returned, so the user can pick the right one
+  // when one switch moves several things: [{ name, value, changes }], first change first.
   async function learn() {
     if (!sim.connected) throw new Error('MSFS is not connected');
     const events = sim.inputs && sim.inputs.size ? [...sim.inputs.keys()] : (await sim.listInputEvents()).map(e => e.name);
     return new Promise((resolve, reject) => {
+      const seen = new Map();
       let unsub = null;
+      let windowTimer = null;
       const timer = setTimeout(() => { if (unsub) unsub(); reject(new Error('nothing changed within 30 s')); }, LEARN_TIMEOUT_MS);
       unsub = sim.subscribeInput(events, (name, value) => {
+        const s = seen.get(name) || { name, value, changes: 0 };
+        s.value = value;
+        s.changes++;
+        seen.set(name, s);
+        if (windowTimer) return;
         clearTimeout(timer);
-        unsub();
-        resolve({ name, value });
+        windowTimer = setTimeout(() => { unsub(); resolve({ candidates: [...seen.values()] }); }, LEARN_WINDOW_MS);
       });
     });
+  }
+
+  // One-off reads for previews of sources the dock is not watching, cached for a few seconds.
+  const previewCache = new Map(); // sourceKey -> { value, at }
+  async function readForPreview(src) {
+    const k = sourceKey(src);
+    const hit = previewCache.get(k);
+    if (hit && Date.now() - hit.at < 3000) return hit.value;
+    let value;
+    try {
+      if (src.input) value = await sim.getInput(src.input, 800);
+      else {
+        const type = src.unit === 'bool' ? 'bool' : src.unit === 'string' ? 'string' : 'number';
+        value = await sim.read({ name: src.var, unit: type === 'string' ? null : src.unit, type }, 800);
+        if (typeof value === 'boolean') value = Number(value);
+      }
+    } catch (e) { value = undefined; }
+    previewCache.set(k, { value, at: Date.now() });
+    return value;
+  }
+
+  function catalog(name) {
+    try { return JSON.parse(fs.readFileSync(path.join(CATALOG, `${name}.json`), 'utf8')); } catch (e) { return []; }
+  }
+
+  // Current values of the aircraft's input events, read one by one.
+  async function inputValues(names) {
+    const out = [];
+    for (const name of names) {
+      let value;
+      try { value = await sim.getInput(name, 1500); } catch (e) { value = null; }
+      out.push({ name, value });
+    }
+    return out;
   }
 
   const routes = [
@@ -81,14 +127,61 @@ function createEditorServer({ store, engine, sim, icons, config, openOnDock, log
       if (!sim.inputs || !sim.inputs.size) await sim.listInputEvents();
       return { connected: true, inputs: [...sim.inputs.keys()].sort() };
     }],
+    // The same list with current values (takes a few seconds for a big aircraft).
+    ['GET', /^\/api\/input-values$/, async () => {
+      if (!sim.connected) return { connected: false, inputs: [] };
+      if (!sim.inputs || !sim.inputs.size) await sim.listInputEvents();
+      return { connected: true, aircraft: sim.aircraft && sim.aircraft.title, inputs: await inputValues([...sim.inputs.keys()].sort()) };
+    }],
+    ['GET', /^\/api\/catalog\/(simvars|events)$/, (m) => catalog(m[1])],
+    // Reads a simvar once, to check it exists and gives sensible values in this aircraft.
+    ['POST', /^\/api\/test-var$/, async (m, req) => {
+      const { var: name, unit } = await readBody(req);
+      if (!sim.connected) throw new Error('MSFS is not connected');
+      const type = unit === 'bool' ? 'bool' : unit === 'string' ? 'string' : 'number';
+      try {
+        return { value: await sim.read({ name, unit: type === 'string' ? null : unit, type }) };
+      } catch (e) {
+        throw new Error(`no value for ${name} (${unit}): not a simvar this aircraft has, or the wrong unit`);
+      }
+    }],
+    ['POST', /^\/api\/send-event$/, async (m, req) => {
+      const { event, value = 0 } = await readBody(req);
+      if (!sim.connected) throw new Error('MSFS is not connected');
+      sim.send({ event, value: Number(value) || 0 });
+      return { ok: true };
+    }],
+    ['POST', /^\/api\/test-input$/, async (m, req) => {
+      const { name } = await readBody(req);
+      return { value: await sim.getInput(name) };
+    }],
+    // Look: the font and colours of drawn keys.
+    ['GET', /^\/api\/settings$/, () => ({ settings: store.readSettings(), fonts: Object.keys(FONTS), measured: look.measured || {}, style })],
+    ['PUT', /^\/api\/settings$/, async (m, req) => {
+      const s = await readBody(req);
+      store.writeSettings(s);
+      applyLook(s);
+      return { ok: true };
+    }],
     ['POST', /^\/api\/learn$/, () => learn()],
     // Previews: { keys: { slot: keyDef }, values: { slot: value } } -> { images: { slot: uri } }
     ['POST', /^\/api\/render$/, async (m, req) => {
-      const { keys = {}, values = {} } = await readBody(req);
+      const { keys = {}, values = {}, sources = {} } = await readBody(req);
+      const parse = v => (v === '' || v === undefined || v === null ? undefined : (isNaN(Number(v)) ? v : Number(v)));
+      // Value layers with their own source: live from the dock if watched, else read once.
+      const extra = {};
+      if (sim.connected) {
+        for (const key of Object.values(keys)) {
+          for (const src of keySources(key).slice(key.read ? 1 : 0)) {
+            const k = sourceKey(src);
+            if (sources[k] === undefined && extra[k] === undefined && (src.input || src.var)) extra[k] = await readForPreview(src);
+          }
+        }
+      }
+      const valueOf = src => parse(sources[sourceKey(src)] ?? extra[sourceKey(src)]);
       const images = {};
       for (const [slot, key] of Object.entries(keys)) {
-        const v = values[slot];
-        images[slot] = engine.keyImage(key, v === '' || v === undefined ? undefined : (isNaN(Number(v)) ? v : Number(v)));
+        images[slot] = engine.keyImage(key, parse(values[slot]), null, valueOf);
       }
       return { images };
     }],
@@ -96,6 +189,7 @@ function createEditorServer({ store, engine, sim, icons, config, openOnDock, log
     // Live values of the page currently on the dock.
     ['GET', /^\/api\/live$/, () => ({
       profile: engine.profile ? engine.profile.id : null, pageIndex: engine.pageIndex, values: engine.liveValues(),
+      sources: engine.liveSources(),
     })],
     // Shows a page on the dock, if that profile is the one in use.
     ['POST', /^\/api\/show$/, async (m, req) => {

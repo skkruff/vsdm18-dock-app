@@ -1,29 +1,20 @@
-# Editor and presentation test (Windows PC)
+# Editor test, round 3 (Windows PC)
 
 Install as before: download the ZIP, `npm run setup`, quit VSD Craft, `npm run deploy`, start
-VSD Craft. Your config.json is kept.
+VSD Craft. Your profiles, library and settings in Documents are kept.
 
-On first start the plugin copies the C172 and generic profiles and a Magneto set preset to
-`Documents\MSFS Switchboard\`. From now on the dock uses those copies; edit them with the editor.
-
-1. **Not connected screen** (MSFS closed): MSFS / NOT CONNECTED large across the panel, logo in
-   the centre key. Readable?
-2. **Aircraft load**: load the C172. The panel shows C172 / G1000 with the logo for 2.5 s, then
-   the main page. No "Main" announcement, no loading flash.
-3. **Switch aircraft** (C172 -> Caravan -> C172): each change shows one announcement for the right
-   aircraft, nothing in between. The log shows one `aircraft` line per change with the right path.
-4. **Magnetos**: the MAGS key shows your magneto icons for OFF / R / L / BOTH / START.
-5. **QNH key**: the set altimeter icon sits above the value without overlap.
-6. **Editor**: hold the middle round button for 1.5 s (or open http://localhost:8765/).
-   - The dock picture matches the dock, with live values on the page the dock shows.
-   - Click a key, change something (label, icon, layout by dragging), Save: the dock updates.
-   - Try Learn: click Learn on a key's source, then flip a switch in the cockpit.
-   - Library: search it, drag the Magneto set onto another page, save one of your own keys to it.
-   - Face designer: on the QNH key, "Design a custom face", then move the icon and value around,
-     add your own text. Also try a text-only key on an empty slot (Add a key, Button, design a face).
-   - Try a new profile for the Caravan (New, then "Use the aircraft loaded now" under Profile
-     settings), built from library keys.
-7. Tell me what feels wrong or missing in the editor. It's a first version.
-
-If the editor page doesn't open: check the plugin log for an `editor` line (it shows the address,
-or why it didn't start, e.g. the port is in use).
+1. **Text position**: compare a key in the editor with the dock. Readout values and labels should
+   now sit in the same place on both (no bleeding off the top).
+2. **Font**: open the editor's **Look** panel and try the fonts against your PNG keys on the dock.
+   The change applies to the dock straight away. Default is Oswald Bold.
+3. **Bars and colours**: drawn keys (AVN BUS, STBY BATT, FUEL PUMP if drawn) should now have bars the
+   same size, shape and colour as your PNG keys; readouts in the sky blue of SET ALTIMETER. The Look
+   panel says what was measured; adjust colours there if needed.
+4. **Faces per value**: on a key with values (e.g. MAGS), "+ face for a value" and design one.
+5. **Several values on a key**: in a face, "+ Live value", "its own source", Browse… a simvar (try
+   "nav1" for NAV ACTIVE FREQUENCY:1), Test it, choose it.
+6. **Browse input events**: on a key's source, Browse… shows the aircraft's input events with
+   values. Learn: flip a switch; if several things change, you're asked which.
+7. **Events**: on a press action "Send a sim event", Browse… and Send to try one.
+8. The two face designer glitches you saw (edits stopped taking; pixelated text): tell me if
+   either comes back.

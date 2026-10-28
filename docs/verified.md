@@ -54,6 +54,11 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   work: asking the sim for the path right after a title change returns the *old* path (log
   10:50:46, 10:50:59). Fixed by ignoring a path equal to the one in use at the title change until a
   different one arrives; unit tested with the exact sequence.
+- 2026-10-28, dock (user photo + editor screenshot): the editor works on the user's PC (profiles,
+  library, face designer, preview). Mismatch found: on the dock, text sits about half a line higher
+  than in the preview. Cause (inferred): VSD Craft's SVG renderer ignores `dominant-baseline`, which
+  browsers honour. Fixed by drawing all text as outlines from a bundled font (same shapes
+  everywhere); to recheck on the dock. Embedded `<image>` and `clipPath` do render on the dock.
 - 2026-10-28, unit + browser tests only: editor (`test/editor.e2e.js` against a fake sim). Not yet
   run on the user's PC. Unverified there: Documents folder location (OneDrive may redirect it),
   port 8765 free, `openUrl` from the round button.

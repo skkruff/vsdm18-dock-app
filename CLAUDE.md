@@ -9,7 +9,10 @@ Phases 0, 1 and 2 done and tested by the user (2026-10-28). The editor (approved
 2026-10-28, despite the brief listing a settings GUI as out of scope) is built: `docs/editor.md`.
 Profiles now live in the user's Documents folder. The editor has a key library (every shipped
 key and group, plus anything the user saves) and an optional face designer per key (user asks,
-2026-10-28). Awaiting the user's test (`docs/editor-test.md`). Next after that: keypad entry for XPDR / COM standby.
+2026-10-28). Round 3 (2026-10-28): text as font outlines (fixes dock/preview mismatch), look
+measured from icons + Look panel, faces per value, value layers with their own source, Browse
+dialogs (input events with values, simvar/event catalogs with Test/Send), Learn with candidates,
+save-in-place bug fix. Awaiting the user's test (`docs/editor-test.md`). Next after that: keypad entry for XPDR / COM standby.
 
 ## Profile content principles (user, 2026-10-27)
 
@@ -38,6 +41,11 @@ data folder is still `%APPDATA%\HotSpot\StreamDock`.
   - `plugin/render.js`: key images (library icons or generated SVG tiles).
   - `plugin/icons.js`: icon library lookup (naming scheme in `docs/icons.md`).
   - `plugin/png.js`: minimal PNG reader (finds an icon's content box for cropping).
+  - `plugin/theme.js`: measures the user's icons (state bar geometry and colours, accent colour)
+    so drawn keys match them.
+  - `fonts/`: bundled OFL fonts; text on keys is drawn as outlines with opentype.js (VSD Craft's
+    SVG renderer ignores text features browsers support). `catalog/`: common simvars and events
+    for the editor's Browse dialogs.
   - `plugin/store.js`: the user's profile folder (seed, read, write, watch) and presets.
   - `plugin/editor/server.js` + `editor/public/`: the editor (local web page, port 8765).
   - `plugin/sim/simconnect.js`: sim layer, `SimBackend` implemented on node-simconnect.

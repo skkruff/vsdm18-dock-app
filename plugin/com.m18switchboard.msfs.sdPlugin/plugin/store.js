@@ -14,6 +14,7 @@ class ProfileStore {
     this.bundledDir = bundledDir;
     this.libraryFile = path.join(path.dirname(dir), 'library.json');
     this.oldPresetsFile = path.join(path.dirname(dir), 'presets.json'); // before the library
+    this.settingsFile = path.join(path.dirname(dir), 'settings.json'); // look: font, colours
     this.log = log;
     this.watcher = null;
   }
@@ -103,6 +104,15 @@ class ProfileStore {
     const tmp = `${this.libraryFile}.tmp`;
     fs.writeFileSync(tmp, JSON.stringify(lib, null, 2) + '\n');
     fs.renameSync(tmp, this.libraryFile);
+  }
+
+  // Look settings chosen in the editor: { font, readout, label, ... } overriding the measured style.
+  readSettings() {
+    try { return JSON.parse(fs.readFileSync(this.settingsFile, 'utf8')); } catch { return {}; }
+  }
+
+  writeSettings(s) {
+    fs.writeFileSync(this.settingsFile, JSON.stringify(s, null, 2) + '\n');
   }
 
   // Calls onChange (debounced) whenever a profile file changes, from the editor or by hand.

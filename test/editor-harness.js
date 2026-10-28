@@ -8,7 +8,8 @@ const path = require('path');
 const pluginDir = path.join(__dirname, '..', 'plugin', 'com.m18switchboard.msfs.sdPlugin', 'plugin');
 const { ProfileEngine } = require(path.join(pluginDir, 'engine'));
 const { ProfileStore } = require(path.join(pluginDir, 'store'));
-const { Renderer } = require(path.join(pluginDir, 'render'));
+const { Renderer, setStyle, DEFAULT_STYLE } = require(path.join(pluginDir, 'render'));
+const { measure } = require(path.join(pluginDir, 'theme'));
 const { IconLibrary } = require(path.join(pluginDir, 'icons'));
 const { createEditorServer } = require(path.join(pluginDir, 'editor', 'server'));
 const { FakeSim } = require('./fake-sim');
@@ -34,7 +35,11 @@ async function startHarness({ iconDir = '', port = 0, profilesDir } = {}) {
   sim.emit('aircraft', sim.aircraft);
   store.watch(() => engine.setProfiles(store.load().profiles), 100);
   const timer = setInterval(() => sim.input('LIGHTING_TAXI_1', sim.inputValues.LIGHTING_TAXI_1 ? 0 : 1), 4000);
-  const server = createEditorServer({ store, engine, sim, icons, config: { theme: 'RGB', iconDir } });
+  sim.simvars = { 'NAV ACTIVE FREQUENCY:1': 110.5, 'COM ACTIVE FREQUENCY:1': 124.85, 'KOHLSMAN SETTING MB:1': 1013.2 };
+  const look = { measured: measure(icons) };
+  const applyLook = s => { setStyle({ ...DEFAULT_STYLE, ...look.measured, ...s }); engine.redrawAll(); };
+  applyLook(store.readSettings());
+  const server = createEditorServer({ store, engine, sim, icons, config: { theme: 'RGB', iconDir }, look, applyLook });
   const actualPort = await server.listen(port);
   return { port: actualPort, dir, sim, engine, store, close: () => { clearInterval(timer); server.close(); if (store.watcher) store.watcher.close(); } };
 }

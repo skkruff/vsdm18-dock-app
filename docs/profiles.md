@@ -49,6 +49,9 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
   `{ "3": "magneto_both" }`. Values not listed fall back to the normal look.
 - **icon on a readout**: the icon's visible content is found automatically, scaled into the top
   of the key, and the value drawn below it.
+- **valueFaces** (any type): sim value to a face (below), e.g. a different look per magneto
+  position. Wins over valueIcons and the key's face for that value.
+- **format**: `"time"` shows seconds since midnight (LOCAL TIME, ZULU TIME) as HH:MM.
 - **face** (any type, optional): a custom look replacing the automatic one (valueIcons still win
   when they match). `{ "background": "#000000", "layers": [...] }`, layers drawn in order, in key
   units (144 x 144):
@@ -56,10 +59,15 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
     icon fitted into the box. Without `icon`, the key's own icon (its on/off/clear version on
     switches). `auto` crops to the icon's visible content.
   - `{ "kind": "text", "text", "x", "y", "size", "color", "w" }`: centred on x, y; shrinks to fit w.
-  - `{ "kind": "value", "x", "y", "size", "color", "w" }`: the live value, formatted as the key says.
-  - `{ "kind": "bar", "x", "y", "w", "h" }`: green / red / outline by state.
+  - `{ "kind": "value", "x", "y", "size", "color", "w", "decimals", "pad", "format", "read" }`: a
+    live value. Without `read`, the key's own value (formatted as the key says unless the layer
+    sets decimals/pad/format); with `read` (`{ "input" }` or `{ "var", "unit" }`), its own source,
+    so one key can show several values.
+  - `{ "kind": "bar", "x", "y", "w", "h", "r" }`: green / red / outline by state; missing fields use
+    the bar measured from the user's icons.
   - `{ "kind": "rect", "x", "y", "w", "h", "r", "color" }`: a filled box.
-  A text-only key with no sim source is a `button` with a face.
+  Layers without a `color` follow the global look (editor Look panel). A text-only key with no
+  sim source is a `button` with a face.
 
 ## Sources (`read`)
 

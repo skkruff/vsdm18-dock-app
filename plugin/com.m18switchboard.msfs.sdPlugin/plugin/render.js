@@ -1,11 +1,52 @@
 // Key images. Library icons where the profile names one and the file exists; otherwise generated
-// SVG tiles styled like the library's RGB icons (black key, label, red/green/outlined state bar).
+// SVG tiles styled to match the library's RGB icons.
+//
+// Text is drawn as outlines from a bundled font (fonts/*.woff, via opentype.js), not as SVG
+// <text>: VSD Craft's renderer ignores SVG text features browsers support (it drew text half a line
+// high, user report 2026-10-28), and outlines look identical everywhere, with no font installed.
+const path = require('path');
+const opentype = require('opentype.js');
 const { contentBox } = require('./png');
 
-const STATE_COLORS = { on: '#b8f01c', off: '#f0204c' };
-const LABEL = '#ffffff';
-const DIM = '#9aa0a8';
-const READOUT = '#ffd040';
+const FONT_DIR = path.join(__dirname, '..', 'fonts');
+const FONTS = {
+  'Bebas Neue': 'bebas-neue-latin-400-normal.woff',
+  'Oswald SemiBold': 'oswald-latin-600-normal.woff',
+  'Oswald Bold': 'oswald-latin-700-normal.woff',
+  'Barlow Condensed SemiBold': 'barlow-condensed-latin-600-normal.woff',
+  'Barlow Condensed Bold': 'barlow-condensed-latin-700-normal.woff',
+  'Roboto Condensed Bold': 'roboto-condensed-latin-700-normal.woff',
+  Anton: 'anton-latin-400-normal.woff',
+};
+const DEFAULT_FONT = 'Oswald Bold';
+
+// The look of generated tiles. Colours and bar geometry are replaced by values measured from the
+// user's icons when available (theme.js), so drawn keys sit next to library keys without a seam.
+const DEFAULT_STYLE = {
+  font: DEFAULT_FONT,
+  label: '#ffffff',
+  dim: '#9aa0a8',
+  readout: '#4fc3f7',
+  on: '#b8f01c',
+  off: '#f0204c',
+  clearStroke: '#8a8f98',
+  clearWidth: 3,
+  bar: { x: 34, y: 96, w: 76, h: 20, r: 5 },
+};
+const style = { ...DEFAULT_STYLE, bar: { ...DEFAULT_STYLE.bar } };
+
+function setStyle(s) {
+  Object.assign(style, s, { bar: { ...style.bar, ...(s.bar || {}) } });
+}
+
+const fontCache = new Map();
+function font(name = style.font) {
+  const file = FONTS[name] || FONTS[DEFAULT_FONT];
+  if (!fontCache.has(file)) {
+    try { fontCache.set(file, opentype.loadSync(path.join(FONT_DIR, file))); } catch (e) { fontCache.set(file, null); }
+  }
+  return fontCache.get(file);
+}
 
 function num(v, d) {
   const n = Number(v);
@@ -16,111 +57,161 @@ function esc(s) {
   return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
-// viewBox lets one large drawing be cut into per-key pieces (see tiles.banner).
+// viewBox lets one large drawing be cut into per-key pieces (see tiles.scene).
 function svgUri(body, bg = '#000000', viewBox = '0 0 144 144') {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ` +
-    `width="144" height="144" viewBox="${viewBox}"><rect x="-1000" y="-1000" width="3000" height="3000" fill="${bg}"/>` +
+    `width="144" height="144" viewBox="${viewBox}"><rect x="-1000" y="-1000" width="3000" height="3000" fill="${esc(bg)}"/>` +
     `${body}</svg>`;
   return 'data:image/svg+xml;charset=utf8,' + encodeURIComponent(svg);
 }
 
-// Centred lines of text around (x, y), shrinking the font so the longest line fits width.
-// charsPerEm: roughly how many characters fit per font-size unit of width (lower for capitals).
-function lines(text, y, { size = 26, color = LABEL, weight = 'bold', x = 72, width = 130, charsPerEm = 1.75 } = {}) {
+// Arrows the condensed fonts lack, drawn as shapes in a box `cap` high: [width, points].
+const SHAPES = {
+  '◀': [0.8, [[0.8, 0], [0, 0.5], [0.8, 1]]],
+  '▶': [0.8, [[0, 0], [0.8, 0.5], [0, 1]]],
+  '▲': [0.9, [[0, 1], [0.45, 0], [0.9, 1]]],
+  '▼': [0.9, [[0, 0], [0.45, 1], [0.9, 0]]],
+};
+const SHAPE_GAP = 0.25; // space after a shape, in cap heights
+
+// A line laid out as runs of font text and drawn shapes: { width, draw(x0, baseline) -> path data }.
+function layout(f, line, size, cap) {
+  const parts = [];
+  let run = '';
+  for (const ch of line) {
+    if (SHAPES[ch] && f.charToGlyphIndex(ch) === 0) {
+      if (run) { parts.push({ text: run }); run = ''; }
+      parts.push({ shape: SHAPES[ch] });
+    } else run += ch;
+  }
+  if (run) parts.push({ text: run });
+  const h = cap * size;
+  const widthOf = p => (p.text ? f.getAdvanceWidth(p.text, size) : (p.shape[0] + SHAPE_GAP) * h);
+  return {
+    width: parts.reduce((s, p) => s + widthOf(p), 0),
+    draw(x0, base) {
+      let x = x0;
+      let d = '';
+      for (const p of parts) {
+        if (p.text) d += f.getPath(p.text, x, base, size).toPathData(1);
+        else d += `M${p.shape[1].map(([px, py]) => `${(x + px * h).toFixed(1)} ${(base - h + py * h).toFixed(1)}`).join('L')}Z`;
+        x += widthOf(p);
+      }
+      return d;
+    },
+  };
+}
+
+// Lines of text centred on (x, y) at up to `size`, shrunk so the widest line fits `width`.
+// Capital letters are centred vertically, so a line sits where its y says on every renderer.
+function lines(text, y, { size = 26, color = style.label, x = 72, width = 130 } = {}) {
   const ls = String(text).split('\n');
-  const longest = Math.max(...ls.map(l => l.length));
-  const fit = Math.min(size, Math.floor((width * charsPerEm) / Math.max(longest, 1)));
-  const step = fit * 1.1;
+  const f = font();
+  if (!f) return fallbackLines(ls, y, size, color, x, width);
+  const cap = ((f.tables.os2 && f.tables.os2.sCapHeight) || f.unitsPerEm * 0.7) / f.unitsPerEm;
+  const widest = Math.max(1, ...ls.map(l => layout(f, l, 1000, cap).width));
+  const fit = Math.max(4, Math.min(size, (width * 1000) / widest));
+  const step = fit * (cap + 0.32);
   const y0 = y - ((ls.length - 1) * step) / 2;
-  return ls.map((l, i) =>
-    `<text x="${x}" y="${y0 + i * step}" font-family="Arial, Helvetica, sans-serif" font-weight="${weight}" ` +
-    `font-size="${fit}" fill="${color}" text-anchor="middle" dominant-baseline="middle">${esc(l)}</text>`).join('');
+  return ls.map((l, i) => {
+    const lay = layout(f, l, fit, cap);
+    const d = lay.draw(x - lay.width / 2, y0 + i * step + (cap * fit) / 2);
+    // aria-label keeps the words readable in the SVG (tests, debugging); renderers ignore it.
+    return d ? `<path aria-label="${esc(l)}" d="${d}" fill="${esc(color)}"/>` : '';
+  }).join('');
+}
+
+// Without a font file: SVG text, positioned by baseline only (no dominant-baseline, which VSD
+// Craft ignores).
+function fallbackLines(ls, y, size, color, x, width) {
+  const longest = Math.max(...ls.map(l => l.length), 1);
+  const fit = Math.min(size, (width * 1.75) / longest);
+  const step = fit * 1.05;
+  const y0 = y - ((ls.length - 1) * step) / 2;
+  return ls.map((l, i) => `<text x="${x}" y="${(y0 + i * step + fit * 0.35).toFixed(1)}" font-family="Arial" font-weight="bold" ` +
+    `font-size="${fit.toFixed(1)}" fill="${esc(color)}" text-anchor="middle">${esc(l)}</text>`).join('');
 }
 
 // The 15 LCD keys as one canvas that includes the physical gaps between keys (about a quarter of
 // a key wide on the M18), so text crossing a gap keeps its shape and only loses the hidden part.
 const PANEL = { cols: 5, rows: 3, key: 144, gap: 36 };
 
-function bar(state) {
-  const fill = STATE_COLORS[state];
-  return fill
-    ? `<rect x="30" y="100" width="84" height="22" rx="6" fill="${fill}"/>`
-    : `<rect x="31" y="101" width="82" height="20" rx="6" fill="none" stroke="${DIM}" stroke-width="3"/>`;
+function bar(state, b = style.bar) {
+  const fill = style[state === 'on' ? 'on' : state === 'off' ? 'off' : null];
+  if (fill) return `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.r}" fill="${fill}"/>`;
+  const sw = style.clearWidth;
+  return `<rect x="${b.x + sw / 2}" y="${b.y + sw / 2}" width="${b.w - sw}" height="${b.h - sw}" rx="${Math.max(0, b.r - sw / 2)}" ` +
+    `fill="none" stroke="${style.clearStroke}" stroke-width="${sw}"/>`;
+}
+
+// Fits an icon (box: its content box, or null for the whole image) into an area, clipped to it.
+function placedIcon(uri, box, area, id, crop = 'auto') {
+  const full = { x: 0, y: 0, w: box ? box.width : 512, h: box ? box.height : 512 };
+  const b = crop === 'full' || !box ? full : box;
+  const s = Math.min(area.w / b.w, area.h / b.h);
+  const ix = area.x + (area.w - b.w * s) / 2 - b.x * s;
+  const iy = area.y + (area.h - b.h * s) / 2 - b.y * s;
+  return `<defs><clipPath id="${id}"><rect x="${area.x}" y="${area.y}" width="${area.w}" height="${area.h}"/></clipPath></defs>` +
+    `<image href="${uri}" xlink:href="${uri}" x="${ix.toFixed(1)}" y="${iy.toFixed(1)}" ` +
+    `width="${(full.w * s).toFixed(1)}" height="${(full.h * s).toFixed(1)}" clip-path="url(#${id})"/>`;
 }
 
 const tiles = {
   // state: on | off | clear (unknown). stateText: optional word under the label, e.g. ARM.
   switch(label, state, stateText) {
-    return svgUri(lines(label, stateText ? 38 : 50) + (stateText ? lines(stateText, 80, { size: 18, color: DIM }) : '') + bar(state));
+    const top = style.bar.y;
+    const labelY = stateText ? top * 0.36 : top * 0.48;
+    return svgUri(lines(label, labelY, { size: stateText ? 26 : 30, width: 128 }) +
+      (stateText ? lines(stateText, top * 0.82, { size: 15, color: style.dim }) : '') + bar(state));
   },
   button(label) {
-    return svgUri(lines(label, 72, { size: 30 }));
+    return svgUri(lines(label, 72, { size: 34, width: 128 }));
   },
   readout(label, value) {
-    return svgUri(lines(label, 32, { size: 20, color: DIM }) + lines(value, 88, { size: 40, color: READOUT }));
+    return svgUri(lines(label, 34, { size: 22, color: style.dim }) + lines(value, 92, { size: 46, color: style.readout, width: 132 }));
   },
-  // A library icon's content (box: its bounding box in icon pixels, from png.contentBox) scaled
-  // into the top of the key, with a live value below. Without a box the whole icon is used.
+  // A library icon's content scaled into the top of the key, with a live value below.
   iconReadout(iconUri, value, box) {
-    const area = { x: 6, y: 4, w: 132, h: 72 };
-    const b = box || { x: 0, y: 0, w: 512, h: 512, width: 512, height: 512 };
-    const s = Math.min(area.w / b.w, area.h / b.h);
-    const x = area.x + (area.w - b.w * s) / 2 - b.x * s;
-    const y = area.y + (area.h - b.h * s) / 2 - b.y * s;
-    return svgUri(
-      `<defs><clipPath id="top"><rect x="${area.x}" y="${area.y}" width="${area.w}" height="${area.h}"/></clipPath></defs>` +
-      `<image href="${iconUri}" xlink:href="${iconUri}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" ` +
-      `width="${(b.width * s).toFixed(1)}" height="${(b.height * s).toFixed(1)}" clip-path="url(#top)"/>` +
-      lines(value, 110, { size: 40, color: READOUT }));
+    return svgUri(placedIcon(iconUri, box, { x: 6, y: 6, w: 132, h: 70 }, 'top') +
+      lines(value, 108, { size: 42, color: style.readout, width: 132 }));
   },
   // A key face designed in the editor: layers drawn in order on a 144 x 144 key.
   //   { kind: 'icon', icon, crop: 'auto' | 'full', x, y, w, h }   icon fitted into the box
   //   { kind: 'text', text, x, y, size, color, w }                 centred on (x, y)
-  //   { kind: 'value', x, y, size, color, w }                      the live value, formatted
-  //   { kind: 'bar', x, y, w, h }                                  red / green / outline by state
-  //   { kind: 'rect', x, y, w, h, color }
-  // ctx: { iconFor(name) -> { uri, box } | null, value: string, state: 'on' | 'off' | 'clear' }
+  //   { kind: 'value', x, y, size, color, w, read?, decimals?, pad?, text? }
+  //                                                                a live value (the key's own, or
+  //                                                                the layer's own source)
+  //   { kind: 'bar', x, y, w, h, r }                               red / green / outline by state
+  //   { kind: 'rect', x, y, w, h, r, color }
+  // ctx: { iconFor(name) -> { uri, box } | null, valueFor(layer) -> string, state }
   face(face, ctx) {
     let body = '';
     (face.layers || []).forEach((L, n) => {
       const x = num(L.x, 0), y = num(L.y, 0), w = num(L.w, 144), h = num(L.h, 144);
       if (L.kind === 'icon') {
         const ic = ctx.iconFor(L.icon);
-        if (!ic) return;
-        const full = { x: 0, y: 0, w: ic.box ? ic.box.width : 512, h: ic.box ? ic.box.height : 512 };
-        const b = L.crop === 'full' || !ic.box ? full : ic.box;
-        const s = Math.min(w / b.w, h / b.h);
-        const ix = x + (w - b.w * s) / 2 - b.x * s;
-        const iy = y + (h - b.h * s) / 2 - b.y * s;
-        body += `<defs><clipPath id="c${n}"><rect x="${x}" y="${y}" width="${w}" height="${h}"/></clipPath></defs>` +
-          `<image href="${ic.uri}" xlink:href="${ic.uri}" x="${ix.toFixed(1)}" y="${iy.toFixed(1)}" ` +
-          `width="${(full.w * s).toFixed(1)}" height="${(full.h * s).toFixed(1)}" clip-path="url(#c${n})"/>`;
+        if (ic) body += placedIcon(ic.uri, ic.box, { x, y, w, h }, `c${n}`, L.crop);
       } else if (L.kind === 'text' || L.kind === 'value') {
-        const text = L.kind === 'value' ? ctx.value : (L.text || '');
-        body += lines(text, y, { size: num(L.size, 26), color: L.color || (L.kind === 'value' ? READOUT : LABEL), x, width: num(L.w, 136) });
+        const text = L.kind === 'value' ? ctx.valueFor(L) : (L.text || '');
+        body += lines(text, y, { size: num(L.size, 26), color: L.color || (L.kind === 'value' ? style.readout : style.label), x, width: num(L.w, 136) });
       } else if (L.kind === 'bar') {
-        const fill = STATE_COLORS[ctx.state];
-        body += fill
-          ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${fill}"/>`
-          : `<rect x="${x + 1}" y="${y + 1}" width="${w - 2}" height="${h - 2}" rx="6" fill="none" stroke="${DIM}" stroke-width="3"/>`;
+        body += bar(ctx.state, { x, y, w: num(L.w, style.bar.w), h: num(L.h, style.bar.h), r: num(L.r, style.bar.r) });
       } else if (L.kind === 'rect') {
         body += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${num(L.r, 0)}" fill="${esc(L.color || '#333333')}"/>`;
       }
     });
-    return svgUri(body, esc(face.background || '#000000'));
+    return svgUri(body, face.background || '#000000');
   },
   // One slot's piece of a scene drawn across the whole panel.
   // scene: { rows: { 0: 'MSFS', 2: 'NOT CONNECTED' }, icons: { 7: dataUri }, color }
   // Each text row is centred on its row of keys, as large as fits across the panel.
   scene(scene, slot) {
-    const { cols, rows, key, gap } = PANEL;
+    const { cols, key, gap } = PANEL;
     const pitch = key + gap;
     const w = cols * key + (cols - 1) * gap;
-    const color = scene.color || LABEL;
     let body = '';
     for (const [row, text] of Object.entries(scene.rows || {})) {
-      const fit = Math.min(scene.size || 120, Math.floor(((w - 20) * 1.45) / Math.max(String(text).length, 1)));
-      body += lines(text, Number(row) * pitch + key / 2 + fit * 0.05, { size: fit, color, x: w / 2, width: w });
+      body += lines(text, Number(row) * pitch + key / 2, { size: scene.size || 128, color: scene.color || style.label, x: w / 2, width: w - 30 });
     }
     for (const [s, uri] of Object.entries(scene.icons || {})) {
       const ix = (Number(s) % cols) * pitch;
@@ -129,13 +220,14 @@ const tiles = {
     }
     const x = (slot % cols) * pitch;
     const y = Math.floor(slot / cols) * pitch;
-    return svgUri(body, '#000000', `${x} ${y} ${key} ${key}`);
+    // The empty marker group identifies panel scenes (tests, debugging).
+    return svgUri(`<g id="scene"/>${body}`, '#000000', `${x} ${y} ${key} ${key}`);
   },
   message(text) {
-    return svgUri(lines(text, 72, { size: 22, color: DIM }));
+    return svgUri(lines(text, 72, { size: 24, color: style.dim }));
   },
   unavailable(label) {
-    return svgUri(lines(label, 50) + lines('N/A', 104, { size: 22, color: STATE_COLORS.off }));
+    return svgUri(lines(label, 50, { size: 30 }) + lines('N/A', 104, { size: 24, color: style.off }));
   },
   blank() {
     return svgUri('');
@@ -172,4 +264,4 @@ class Renderer {
   }
 }
 
-module.exports = { Renderer, tiles };
+module.exports = { Renderer, tiles, setStyle, style, DEFAULT_STYLE, FONTS };

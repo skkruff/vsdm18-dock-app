@@ -86,3 +86,15 @@ Dimmer knobs are not flight critical: put them on their own page.
   makes must be savable for reuse: the key library (shipped items + "Save to library").
 - Optional per-key face designer: compose a library PNG (e.g. a "Barometer" icon) with a live
   readout, or plain text when no suitable PNG exists. Built as face layers.
+
+## Raised 2026-10-28 (round 3)
+
+- Drawn text must match the PNG icons' lettering (shape and weight): bundled condensed fonts,
+  choosable in the Look panel; default Oswald Bold.
+- Drawn state bars must match the PNG ones out of the box (size, corners, colours): measured from
+  the user's icons.
+- Default readout colour: sky blue like the line on set_altimeter (measured), not yellow.
+- Faces per state/value; several live values (different simvars) on one key.
+- Make creating new functions practical: searchable list of the aircraft's input events (with
+  values), a way to find simvars (e.g. NAV1 frequency) without reading documentation, and a
+  Learn that copes with several inputs firing at once.

@@ -36,8 +36,8 @@ const text = uri => decodeURIComponent(uri);
   };
   const engine = new ProfileEngine({ sim, display, profiles, renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
   // Scenes span the panel: text is centred on the 864-wide canvas (5 keys + 4 gaps).
-  const announced = name => history.some(([s, svg]) => s === 0 && svg.includes(`>${name}<`) && svg.includes('x="432"'));
-  const sceneCount = name => history.filter(([s, svg]) => s === 0 && svg.includes(`>${name}<`)).length;
+  const announced = name => history.some(([s, svg]) => s === 0 && svg.includes(`aria-label="${name}"`) && svg.includes('id="scene"'));
+  const sceneCount = name => history.filter(([s, svg]) => s === 0 && svg.includes(`aria-label="${name}"`)).length;
   engine.start();
 
   // Not connected: status message in the centre, other keys dark.
@@ -48,7 +48,7 @@ const text = uri => decodeURIComponent(uri);
 
   sim.emit('connected');
   assert.match(text(images.get(7)), /viewBox/);
-  assert.ok(history.some(([, svg]) => svg.includes('>LOADING<')), 'connected, no aircraft yet: loading');
+  assert.ok(history.some(([, svg]) => svg.includes('aria-label="LOADING"')), 'connected, no aircraft yet: loading');
   const mark = history.length;
   sim.emit('aircraft', C172);
   await tick();
@@ -58,7 +58,7 @@ const text = uri => decodeURIComponent(uri);
   assert.ok(!history.slice(mark).some(([, svg]) => svg.includes('LOADING')), 'no loading flash: the aircraft scene covers the wait');
   assert.strictEqual(sceneCount('Main'), 0, 'main page not announced on aircraft load');
   await new Promise(r => setTimeout(r, 30));
-  assert.doesNotMatch(text(images.get(2)), /x="432"/, 'announcement over, keys back');
+  assert.doesNotMatch(text(images.get(2)), /id="scene"/, 'announcement over, keys back');
 
   // Keys show the sim's state.
   assert.match(text(images.get(2)), /BAT/);
@@ -113,11 +113,11 @@ const text = uri => decodeURIComponent(uri);
   assert.deepStrictEqual(sim.activeInputSubs(), ['FUEL_SELECTOR_1']);
   assert.ok(sim.varSubs.get('TRANSPONDER CODE:1').size === 1);
   sim.simvar('TRANSPONDER CODE:1', 7);
-  assert.match(text(images.get(4)), />0007</);
+  assert.match(text(images.get(4)), /aria-label="0007"/);
   sim.simvar('COM ACTIVE FREQUENCY:1', 124.655);
-  assert.match(text(images.get(0)), />124\.655</);
+  assert.match(text(images.get(0)), /aria-label="124\.655"/);
   sim.simvar('KOHLSMAN SETTING MB:1', 1013.25);
-  assert.match(text(images.get(3)), />1013</);
+  assert.match(text(images.get(3)), /aria-label="1013"/);
   engine.keyDown(3);
   assert.deepStrictEqual(sim.sent.pop(), { event: 'BAROMETRIC', value: 0 }, 'QNH key is a readout and a button');
   assert.match(text(images.get(6)), /BOTH/, 'fuel selector');
@@ -183,6 +183,20 @@ const text = uri => decodeURIComponent(uri);
   engine.keyDown(17);
   assert.strictEqual(sim.sent.length + sim.sets.length, sentBefore, 'presses ignored while offline');
   assert.strictEqual(engine.profile, null);
+
+  // Faces: per-value face wins, value layers can read their own source, time format.
+  const { keySources } = require(path.join(pluginDir, 'plugin', 'engine'));
+  const fk = {
+    type: 'readout', read: { var: 'COM ACTIVE FREQUENCY:1', unit: 'MHz' }, decimals: 3,
+    face: { layers: [{ kind: 'value', y: 40 }, { kind: 'value', y: 100, read: { var: 'NAV ACTIVE FREQUENCY:1', unit: 'MHz' }, decimals: 2 }] },
+    valueFaces: { 1: { layers: [{ kind: 'text', text: 'ONE' }] } },
+  };
+  assert.deepStrictEqual(keySources(fk).map(s => s.var), ['COM ACTIVE FREQUENCY:1', 'NAV ACTIVE FREQUENCY:1']);
+  const two = text(engine.keyImage(fk, 124.85, null, src => (src.var === 'NAV ACTIVE FREQUENCY:1' ? 110.5 : undefined)));
+  assert.match(two, /aria-label="124\.850"/);
+  assert.match(two, /aria-label="110\.50"/, 'second value from its own source');
+  assert.match(text(engine.keyImage(fk, 1)), /aria-label="ONE"/, 'face for value 1');
+  assert.strictEqual(formatValue({ format: 'time' }, 13 * 3600 + 7 * 60 + 30), '13:07');
 
   assert.strictEqual(formatValue({ decimals: 1 }, 1013.25), '1013.3');
   assert.strictEqual(formatValue({}, undefined), '---');

@@ -1,0 +1,422 @@
+[
+ {
+  "cat": "Radios",
+  "name": "COM_STBY_RADIO_SWAP",
+  "desc": "Swap COM1 active/standby"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM2_RADIO_SWAP",
+  "desc": "Swap COM2 active/standby"
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV1_RADIO_SWAP",
+  "desc": "Swap NAV1 active/standby"
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV2_RADIO_SWAP",
+  "desc": "Swap NAV2 active/standby"
+ },
+ {
+  "cat": "Radios",
+  "name": "ADF1_RADIO_SWAP",
+  "desc": "Swap ADF active/standby"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM_RADIO_WHOLE_INC",
+  "desc": "COM1 standby MHz up"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM_RADIO_WHOLE_DEC",
+  "desc": "COM1 standby MHz down"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM_RADIO_FRACT_INC",
+  "desc": "COM1 standby kHz up"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM_RADIO_FRACT_DEC",
+  "desc": "COM1 standby kHz down"
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV1_RADIO_WHOLE_INC",
+  "desc": "NAV1 standby MHz up"
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV1_RADIO_WHOLE_DEC",
+  "desc": "NAV1 standby MHz down"
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV1_RADIO_FRACT_INC",
+  "desc": "NAV1 standby kHz up"
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV1_RADIO_FRACT_DEC",
+  "desc": "NAV1 standby kHz down"
+ },
+ {
+  "cat": "Radios",
+  "name": "VOR1_OBI_INC",
+  "desc": "NAV1 course up"
+ },
+ {
+  "cat": "Radios",
+  "name": "VOR1_OBI_DEC",
+  "desc": "NAV1 course down"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM_STBY_RADIO_SET_HZ",
+  "desc": "Set COM1 standby (value in Hz, e.g. 124850000)"
+ },
+ {
+  "cat": "Radios",
+  "name": "XPNDR_SET",
+  "desc": "Set transponder code (value as BCD, e.g. 0x1200)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_MASTER",
+  "desc": "Autopilot on/off"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "TOGGLE_FLIGHT_DIRECTOR",
+  "desc": "Flight director on/off"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_HDG_HOLD",
+  "desc": "Heading mode"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_ALT_HOLD",
+  "desc": "Altitude hold"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_NAV1_HOLD",
+  "desc": "NAV mode"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_APR_HOLD",
+  "desc": "Approach mode"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_BC_HOLD",
+  "desc": "Back course mode"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_VS_HOLD",
+  "desc": "Vertical speed mode"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "FLIGHT_LEVEL_CHANGE",
+  "desc": "FLC mode"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "YAW_DAMPER_TOGGLE",
+  "desc": "Yaw damper"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "HEADING_BUG_INC",
+  "desc": "Heading bug +1"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "HEADING_BUG_DEC",
+  "desc": "Heading bug -1"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_ALT_VAR_INC",
+  "desc": "Selected altitude up"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_ALT_VAR_DEC",
+  "desc": "Selected altitude down"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_VS_VAR_INC",
+  "desc": "Selected VS up"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_VS_VAR_DEC",
+  "desc": "Selected VS down"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_SPD_VAR_INC",
+  "desc": "Selected speed up"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_SPD_VAR_DEC",
+  "desc": "Selected speed down"
+ },
+ {
+  "cat": "Instruments",
+  "name": "BAROMETRIC",
+  "desc": "Altimeter to current weather (B key)"
+ },
+ {
+  "cat": "Instruments",
+  "name": "BAROMETRIC_STD_PRESSURE",
+  "desc": "Altimeter to standard (29.92 / 1013)"
+ },
+ {
+  "cat": "Instruments",
+  "name": "KOHLSMAN_INC",
+  "desc": "Altimeter setting up"
+ },
+ {
+  "cat": "Instruments",
+  "name": "KOHLSMAN_DEC",
+  "desc": "Altimeter setting down"
+ },
+ {
+  "cat": "Lights",
+  "name": "TOGGLE_BEACON_LIGHTS",
+  "desc": "Beacon"
+ },
+ {
+  "cat": "Lights",
+  "name": "LANDING_LIGHTS_TOGGLE",
+  "desc": "Landing lights"
+ },
+ {
+  "cat": "Lights",
+  "name": "TOGGLE_TAXI_LIGHTS",
+  "desc": "Taxi lights"
+ },
+ {
+  "cat": "Lights",
+  "name": "TOGGLE_NAV_LIGHTS",
+  "desc": "Nav lights"
+ },
+ {
+  "cat": "Lights",
+  "name": "STROBES_TOGGLE",
+  "desc": "Strobes"
+ },
+ {
+  "cat": "Lights",
+  "name": "PANEL_LIGHTS_TOGGLE",
+  "desc": "Panel lights"
+ },
+ {
+  "cat": "Lights",
+  "name": "TOGGLE_RECOGNITION_LIGHTS",
+  "desc": "Recognition lights"
+ },
+ {
+  "cat": "Lights",
+  "name": "TOGGLE_WING_LIGHTS",
+  "desc": "Wing lights"
+ },
+ {
+  "cat": "Lights",
+  "name": "TOGGLE_LOGO_LIGHTS",
+  "desc": "Logo lights"
+ },
+ {
+  "cat": "Lights",
+  "name": "TOGGLE_CABIN_LIGHTS",
+  "desc": "Cabin lights"
+ },
+ {
+  "cat": "Electrical",
+  "name": "TOGGLE_MASTER_BATTERY",
+  "desc": "Battery master"
+ },
+ {
+  "cat": "Electrical",
+  "name": "TOGGLE_MASTER_ALTERNATOR",
+  "desc": "Alternator"
+ },
+ {
+  "cat": "Electrical",
+  "name": "TOGGLE_AVIONICS_MASTER",
+  "desc": "Avionics master (classic)"
+ },
+ {
+  "cat": "Electrical",
+  "name": "AVIONICS_MASTER_SET",
+  "desc": "Avionics master on (1) / off (0)"
+ },
+ {
+  "cat": "Engine",
+  "name": "MAGNETO_OFF",
+  "desc": "Magnetos off"
+ },
+ {
+  "cat": "Engine",
+  "name": "MAGNETO_RIGHT",
+  "desc": "Right magneto"
+ },
+ {
+  "cat": "Engine",
+  "name": "MAGNETO_LEFT",
+  "desc": "Left magneto"
+ },
+ {
+  "cat": "Engine",
+  "name": "MAGNETO_BOTH",
+  "desc": "Both magnetos"
+ },
+ {
+  "cat": "Engine",
+  "name": "MAGNETO_START",
+  "desc": "Starter"
+ },
+ {
+  "cat": "Engine",
+  "name": "MAGNETO_INCR",
+  "desc": "Magneto key one step right"
+ },
+ {
+  "cat": "Engine",
+  "name": "MAGNETO_DECR",
+  "desc": "Magneto key one step left"
+ },
+ {
+  "cat": "Engine",
+  "name": "TOGGLE_ELECT_FUEL_PUMP",
+  "desc": "Electric fuel pump"
+ },
+ {
+  "cat": "Engine",
+  "name": "MIXTURE_RICH",
+  "desc": "Mixture full rich"
+ },
+ {
+  "cat": "Engine",
+  "name": "MIXTURE_LEAN",
+  "desc": "Mixture idle cut-off"
+ },
+ {
+  "cat": "Engine",
+  "name": "THROTTLE_CUT",
+  "desc": "Throttle idle"
+ },
+ {
+  "cat": "Engine",
+  "name": "ENGINE_AUTO_START",
+  "desc": "Auto-start (Ctrl+E)"
+ },
+ {
+  "cat": "Engine",
+  "name": "ENGINE_AUTO_SHUTDOWN",
+  "desc": "Auto-shutdown"
+ },
+ {
+  "cat": "Controls",
+  "name": "FLAPS_INCR",
+  "desc": "Flaps one notch down"
+ },
+ {
+  "cat": "Controls",
+  "name": "FLAPS_DECR",
+  "desc": "Flaps one notch up"
+ },
+ {
+  "cat": "Controls",
+  "name": "FLAPS_UP",
+  "desc": "Flaps fully up"
+ },
+ {
+  "cat": "Controls",
+  "name": "FLAPS_DOWN",
+  "desc": "Flaps fully down"
+ },
+ {
+  "cat": "Controls",
+  "name": "GEAR_TOGGLE",
+  "desc": "Gear up/down"
+ },
+ {
+  "cat": "Controls",
+  "name": "PARKING_BRAKES",
+  "desc": "Parking brake"
+ },
+ {
+  "cat": "Controls",
+  "name": "ELEV_TRIM_UP",
+  "desc": "Elevator trim nose up"
+ },
+ {
+  "cat": "Controls",
+  "name": "ELEV_TRIM_DN",
+  "desc": "Elevator trim nose down"
+ },
+ {
+  "cat": "Controls",
+  "name": "SPOILERS_ARM_TOGGLE",
+  "desc": "Arm spoilers"
+ },
+ {
+  "cat": "Controls",
+  "name": "SPOILERS_TOGGLE",
+  "desc": "Spoilers"
+ },
+ {
+  "cat": "Anti-ice",
+  "name": "PITOT_HEAT_TOGGLE",
+  "desc": "Pitot heat"
+ },
+ {
+  "cat": "Anti-ice",
+  "name": "ANTI_ICE_TOGGLE",
+  "desc": "Engine anti-ice"
+ },
+ {
+  "cat": "Anti-ice",
+  "name": "TOGGLE_STRUCTURAL_DEICE",
+  "desc": "Airframe de-ice"
+ },
+ {
+  "cat": "Anti-ice",
+  "name": "TOGGLE_PROPELLER_DEICE",
+  "desc": "Propeller de-ice"
+ },
+ {
+  "cat": "Anti-ice",
+  "name": "WINDSHIELD_DEICE_TOGGLE",
+  "desc": "Windshield de-ice"
+ },
+ {
+  "cat": "Sim",
+  "name": "PAUSE_TOGGLE",
+  "desc": "Pause"
+ },
+ {
+  "cat": "Sim",
+  "name": "SIM_RATE_INCR",
+  "desc": "Sim rate up"
+ },
+ {
+  "cat": "Sim",
+  "name": "SIM_RATE_DECR",
+  "desc": "Sim rate down"
+ }
+]

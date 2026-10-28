@@ -18,6 +18,12 @@ function sourceKey(src) {
   return src.input ? `input:${src.input}` : `var:${src.var}|${src.unit}`;
 }
 
+function pick(o, keys) {
+  const out = {};
+  for (const k of keys) if (o[k] !== undefined && o[k] !== '') out[k] = o[k];
+  return out;
+}
+
 function normalise(v) {
   return typeof v === 'boolean' ? Number(v) : v;
 }
@@ -28,11 +34,24 @@ function lookup(map, value) {
   return map[typeof value === 'number' ? String(Math.round(value)) : String(value)];
 }
 
+// Every sim source a key uses: its own, plus value layers with their own source in its faces.
+function keySources(key) {
+  const out = key.read ? [key.read] : [];
+  const faces = [key.face, ...Object.values(key.valueFaces || {})].filter(Boolean);
+  for (const f of faces) for (const L of f.layers || []) if (L.kind === 'value' && L.read) out.push(L.read);
+  return out;
+}
+
 function formatValue(key, value) {
   if (value === undefined) return '---';
   const text = lookup(key.text, value);
   if (text !== undefined) return text;
   if (typeof value !== 'number') return String(value);
+  if (key.format === 'time') {
+    // Seconds since midnight (LOCAL TIME, ZULU TIME) as HH:MM.
+    const m = Math.floor(value / 60) % 1440;
+    return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  }
   const s = value.toFixed(key.decimals ?? 0);
   return key.pad ? s.padStart(key.pad, '0') : s;
 }
@@ -119,6 +138,13 @@ class ProfileEngine {
     this.redrawAll();
   }
 
+  // Live value of every watched source: { sourceKey: value }.
+  liveSources() {
+    const out = {};
+    for (const [k, w] of this.watches) if (w.value !== undefined) out[k] = w.value;
+    return out;
+  }
+
   // Live values of the keys on the page being shown: { slot: value }.
   liveValues() {
     const values = {};
@@ -167,7 +193,7 @@ class ProfileEngine {
   _pageSources(page) {
     const seen = new Map();
     for (const key of Object.values(page.keys || {})) {
-      if (key.read) seen.set(sourceKey(key.read), key.read);
+      for (const src of keySources(key)) seen.set(sourceKey(src), src);
     }
     return [...seen.values()];
   }
@@ -213,7 +239,7 @@ class ProfileEngine {
     const page = this.page;
     if (!page) return;
     for (const [slot, key] of Object.entries(page.keys || {})) {
-      if (key.read && sourceKey(key.read) === k) this.redraw(Number(slot));
+      if (keySources(key).some(src => sourceKey(src) === k)) this.redraw(Number(slot));
     }
   }
 
@@ -233,17 +259,22 @@ class ProfileEngine {
     const key = this.page.keys?.[slot];
     if (!key) return tiles.blank();
     const w = key.read ? this.watches.get(sourceKey(key.read)) : null;
-    return this.keyImage(key, w ? w.value : undefined, w && w.error);
+    const other = src => { const o = this.watches.get(sourceKey(src)); return o ? o.value : undefined; };
+    return this.keyImage(key, w ? w.value : undefined, w && w.error, other);
   }
 
   // Image for one key definition showing a given value. Shared with the editor's previews.
-  keyImage(key, value, error) {
+  // valueOf(src) gives the value of another source (value layers with their own source).
+  // Order: a custom face for this value, a library icon for this value, the key's custom face,
+  // then the automatic look.
+  keyImage(key, value, error, valueOf = () => undefined) {
     if (!key) return tiles.blank();
     if (error) return tiles.unavailable(key.label || '');
-    // valueIcons: a library icon per sim value, shown whole (e.g. magneto_left for 2).
-    const valueIcon = this.renderer.icon(lookup(key.valueIcons, value), null);
+    const valueFace = lookup(key.valueFaces, value);
+    const valueIcon = valueFace ? null : this.renderer.icon(lookup(key.valueIcons, value), null);
     if (valueIcon) return valueIcon;
-    if (key.face) {
+    const face = valueFace || key.face;
+    if (face) {
       const state = value === undefined ? 'clear' : (lookup(key.states, value) || key.otherwise || 'clear');
       // An icon layer without a name uses the key's own icon (its on/off/clear version on switches).
       const iconFor = name => {
@@ -252,7 +283,10 @@ class ProfileEngine {
         const uri = this.renderer.icon(n, st);
         return uri ? { uri, box: this.renderer.iconBox(n, st) } : null;
       };
-      return tiles.face(key.face, { iconFor, value: formatValue(key, value), state });
+      const valueFor = L => (L.read
+        ? formatValue(L, valueOf(L.read))
+        : formatValue({ ...key, ...pick(L, ['decimals', 'pad', 'format']) }, value));
+      return tiles.face(face, { iconFor, valueFor, state });
     }
     if (key.type === 'readout') {
       const icon = this.renderer.icon(key.icon, key.iconState || null);
@@ -338,4 +372,4 @@ class ProfileEngine {
   }
 }
 
-module.exports = { ProfileEngine, formatValue, LCD_SLOTS };
+module.exports = { ProfileEngine, formatValue, sourceKey, keySources, LCD_SLOTS };

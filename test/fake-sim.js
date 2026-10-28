@@ -35,6 +35,10 @@ class FakeSim extends EventEmitter {
     return () => vars.forEach(v => this.varSubs.get(v.name).delete(cb));
   }
   send(a) { this.sent.push(a); }
+  async read(spec) {
+    if (!this.simvars || !(spec.name in this.simvars)) throw new Error(`no answer for ${spec.name}`);
+    return this.simvars[spec.name];
+  }
   // The sim reporting a change.
   input(n, v) { this.inputValues[n] = v; for (const cb of this.inputSubs.get(n) || []) cb(n, v); }
   simvar(n, v) { for (const cb of this.varSubs.get(n) || []) cb(n, v); }

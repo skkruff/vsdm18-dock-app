@@ -104,8 +104,38 @@ function createEditorServer({ store, engine, sim, icons, config, openOnDock, log
       await engine.setPage(page);
       return { ok: true };
     }],
-    ['GET', /^\/api\/presets$/, () => store.readPresets()],
-    ['PUT', /^\/api\/presets$/, async (m, req) => { store.writePresets(await readBody(req)); return { ok: true }; }],
+    // Key library: reusable keys and groups of keys.
+    ['GET', /^\/api\/library$/, () => store.readLibrary().items],
+    ['POST', /^\/api\/library$/, async (m, req) => {
+      const item = await readBody(req);
+      if (!item.name || !Array.isArray(item.keys) || !item.keys.length) throw new Error('a library item needs a name and keys');
+      const lib = store.readLibrary();
+      item.id = `user.${Date.now().toString(36)}`;
+      item.category = item.category || 'My keys';
+      delete item.shipped;
+      lib.items.push(item);
+      store.writeLibrary(lib);
+      return item;
+    }],
+    ['PATCH', /^\/api\/library\/([^/]+)$/, async (m, req) => {
+      const lib = store.readLibrary();
+      const item = lib.items.find(i => i.id === decodeURIComponent(m[1]));
+      if (!item) throw new Error('no such library item');
+      const { name, category, notes } = await readBody(req);
+      Object.assign(item, name !== undefined ? { name } : {}, category !== undefined ? { category } : {}, notes !== undefined ? { notes } : {});
+      store.writeLibrary(lib);
+      return item;
+    }],
+    ['DELETE', /^\/api\/library\/([^/]+)$/, (m) => {
+      const lib = store.readLibrary();
+      const id = decodeURIComponent(m[1]);
+      const item = lib.items.find(i => i.id === id);
+      if (!item) throw new Error('no such library item');
+      lib.items = lib.items.filter(i => i !== item);
+      if (item.shipped && !lib.hiddenShipped.includes(id)) lib.hiddenShipped.push(id);
+      store.writeLibrary(lib);
+      return { ok: true };
+    }],
   ];
 
   const server = http.createServer(async (req, res) => {

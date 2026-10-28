@@ -16,6 +16,10 @@ function validate(p, file) {
       if (!(Number(slot) >= 0 && Number(slot) < LCD_SLOTS)) errors.push(`${where}: slot must be 0-14`);
       if (!KEY_TYPES.includes(key.type)) errors.push(`${where}: type must be one of ${KEY_TYPES.join(', ')}`);
       if (key.type !== 'button' && !key.read) errors.push(`${where}: ${key.type} needs read`);
+      if (key.face && !Array.isArray(key.face.layers)) errors.push(`${where}: face needs a layers list`);
+      for (const L of (key.face && key.face.layers) || []) {
+        if (!['icon', 'text', 'value', 'bar', 'rect'].includes(L.kind)) errors.push(`${where}: unknown face layer ${L.kind}`);
+      }
       const press = key.press;
       if (press && (press.cycle || press.step !== undefined || press.hold !== undefined || press.set !== undefined)
         && !(press.input || key.read?.input)) {

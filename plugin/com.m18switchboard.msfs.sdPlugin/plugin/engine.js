@@ -243,6 +243,17 @@ class ProfileEngine {
     // valueIcons: a library icon per sim value, shown whole (e.g. magneto_left for 2).
     const valueIcon = this.renderer.icon(lookup(key.valueIcons, value), null);
     if (valueIcon) return valueIcon;
+    if (key.face) {
+      const state = value === undefined ? 'clear' : (lookup(key.states, value) || key.otherwise || 'clear');
+      // An icon layer without a name uses the key's own icon (its on/off/clear version on switches).
+      const iconFor = name => {
+        const n = name || key.icon;
+        const st = !name && key.type === 'switch' ? state : null;
+        const uri = this.renderer.icon(n, st);
+        return uri ? { uri, box: this.renderer.iconBox(n, st) } : null;
+      };
+      return tiles.face(key.face, { iconFor, value: formatValue(key, value), state });
+    }
     if (key.type === 'readout') {
       const icon = this.renderer.icon(key.icon, key.iconState || null);
       return icon

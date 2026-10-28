@@ -49,6 +49,17 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
   `{ "3": "magneto_both" }`. Values not listed fall back to the normal look.
 - **icon on a readout**: the icon's visible content is found automatically, scaled into the top
   of the key, and the value drawn below it.
+- **face** (any type, optional): a custom look replacing the automatic one (valueIcons still win
+  when they match). `{ "background": "#000000", "layers": [...] }`, layers drawn in order, in key
+  units (144 x 144):
+  - `{ "kind": "icon", "icon": "set_altimeter", "crop": "auto" | "full", "x", "y", "w", "h" }`:
+    icon fitted into the box. Without `icon`, the key's own icon (its on/off/clear version on
+    switches). `auto` crops to the icon's visible content.
+  - `{ "kind": "text", "text", "x", "y", "size", "color", "w" }`: centred on x, y; shrinks to fit w.
+  - `{ "kind": "value", "x", "y", "size", "color", "w" }`: the live value, formatted as the key says.
+  - `{ "kind": "bar", "x", "y", "w", "h" }`: green / red / outline by state.
+  - `{ "kind": "rect", "x", "y", "w", "h", "r", "color" }`: a filled box.
+  A text-only key with no sim source is a `button` with a face.
 
 ## Sources (`read`)
 

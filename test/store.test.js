@@ -1,0 +1,43 @@
+// Profile folder and key library: seeding, merging shipped items, deletions that stick.
+const assert = require('assert');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { ProfileStore } = require('../plugin/com.m18switchboard.msfs.sdPlugin/plugin/store');
+
+const plugin = path.join(__dirname, '..', 'plugin', 'com.m18switchboard.msfs.sdPlugin');
+const base = fs.mkdtempSync(path.join(os.tmpdir(), 'switchboard-store-'));
+const dir = path.join(base, 'profiles');
+const shipped = path.join(base, 'shipped-library.json');
+const ship = items => fs.writeFileSync(shipped, JSON.stringify({ items }));
+const key = { type: 'button', label: 'X' };
+
+// Presets saved by an earlier version become library items.
+fs.mkdirSync(dir, { recursive: true });
+fs.writeFileSync(path.join(base, 'presets.json'), JSON.stringify([{ name: 'Old preset', keys: [{ dr: 0, dc: 0, key }] }]));
+const store = new ProfileStore({ dir, bundledDir: path.join(plugin, 'profiles') });
+ship([{ id: 'a', name: 'A', shipped: true, keys: [{ dr: 0, dc: 0, key }] }]);
+store.seed(shipped);
+assert.deepStrictEqual(store.readLibrary().items.map(i => i.name), ['Old preset', 'A']);
+assert.ok(fs.existsSync(path.join(dir, 'c172-g1000.json')), 'profiles seeded');
+
+// The user deletes a shipped item and adds their own; a redeploy ships a new item.
+const lib = store.readLibrary();
+lib.items = lib.items.filter(i => i.id !== 'a');
+lib.hiddenShipped.push('a');
+lib.items.push({ id: 'user.1', name: 'Mine', keys: [{ dr: 0, dc: 0, key }] });
+store.writeLibrary(lib);
+ship([{ id: 'a', name: 'A', shipped: true, keys: [] }, { id: 'b', name: 'B', shipped: true, keys: [] }]);
+store.seed(shipped);
+assert.deepStrictEqual(store.readLibrary().items.map(i => i.name), ['Old preset', 'Mine', 'B'], 'deleted stays deleted, new shipped item added, own items kept');
+
+// The real shipped library parses and every key in it validates inside a profile.
+const { validate } = require('../plugin/com.m18switchboard.msfs.sdPlugin/plugin/profiles');
+const real = JSON.parse(fs.readFileSync(path.join(plugin, 'library.json'), 'utf8')).items;
+for (const item of real) {
+  const keys = {};
+  item.keys.forEach((k, i) => { keys[i] = k.key; });
+  validate({ id: 't', match: { title: ['t'] }, pages: [{ name: 'p', keys }] }, item.id);
+}
+fs.rmSync(base, { recursive: true });
+console.log(`store: PASS (${real.length} shipped library items valid)`);

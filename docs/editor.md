@@ -30,12 +30,21 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   - Decimals / padding for readouts.
   - When pressed: toggle/cycle, step (with min/max), hold (with release value and repeat for
     spring-loaded positions), set, or a sim event.
+  - **Face (optional)**: design the key's look yourself from layers drawn in order: a library
+    icon (cropped to its content or whole, fitted into a box you place), your own text, the live
+    value, a state bar (green / red / outline) and coloured boxes. Drag on the big preview to move
+    the selected layer, or type positions (key units 0-144). Use it to put a PNG above a readout,
+    or make a clean text-only key when the library has no suitable PNG. "Remove custom face" goes
+    back to the automatic look.
   - Preview value: type a value to see that look.
   - Advanced: the key as JSON.
-- **Presets**: groups of keys you can drop into any profile. Select keys, "Save selected keys as
-  preset". To insert, click where its top-left key should go, then "Insert". If the preset reads
-  one source, you're asked whether this aircraft uses a different one. A **Magneto set** preset
-  ships with the plugin.
+- **Library**: reusable keys and groups of keys, searchable, by category. It ships with every key
+  built so far (each C172 and generic key, plus groups: magneto set, fuel selector, exterior
+  lights row). Save any key or selection with "Save to library" (name and category). To use one,
+  drag it onto the dock picture, or click the target key and press Insert (groups go in with their
+  top-left key there). If the item reads one source, you're asked whether this aircraft uses a
+  different one. Deleting a shipped item keeps it deleted; new shipped items arrive with updates.
+  The library is `library.json` next to the profiles folder.
 
 ## Saving rules
 

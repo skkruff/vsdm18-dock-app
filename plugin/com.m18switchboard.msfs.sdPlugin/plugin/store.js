@@ -1,6 +1,7 @@
 // The user's profile folder (default Documents\MSFS Switchboard\profiles). Profiles shipped with
 // the plugin are copied in on first run and never overwritten after that, so redeploying the
-// plugin cannot undo work done in the editor. Presets (reusable groups of keys) live next to it.
+// plugin cannot undo work done in the editor. The key library (library.json: reusable keys and
+// groups of keys) lives next to it.
 const fs = require('fs');
 const path = require('path');
 const { loadProfiles, validate } = require('./profiles');
@@ -11,17 +12,26 @@ class ProfileStore {
   constructor({ dir, bundledDir, log = () => {} }) {
     this.dir = dir;
     this.bundledDir = bundledDir;
-    this.presetsFile = path.join(path.dirname(dir), 'presets.json');
+    this.libraryFile = path.join(path.dirname(dir), 'library.json');
+    this.oldPresetsFile = path.join(path.dirname(dir), 'presets.json'); // before the library
     this.log = log;
     this.watcher = null;
   }
 
-  // Creates the folder and copies in any shipped profile the user does not have yet, and the
-  // shipped presets if the user has none.
-  seed(bundledPresets) {
+  // Creates the folder, copies in any shipped profile the user does not have yet, and adds shipped
+  // library items the user has neither got nor deleted.
+  seed(bundledLibrary) {
     fs.mkdirSync(this.dir, { recursive: true });
-    if (bundledPresets && fs.existsSync(bundledPresets) && !fs.existsSync(this.presetsFile)) {
-      fs.copyFileSync(bundledPresets, this.presetsFile);
+    if (bundledLibrary && fs.existsSync(bundledLibrary)) {
+      const lib = this.readLibrary();
+      const have = new Set(lib.items.map(i => i.id));
+      const hidden = new Set(lib.hiddenShipped);
+      const added = JSON.parse(fs.readFileSync(bundledLibrary, 'utf8')).items
+        .filter(i => !have.has(i.id) && !hidden.has(i.id));
+      if (added.length || !fs.existsSync(this.libraryFile)) {
+        lib.items.push(...added);
+        this.writeLibrary(lib);
+      }
     }
     const copied = [];
     for (const f of fs.readdirSync(this.bundledDir).filter(f => FILE_RE.test(f))) {
@@ -72,12 +82,27 @@ class ProfileStore {
     fs.renameSync(p, `${p}.${Date.now()}.bak`);
   }
 
-  readPresets() {
-    try { return JSON.parse(fs.readFileSync(this.presetsFile, 'utf8')); } catch { return []; }
+  // { items: [{ id, name, category, notes, shipped, keys: [{ dr, dc, key }] }], hiddenShipped: [id] }
+  // hiddenShipped remembers shipped items the user deleted, so they are not added back.
+  readLibrary() {
+    try {
+      const lib = JSON.parse(fs.readFileSync(this.libraryFile, 'utf8'));
+      return { items: lib.items || [], hiddenShipped: lib.hiddenShipped || [] };
+    } catch {
+      // Presets saved before the library existed become library items.
+      let old = [];
+      try { old = JSON.parse(fs.readFileSync(this.oldPresetsFile, 'utf8')); } catch { old = []; }
+      return {
+        items: old.map((p, i) => ({ id: `user.preset${i}`, category: 'My keys', ...p })),
+        hiddenShipped: [],
+      };
+    }
   }
 
-  writePresets(presets) {
-    fs.writeFileSync(this.presetsFile, JSON.stringify(presets, null, 2) + '\n');
+  writeLibrary(lib) {
+    const tmp = `${this.libraryFile}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(lib, null, 2) + '\n');
+    fs.renameSync(tmp, this.libraryFile);
   }
 
   // Calls onChange (debounced) whenever a profile file changes, from the editor or by hand.

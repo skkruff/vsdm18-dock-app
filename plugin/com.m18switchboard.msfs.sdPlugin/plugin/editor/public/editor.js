@@ -18,7 +18,7 @@ const S = {
   sim: {},
   icons: [],
   inputs: [],
-  presets: [],
+  library: [],
   clipboard: null,
 };
 
@@ -308,7 +308,13 @@ function showImages(images) {
         dragstart: e => { e.dataTransfer.setData('text/plain', String(slot)); },
         dragover: e => { e.preventDefault(); cell.classList.add('drop'); },
         dragleave: () => cell.classList.remove('drop'),
-        drop: e => { e.preventDefault(); cell.classList.remove('drop'); moveKey(Number(e.dataTransfer.getData('text/plain')), slot); },
+        drop: e => {
+          e.preventDefault();
+          cell.classList.remove('drop');
+          const libId = e.dataTransfer.getData('application/x-library');
+          if (libId) { const item = S.library.find(i => i.id === libId); if (item) insertItem(item, slot); return; }
+          moveKey(Number(e.dataTransfer.getData('text/plain')), slot);
+        },
       },
     }, el('span', { class: 'num' }, String(slot)));
     if (images[slot]) cell.prepend(el('img', { src: images[slot], alt: '' }));
@@ -401,48 +407,92 @@ function deleteSel() {
   renderInspector();
 }
 
-async function loadPresets() {
-  S.presets = await api('GET', '/api/presets');
-  renderPresets();
+async function loadLibrary() {
+  S.library = await api('GET', '/api/library');
+  renderLibrary();
 }
 
-function renderPresets() {
-  const list = $('#presetList');
+// Thumbnails are drawn by the plugin like any key, in one request.
+async function libraryThumbs(items) {
+  const keysById = {};
+  const values = {};
+  items.forEach((item, i) => { keysById[i] = item.keys[0].key; values[i] = defaultPreview(item.keys[0].key); });
+  if (!items.length) return {};
+  return (await api('POST', '/api/render', { keys: keysById, values })).images;
+}
+
+async function renderLibrary() {
+  const list = $('#libraryList');
+  const q = $('#libSearch').value.trim().toLowerCase();
+  const items = S.library.filter(i => !q || `${i.name} ${i.category} ${i.notes || ''}`.toLowerCase().includes(q));
   list.innerHTML = '';
-  if (!S.presets.length) list.append(el('div', { class: 'muted' }, 'No presets yet. Select keys, then save them as a preset.'));
-  S.presets.forEach((p, i) => list.append(el('div', { class: 'preset' },
-    el('span', { class: 'name' }, `${p.name} `, el('span', { class: 'muted' }, `(${p.keys.length} keys)`)),
-    el('button', { on: { click: () => insertPreset(p) } }, 'Insert at selected key'),
-    el('button', { on: { click: async () => {
-      if (!confirm(`Delete preset "${p.name}"?`)) return;
-      S.presets.splice(i, 1);
-      await api('PUT', '/api/presets', S.presets);
-      renderPresets();
-    } } }, '✕'))));
+  if (!items.length) list.append(el('div', { class: 'muted' }, q ? 'Nothing matches.' : 'The library is empty.'));
+  const order = c => (c === 'My keys' ? '0' : c === 'Groups' ? '1' : `2${c}`);
+  const cats = [...new Set(items.map(i => i.category || 'Other'))].sort((a, b) => order(a).localeCompare(order(b)));
+  const thumbs = await libraryThumbs(items);
+  for (const cat of cats) {
+    const group = el('details', { class: 'lib-cat', open: q || cat === 'My keys' || cat === 'Groups' ? true : null },
+      el('summary', {}, `${cat} (${items.filter(i => (i.category || 'Other') === cat).length})`));
+    items.forEach((item, i) => {
+      if ((item.category || 'Other') !== cat) return;
+      group.append(el('div', {
+        class: 'lib-item', draggable: 'true', title: item.notes || '',
+        on: { dragstart: e => e.dataTransfer.setData('application/x-library', item.id) },
+      },
+      el('img', { src: thumbs[i], alt: '' }),
+      el('div', { class: 'name' }, item.name, item.keys.length > 1 ? el('span', { class: 'muted' }, ` · ${item.keys.length} keys`) : null,
+        item.notes ? el('div', { class: 'muted small' }, item.notes) : null),
+      el('button', { title: 'Insert at the selected key (or drag onto the dock picture)', on: { click: () => insertItem(item) } }, 'Insert'),
+      el('button', { title: 'Rename', on: { click: () => renameItem(item) } }, '✎'),
+      el('button', { title: 'Delete from library', on: { click: () => deleteItem(item) } }, '✕')));
+    });
+    list.append(group);
+  }
 }
 
-async function savePreset() {
+async function saveToLibrary() {
   const g = selectionGroup();
-  if (!g) return status('Select the keys to save first', 'bad');
-  const name = prompt('Preset name', 'Magneto set');
+  if (!g) return status('Select the key(s) to save first', 'bad');
+  const first = g[0].key;
+  const name = prompt('Name in the library', g.length > 1 ? 'My group' : (first.label || first.icon || 'My key').replace(/\n/g, ' '));
   if (!name) return;
-  S.presets.push({ name, keys: g });
-  await api('PUT', '/api/presets', S.presets);
-  renderPresets();
-  status(`Saved preset "${name}"`, 'good');
+  const category = prompt('Category (e.g. Lights, Engine, Radios, My keys)', 'My keys');
+  if (category === null) return;
+  await api('POST', '/api/library', { name, category: category || 'My keys', keys: g });
+  await loadLibrary();
+  status(`"${name}" saved to the library`, 'good');
 }
 
-function insertPreset(p) {
-  if (!S.selected.size) return status('Click the key where the preset should start (its top-left)', 'bad');
-  const sources = sourcesIn(p.keys);
+async function renameItem(item) {
+  const name = prompt('Name', item.name);
+  if (name === null) return;
+  const category = prompt('Category', item.category);
+  if (category === null) return;
+  await api('PATCH', `/api/library/${encodeURIComponent(item.id)}`, { name, category });
+  loadLibrary();
+}
+
+async function deleteItem(item) {
+  if (!confirm(`Delete "${item.name}" from the library?`)) return;
+  await api('DELETE', `/api/library/${encodeURIComponent(item.id)}`);
+  loadLibrary();
+}
+
+function insertItem(item, anchor) {
+  if (anchor === undefined) {
+    if (!S.selected.size) return status('Click the key where it should go (top-left for groups), or drag it there', 'bad');
+    anchor = Math.min(...S.selected);
+  }
+  const sources = sourcesIn(item.keys);
   let from = null;
   let to = null;
   if (sources.length === 1) {
-    const answer = prompt(`This preset uses "${sources[0]}". Use a different input event or simvar for this aircraft? (leave as is to keep)`, sources[0]);
+    const answer = prompt(`This uses "${sources[0]}". Use a different input event or simvar for this aircraft? (leave as is to keep)`, sources[0]);
     if (answer === null) return;
     if (answer && answer !== sources[0]) { from = sources[0]; to = answer; }
   }
-  placeGroup(p.keys, Math.min(...S.selected), from, to);
+  placeGroup(item.keys, anchor, from, to);
+  S.selected = new Set([anchor]);
   renderInspector();
 }
 
@@ -510,7 +560,8 @@ function renderInspector() {
     const g = selectionGroup() || [];
     const sources = sourcesIn(g);
     box.append(el('h3', {}, `${sel.length} keys selected`),
-      el('p', { class: 'muted' }, 'Copy (Ctrl+C), delete, or save them as a preset.'));
+      el('p', { class: 'muted' }, 'Copy (Ctrl+C), delete, or save them to the library as a group.'),
+      el('button', { on: { click: saveToLibrary } }, 'Save to library'));
     if (sources.length) {
       let from = sources[0];
       let to = '';
@@ -553,6 +604,9 @@ function renderInspector() {
     el('button', { on: { click: () => pickIcon(iconMode, name => { if (name) key.icon = name; else delete key.icon; redraw(); }) } }, 'Choose…')),
   key.type === 'switch' ? 'Switch icons use the icon\'s on / off / clear versions.'
     : key.type === 'readout' ? 'Drawn above the value, scaled to fit.' : null));
+
+  box.append(el('h4', {}, 'Face (optional)'));
+  box.append(faceDesigner(key, slot));
 
   // Source
   box.append(el('h4', {}, 'Reads from the sim'));
@@ -640,7 +694,8 @@ function renderInspector() {
     try { keys()[slot] = JSON.parse(ta.value); redraw(); } catch (e) { status(`JSON error: ${e.message}`, 'bad'); }
   } } }, 'Apply JSON'));
   box.append(raw);
-  box.append(el('p', {}, el('button', { on: { click: deleteSel } }, 'Delete this key')));
+  box.append(el('p', {}, el('button', { on: { click: saveToLibrary } }, 'Save to library'), ' ',
+    el('button', { on: { click: deleteSel } }, 'Delete this key')));
 }
 
 async function learnInto(inputEl, apply) {
@@ -655,6 +710,128 @@ async function learnInto(inputEl, apply) {
   } finally {
     inputEl.disabled = false;
   }
+}
+
+// ---------- face designer ----------
+
+const COLORS = { label: '#ffffff', dim: '#9aa0a8', value: '#ffd040' };
+
+// A starting face that looks like the key's automatic look, ready to adjust.
+function defaultFace(key) {
+  const label = key.label || '';
+  if (key.type === 'readout') {
+    return key.icon
+      ? { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 4, w: 132, h: 72 }, { kind: 'value', x: 72, y: 110, size: 40, color: COLORS.value }] }
+      : { layers: [{ kind: 'text', text: label, x: 72, y: 32, size: 20, color: COLORS.dim }, { kind: 'value', x: 72, y: 88, size: 40, color: COLORS.value }] };
+  }
+  if (key.type === 'switch') {
+    return key.icon
+      ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }] }
+      : { layers: [{ kind: 'text', text: label, x: 72, y: 50, size: 26, color: COLORS.label }, { kind: 'bar', x: 30, y: 100, w: 84, h: 22 }] };
+  }
+  return key.icon
+    ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }] }
+    : { layers: [{ kind: 'text', text: label, x: 72, y: 72, size: 30, color: COLORS.label }] };
+}
+
+const NEW_LAYER = {
+  icon: () => ({ kind: 'icon', crop: 'auto', x: 6, y: 4, w: 132, h: 72 }),
+  text: () => ({ kind: 'text', text: 'TEXT', x: 72, y: 36, size: 24, color: COLORS.label }),
+  value: () => ({ kind: 'value', x: 72, y: 104, size: 40, color: COLORS.value }),
+  bar: () => ({ kind: 'bar', x: 30, y: 118, w: 84, h: 16 }),
+  rect: () => ({ kind: 'rect', x: 0, y: 0, w: 144, h: 40, color: '#1e2a3a' }),
+};
+const LAYER_NAMES = { icon: 'Icon', text: 'Text', value: 'Live value', bar: 'State bar', rect: 'Box' };
+
+let faceLayer = 0; // which layer dragging on the preview moves
+
+function faceDesigner(key, slot) {
+  const box = el('div', { class: 'face' });
+  if (!key.face) {
+    box.append(el('p', { class: 'muted' }, 'This key uses the automatic look. Design your own to place a library icon, the live value, your own text and a state bar exactly where you want.'),
+      el('button', { on: { click: () => { key.face = defaultFace(key); faceLayer = 0; changed(); renderInspector(); } } }, 'Design a custom face'));
+    return box;
+  }
+  const face = key.face;
+  const preview = el('img', { class: 'face-preview', alt: 'face preview', draggable: 'false' });
+  const refresh = async () => {
+    const pv = S.previewValues[`${S.page}:${slot}`];
+    const value = pv !== undefined && pv !== '' ? pv : isLivePage() ? S.live.values[slot] : defaultPreview(key);
+    const { images } = await api('POST', '/api/render', { keys: { 0: key }, values: { 0: value } });
+    preview.src = images[0];
+  };
+  const update = () => { changed(); refresh(); };
+
+  // Drag on the preview moves the chosen layer (the preview is 2x the key's 144 units).
+  let drag = null;
+  preview.addEventListener('pointerdown', e => {
+    const L = face.layers[faceLayer];
+    if (!L) return;
+    preview.setPointerCapture(e.pointerId);
+    drag = { x: e.clientX, y: e.clientY, lx: Number(L.x) || 0, ly: Number(L.y) || 0, L };
+  });
+  preview.addEventListener('pointermove', e => {
+    if (!drag) return;
+    drag.L.x = Math.round(drag.lx + (e.clientX - drag.x) / 2);
+    drag.L.y = Math.round(drag.ly + (e.clientY - drag.y) / 2);
+    clearTimeout(drag.timer);
+    drag.timer = setTimeout(refresh, 40);
+  });
+  preview.addEventListener('pointerup', () => { if (drag) { drag = null; changed(); renderInspector(); } });
+
+  box.append(el('div', { class: 'face-top' }, preview, el('div', {},
+    el('p', { class: 'muted' }, 'Drag on the picture to move the selected layer. Coordinates are in key units (0-144); text and values are centred on x, y.'),
+    field('Background', el('input', { type: 'color', value: face.background || '#000000', on: { input: e => { face.background = e.target.value; update(); } } })),
+    el('div', { class: 'inline' }, ...Object.keys(NEW_LAYER).map(k => el('button', { on: { click: () => {
+      face.layers.push(NEW_LAYER[k]());
+      faceLayer = face.layers.length - 1;
+      changed(); renderInspector();
+    } } }, `+ ${LAYER_NAMES[k]}`))))));
+
+  face.layers.forEach((L, i) => {
+    const n = (k, label, attrs = {}) => el('label', { class: 'mini' }, label, input(L[k], v => { if (v === '') delete L[k]; else L[k] = Number(v); update(); }, { type: 'number', ...attrs }));
+    const color = (k, d) => el('label', { class: 'mini' }, 'colour', el('input', { type: 'color', value: L[k] || d, on: { input: e => { L[k] = e.target.value; update(); } } }));
+    const fields = [];
+    if (L.kind === 'icon') {
+      fields.push(el('span', { class: 'icon-chip' }, iconThumb(L.icon || (key.icon && (key.type === 'switch' ? `${key.icon}_on` : key.icon))),
+        el('span', {}, L.icon || (key.icon ? `key's icon (${key.icon})` : 'choose an icon')),
+        el('button', { on: { click: () => pickIcon('any', name => { if (name) L.icon = name; else delete L.icon; changed(); renderInspector(); }) } }, 'Choose…')),
+      el('label', { class: 'mini' }, 'crop', select_([['auto', 'to content'], ['full', 'whole icon']], L.crop || 'auto', v => { L.crop = v; update(); })),
+      n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'));
+    } else if (L.kind === 'text') {
+      fields.push(el('label', { class: 'mini wide' }, 'text', el('textarea', { rows: 1, on: { input: e => { L.text = e.target.value; update(); } } }, L.text || '')),
+        n('x', 'x'), n('y', 'y'), n('size', 'size'), n('w', 'max width'), color('color', COLORS.label));
+    } else if (L.kind === 'value') {
+      fields.push(n('x', 'x'), n('y', 'y'), n('size', 'size'), n('w', 'max width'), color('color', COLORS.value));
+    } else if (L.kind === 'bar') {
+      fields.push(n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'));
+    } else if (L.kind === 'rect') {
+      fields.push(n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'), n('r', 'corner'), color('color', '#1e2a3a'));
+    }
+    const move = d => {
+      const j = i + d;
+      if (j < 0 || j >= face.layers.length) return;
+      [face.layers[i], face.layers[j]] = [face.layers[j], face.layers[i]];
+      faceLayer = j;
+      changed(); renderInspector();
+    };
+    box.append(el('div', { class: `layer ${i === faceLayer ? 'active' : ''}`, on: { click: e => {
+      if (faceLayer === i || e.target.closest('input, textarea, select, button')) return;
+      faceLayer = i; renderInspector();
+    } } },
+    el('div', { class: 'layer-head' },
+      el('input', { type: 'radio', name: 'faceLayer', checked: i === faceLayer ? true : null, title: 'Drag moves this layer', on: { change: () => { faceLayer = i; renderInspector(); } } }),
+      el('strong', {}, LAYER_NAMES[L.kind] || L.kind),
+      el('span', { class: 'muted' }, L.kind === 'bar' ? ' green / red / outline by state' : L.kind === 'value' ? ' formatted as set below' : ''),
+      el('span', { class: 'spacer' }),
+      el('button', { title: 'Draw earlier (behind)', on: { click: () => move(-1) } }, '↑'),
+      el('button', { title: 'Draw later (in front)', on: { click: () => move(1) } }, '↓'),
+      el('button', { title: 'Remove layer', on: { click: () => { face.layers.splice(i, 1); faceLayer = Math.max(0, faceLayer - 1); changed(); renderInspector(); } } }, '✕')),
+    el('div', { class: 'layer-fields' }, fields)));
+  });
+  box.append(el('button', { on: { click: () => { if (!confirm('Go back to the automatic look?')) return; delete key.face; changed(); renderInspector(); } } }, 'Remove custom face'));
+  refresh();
+  return box;
 }
 
 // ---------- icon picker ----------
@@ -745,7 +922,9 @@ async function init() {
     setDirty(false);
     loadFiles();
   });
-  $('#savePreset').addEventListener('click', savePreset);
+  $('#saveToLibrary').addEventListener('click', saveToLibrary);
+  let libTimer = null;
+  $('#libSearch').addEventListener('input', () => { clearTimeout(libTimer); libTimer = setTimeout(renderLibrary, 200); });
   $('#iconSearch').addEventListener('input', drawIcons);
   $('#iconClose').addEventListener('click', () => $('#iconDialog').close());
   $('#iconNone').addEventListener('click', () => { $('#iconDialog').close(); pickCallback(null); });
@@ -760,10 +939,10 @@ async function init() {
   window.addEventListener('beforeunload', e => { if (S.dirty) { e.preventDefault(); e.returnValue = ''; } });
 
   S.sim = await api('GET', '/api/state');
-  $('#folderNote').textContent = `Profiles and presets are saved in ${S.sim.profilesDir}`;
+  $('#folderNote').textContent = `Profiles are saved in ${S.sim.profilesDir}`;
   S.icons = await api('GET', '/api/icons');
   await loadFiles();
-  loadPresets();
+  loadLibrary();
   loadInputs();
   pollState();
   setInterval(pollState, 1500);

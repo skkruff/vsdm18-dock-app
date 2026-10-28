@@ -58,7 +58,7 @@ const icons = new IconLibrary(config.iconDir, config.theme);
 log.info('icon library', { dir: config.iconDir, files: icons.scan() });
 
 const store = new ProfileStore({ dir: config.profilesDir, bundledDir: path.join(pluginRoot, 'profiles'), log: (...a) => log.warn(...a) });
-const seeded = store.seed(path.join(pluginRoot, 'presets.json'));
+const seeded = store.seed(path.join(pluginRoot, 'library.json'));
 if (seeded.length) log.info('profiles copied to your profile folder', { dir: config.profilesDir, files: seeded });
 function loadAll() {
   const { profiles, errors } = store.load();

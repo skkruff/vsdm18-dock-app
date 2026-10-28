@@ -19,7 +19,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
-  page.on('dialog', d => d.accept(d.type() === 'prompt' ? (page.nextPrompt ?? d.defaultValue()) : undefined));
+  page.prompts = []; // answers for the next prompts, in order; otherwise the default is accepted
+  page.on('dialog', d => d.accept(d.type() === 'prompt' ? (page.prompts.length ? page.prompts.shift() : d.defaultValue()) : undefined));
   const file = () => JSON.parse(fs.readFileSync(path.join(h.dir, 'c172-g1000.json'), 'utf8'));
   const slot = n => `.slot[data-slot="${n}"]`;
   const save = async () => { await page.click('#saveProfile'); await sleep(400); };
@@ -45,27 +46,57 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.strictEqual(file().pages[0].keys['9'].label, 'BCN');
     assert.strictEqual(file().pages[0].keys['5'].label, 'STRB');
 
-    // Select the magneto group, save it as a preset, insert it on the Auxiliary page with a new source.
+    // The library ships with every key built so far, grouped by category.
+    const library = () => JSON.parse(fs.readFileSync(path.join(path.dirname(h.dir), 'library.json'), 'utf8')).items;
+    assert.ok(library().some(i => i.id === 'group.magneto-set'), 'shipped magneto set');
+    assert.ok(library().some(i => i.id === 'c172-g1000.0.2'), 'every shipped key is in the library');
+    assert.ok(await page.isVisible('.lib-cat summary:has-text("Groups")'));
+
+    // Save the magneto group to the library, then insert it on the Auxiliary page with a new source.
     await page.click(slot(11));
     for (const s of [12, 13, 14]) await page.click(slot(s), { modifiers: ['Control'] });
-    page.nextPrompt = 'Magneto set';
-    await page.click('#savePreset');
-    await sleep(200);
-    const presets = JSON.parse(fs.readFileSync(path.join(path.dirname(h.dir), 'presets.json'), 'utf8'));
-    assert.match(presets[0].name, /Magneto set/, 'shipped starter preset');
-    assert.strictEqual(presets[1].name, 'Magneto set');
-    assert.strictEqual(presets[1].keys.length, 4);
+    page.prompts = ['My magnetos', 'My keys'];
+    await page.click('#saveToLibrary');
+    await page.waitForSelector('.lib-item:has-text("My magnetos")');
+    const mine = library().find(i => i.name === 'My magnetos');
+    assert.strictEqual(mine.category, 'My keys');
+    assert.strictEqual(mine.keys.length, 4);
     await page.click('.tab:nth-child(2)');
     await page.click(slot(10));
-    page.nextPrompt = 'ENGINE_MAGNETO_2';
-    await page.click('.preset:nth-child(2) button:has-text("Insert")');
+    page.prompts = ['ENGINE_MAGNETO_2'];
+    await page.click('.lib-item:has-text("My magnetos") button:has-text("Insert")');
     await save();
-    const aux = file().pages[1].keys;
+    let aux = file().pages[1].keys;
     // Anchored at slot 10: ◀ MAG 10, MAGS 11, MAG ▶ 12, START 13.
-    assert.strictEqual(aux['11'].read.input, 'ENGINE_MAGNETO_2', 'preset inserted with the source renamed');
+    assert.strictEqual(aux['11'].read.input, 'ENGINE_MAGNETO_2', 'inserted with the source renamed');
     assert.strictEqual(aux['10'].press.step, -1);
     assert.deepStrictEqual(aux['13'].press, { hold: 4, release: 3, repeatMs: 250 }, 'START behaviour carried over');
     assert.ok(aux['11'].valueIcons && aux['11'].valueIcons['3'] === 'magneto_both');
+
+    // Drag a single shipped key from the library onto an empty slot.
+    await page.fill('#libSearch', 'BAT (C172');
+    await sleep(400);
+    await page.dragAndDrop('.lib-item:has-text("BAT (C172 G1000)")', slot(14));
+    await save();
+    aux = file().pages[1].keys;
+    assert.strictEqual(aux['14'].read.input, 'ELECTRICAL_BATTERY_1', 'dragged from the library');
+
+    // Face designer: QNH readout gets a custom face with an extra text layer, moved by dragging.
+    await page.click(slot(3));
+    await page.click('#inspector button:has-text("Design a custom face")');
+    await page.click('#inspector button:has-text("+ Text")');
+    await page.fill('#inspector .layer.active textarea', 'BARO');
+    const box = await page.locator('.face-preview').boundingBox();
+    await page.mouse.move(box.x + 144, box.y + 72);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 144, box.y + 52, { steps: 4 });
+    await page.mouse.up();
+    await save();
+    const face = file().pages[1].keys['3'].face;
+    assert.deepStrictEqual(face.layers.map(l => l.kind), ['icon', 'value', 'text'], 'default face from the key, plus a text layer');
+    assert.strictEqual(face.layers[2].text, 'BARO');
+    assert.strictEqual(face.layers[2].y, 26, 'dragged up 20 px on the 2x preview = 10 key units');
+    assert.ok((await page.getAttribute(`${slot(3)} img`, 'src')).includes('BARO'), 'the dock picture uses the face');
 
     // Copy and paste a key.
     await page.click(slot(3));
@@ -99,7 +130,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.deepStrictEqual(file().pages[1].keys['8'].read, { input: 'LIGHTING_TAXI_1' });
 
     assert.deepStrictEqual(errors, [], 'no page errors');
-    console.log('editor e2e: PASS (edit+save+reload, drag swap, presets with rename, copy/paste, learn, validation)');
+    console.log('editor e2e: PASS (edit+save+reload, drag swap, library save/insert/drag, face designer, copy/paste, learn, validation)');
   } catch (e) {
     console.error('editor e2e: FAIL', e);
     await page.screenshot({ path: path.join(__dirname, '..', 'editor-e2e-failure.png'), fullPage: true });

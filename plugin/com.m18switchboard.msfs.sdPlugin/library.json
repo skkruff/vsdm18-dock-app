@@ -1,0 +1,1252 @@
+{
+  "items": [
+    {
+      "id": "group.c172-lights-row",
+      "name": "Exterior lights row (BCN, LAND, TAXI, NAV, STRB)",
+      "category": "Groups",
+      "notes": "From the C172 G1000 (input events).",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "BCN",
+            "icon": "lights_beacon",
+            "read": {
+              "input": "LIGHTING_BEACON_1"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        },
+        {
+          "dr": 0,
+          "dc": 1,
+          "key": {
+            "type": "switch",
+            "label": "LAND",
+            "icon": "lights_landing_lights",
+            "read": {
+              "input": "LIGHTING_LANDING_1"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        },
+        {
+          "dr": 0,
+          "dc": 2,
+          "key": {
+            "type": "switch",
+            "label": "TAXI",
+            "icon": "lights_taxi_lights",
+            "read": {
+              "input": "LIGHTING_TAXI_1"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        },
+        {
+          "dr": 0,
+          "dc": 3,
+          "key": {
+            "type": "switch",
+            "label": "NAV",
+            "icon": "lights_nav_lights",
+            "read": {
+              "input": "LIGHTING_NAV_0"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        },
+        {
+          "dr": 0,
+          "dc": 4,
+          "key": {
+            "type": "switch",
+            "label": "STRB",
+            "icon": "lights_strobes",
+            "read": {
+              "input": "LIGHTING_STROBE_0"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "group.fuel-selector",
+      "name": "Fuel selector (◀ FUEL, state, FUEL ▶)",
+      "category": "Groups",
+      "notes": "From the C172. Values 0 LEFT, 1 BOTH, 2 RIGHT.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "◀ FUEL",
+            "read": {
+              "input": "FUEL_SELECTOR_1"
+            },
+            "press": {
+              "step": -1,
+              "min": 0
+            }
+          }
+        },
+        {
+          "dr": 0,
+          "dc": 1,
+          "key": {
+            "type": "readout",
+            "label": "FUEL SEL",
+            "read": {
+              "input": "FUEL_SELECTOR_1"
+            },
+            "text": {
+              "0": "LEFT",
+              "1": "BOTH",
+              "2": "RIGHT"
+            }
+          }
+        },
+        {
+          "dr": 0,
+          "dc": 2,
+          "key": {
+            "type": "button",
+            "label": "FUEL ▶",
+            "read": {
+              "input": "FUEL_SELECTOR_1"
+            },
+            "press": {
+              "step": 1,
+              "max": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "group.magneto-set",
+      "name": "Magneto set (◀ MAG, state, MAG ▶, START)",
+      "category": "Groups",
+      "notes": "From the C172. Steps OFF/R/L/BOTH and stops at BOTH; START is held to crank and re-sent every 250 ms. Values 0 OFF, 1 R, 2 L, 3 BOTH, 4 START: check the aircraft uses the same.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "◀ MAG",
+            "read": {
+              "input": "ENGINE_MAGNETO_1"
+            },
+            "press": {
+              "step": -1,
+              "min": 0
+            }
+          }
+        },
+        {
+          "dr": 0,
+          "dc": 1,
+          "key": {
+            "type": "readout",
+            "label": "MAGS",
+            "read": {
+              "input": "ENGINE_MAGNETO_1"
+            },
+            "text": {
+              "0": "OFF",
+              "1": "R",
+              "2": "L",
+              "3": "BOTH",
+              "4": "START"
+            },
+            "valueIcons": {
+              "0": "magneto_off",
+              "1": "magneto_right",
+              "2": "magneto_left",
+              "3": "magneto_both",
+              "4": "magneto_start"
+            }
+          }
+        },
+        {
+          "dr": 0,
+          "dc": 2,
+          "key": {
+            "type": "button",
+            "label": "MAG ▶",
+            "read": {
+              "input": "ENGINE_MAGNETO_1"
+            },
+            "press": {
+              "step": 1,
+              "max": 3
+            }
+          }
+        },
+        {
+          "dr": 0,
+          "dc": 3,
+          "key": {
+            "type": "switch",
+            "label": "START",
+            "read": {
+              "input": "ENGINE_MAGNETO_1"
+            },
+            "states": {
+              "4": "on"
+            },
+            "otherwise": "off",
+            "press": {
+              "hold": 4,
+              "release": 3,
+              "repeatMs": 250
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.0",
+      "name": "STBY BATT (C172 G1000)",
+      "category": "Electrical",
+      "notes": "Reads ELECTRICAL_BATTERY_STBY_2; toggles 1/0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "STBY\nBATT",
+            "read": {
+              "input": "ELECTRICAL_BATTERY_STBY_2"
+            },
+            "states": {
+              "0": "on",
+              "1": "off",
+              "2": "on"
+            },
+            "text": {
+              "0": "ARM",
+              "1": "OFF",
+              "2": "TEST"
+            },
+            "press": {
+              "cycle": [
+                1,
+                0
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.1",
+      "name": "ALT (C172 G1000)",
+      "category": "Electrical",
+      "notes": "Reads ELECTRICAL_ALTERNATOR_1; toggles 0/1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "ALT",
+            "icon": "master_alternator",
+            "read": {
+              "input": "ELECTRICAL_ALTERNATOR_1"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.2",
+      "name": "BAT (C172 G1000)",
+      "category": "Electrical",
+      "notes": "Reads ELECTRICAL_BATTERY_1; toggles 0/1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "BAT",
+            "icon": "master_battery",
+            "read": {
+              "input": "ELECTRICAL_BATTERY_1"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.3",
+      "name": "AVN BUS 1 (C172 G1000)",
+      "category": "Electrical",
+      "notes": "Reads ELECTRICAL_LINE_BUS_1_TO_AVIONICS_BUS_1; toggles 0/1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "AVN\nBUS 1",
+            "read": {
+              "input": "ELECTRICAL_LINE_BUS_1_TO_AVIONICS_BUS_1"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.4",
+      "name": "AVN BUS 2 (C172 G1000)",
+      "category": "Electrical",
+      "notes": "Reads ELECTRICAL_LINE_BUS_2_TO_AVIONICS_BUS_2; toggles 0/1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "AVN\nBUS 2",
+            "read": {
+              "input": "ELECTRICAL_LINE_BUS_2_TO_AVIONICS_BUS_2"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.5",
+      "name": "BCN (C172 G1000)",
+      "category": "Lights",
+      "notes": "Reads LIGHTING_BEACON_1; toggles 0/1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "BCN",
+            "icon": "lights_beacon",
+            "read": {
+              "input": "LIGHTING_BEACON_1"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.6",
+      "name": "LAND (C172 G1000)",
+      "category": "Lights",
+      "notes": "Reads LIGHTING_LANDING_1; toggles 0/1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "LAND",
+            "icon": "lights_landing_lights",
+            "read": {
+              "input": "LIGHTING_LANDING_1"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.7",
+      "name": "TAXI (C172 G1000)",
+      "category": "Lights",
+      "notes": "Reads LIGHTING_TAXI_1; toggles 0/1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "TAXI",
+            "icon": "lights_taxi_lights",
+            "read": {
+              "input": "LIGHTING_TAXI_1"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.8",
+      "name": "NAV (C172 G1000)",
+      "category": "Lights",
+      "notes": "Reads LIGHTING_NAV_0; toggles 0/1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "NAV",
+            "icon": "lights_nav_lights",
+            "read": {
+              "input": "LIGHTING_NAV_0"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.9",
+      "name": "STRB (C172 G1000)",
+      "category": "Lights",
+      "notes": "Reads LIGHTING_STROBE_0; toggles 0/1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "STRB",
+            "icon": "lights_strobes",
+            "read": {
+              "input": "LIGHTING_STROBE_0"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.10",
+      "name": "FUEL PUMP (C172 G1000)",
+      "category": "Fuel",
+      "notes": "Reads FUEL_PUMP_1; toggles 0/1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "FUEL\nPUMP",
+            "icon": "toggle_fuel_pump",
+            "read": {
+              "input": "FUEL_PUMP_1"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "cycle": [
+                0,
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.11",
+      "name": "◀ MAG (C172 G1000)",
+      "category": "Engine",
+      "notes": "Reads ENGINE_MAGNETO_1; steps -1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "◀ MAG",
+            "read": {
+              "input": "ENGINE_MAGNETO_1"
+            },
+            "press": {
+              "step": -1,
+              "min": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.12",
+      "name": "MAGS (C172 G1000)",
+      "category": "Engine",
+      "notes": "Reads ENGINE_MAGNETO_1; no press action.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "MAGS",
+            "read": {
+              "input": "ENGINE_MAGNETO_1"
+            },
+            "text": {
+              "0": "OFF",
+              "1": "R",
+              "2": "L",
+              "3": "BOTH",
+              "4": "START"
+            },
+            "valueIcons": {
+              "0": "magneto_off",
+              "1": "magneto_right",
+              "2": "magneto_left",
+              "3": "magneto_both",
+              "4": "magneto_start"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.13",
+      "name": "MAG ▶ (C172 G1000)",
+      "category": "Engine",
+      "notes": "Reads ENGINE_MAGNETO_1; steps +1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "MAG ▶",
+            "read": {
+              "input": "ENGINE_MAGNETO_1"
+            },
+            "press": {
+              "step": 1,
+              "max": 3
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.0.14",
+      "name": "START (C172 G1000)",
+      "category": "Engine",
+      "notes": "Reads ENGINE_MAGNETO_1; holds 4, releases to 3.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "START",
+            "read": {
+              "input": "ENGINE_MAGNETO_1"
+            },
+            "states": {
+              "4": "on"
+            },
+            "otherwise": "off",
+            "press": {
+              "hold": 4,
+              "release": 3,
+              "repeatMs": 250
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.0",
+      "name": "COM1 (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads COM ACTIVE FREQUENCY:1 (MHz); no press action.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "COM1",
+            "read": {
+              "var": "COM ACTIVE FREQUENCY:1",
+              "unit": "MHz"
+            },
+            "decimals": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.1",
+      "name": "COM1 STBY (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads COM STANDBY FREQUENCY:1 (MHz); no press action.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "COM1 STBY",
+            "read": {
+              "var": "COM STANDBY FREQUENCY:1",
+              "unit": "MHz"
+            },
+            "decimals": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.2",
+      "name": "COM1 SWAP (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads nothing; sends COM_STBY_RADIO_SWAP.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "COM1\nSWAP",
+            "press": {
+              "event": "COM_STBY_RADIO_SWAP"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.3",
+      "name": "QNH (C172 G1000)",
+      "category": "Instruments",
+      "notes": "Reads KOHLSMAN SETTING MB:1 (millibars); sends BAROMETRIC.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "QNH",
+            "icon": "set_altimeter",
+            "read": {
+              "var": "KOHLSMAN SETTING MB:1",
+              "unit": "millibars"
+            },
+            "decimals": 0,
+            "press": {
+              "event": "BAROMETRIC"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.4",
+      "name": "XPDR (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads TRANSPONDER CODE:1 (number); no press action.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "XPDR",
+            "read": {
+              "var": "TRANSPONDER CODE:1",
+              "unit": "number"
+            },
+            "pad": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.5",
+      "name": "◀ FUEL (C172 G1000)",
+      "category": "Fuel",
+      "notes": "Reads FUEL_SELECTOR_1; steps -1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "◀ FUEL",
+            "read": {
+              "input": "FUEL_SELECTOR_1"
+            },
+            "press": {
+              "step": -1,
+              "min": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.6",
+      "name": "FUEL SEL (C172 G1000)",
+      "category": "Fuel",
+      "notes": "Reads FUEL_SELECTOR_1; no press action.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "FUEL SEL",
+            "read": {
+              "input": "FUEL_SELECTOR_1"
+            },
+            "text": {
+              "0": "LEFT",
+              "1": "BOTH",
+              "2": "RIGHT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.7",
+      "name": "FUEL ▶ (C172 G1000)",
+      "category": "Fuel",
+      "notes": "Reads FUEL_SELECTOR_1; steps +1.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "FUEL ▶",
+            "read": {
+              "input": "FUEL_SELECTOR_1"
+            },
+            "press": {
+              "step": 1,
+              "max": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "generic.0.0",
+      "name": "BAT (any aircraft, classic simvars)",
+      "category": "Electrical",
+      "notes": "Reads ELECTRICAL MASTER BATTERY (bool); sends TOGGLE_MASTER_BATTERY.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "BAT",
+            "icon": "master_battery",
+            "read": {
+              "var": "ELECTRICAL MASTER BATTERY",
+              "unit": "bool"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "event": "TOGGLE_MASTER_BATTERY"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "generic.0.1",
+      "name": "ALT (any aircraft, classic simvars)",
+      "category": "Electrical",
+      "notes": "Reads GENERAL ENG MASTER ALTERNATOR:1 (bool); sends TOGGLE_MASTER_ALTERNATOR.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "ALT",
+            "icon": "master_alternator",
+            "read": {
+              "var": "GENERAL ENG MASTER ALTERNATOR:1",
+              "unit": "bool"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "event": "TOGGLE_MASTER_ALTERNATOR"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "generic.0.2",
+      "name": "AVIONICS (any aircraft, classic simvars)",
+      "category": "Electrical",
+      "notes": "Reads AVIONICS MASTER SWITCH (bool); sends AVIONICS_MASTER_SET.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "AVIONICS",
+            "icon": "avionics_master",
+            "read": {
+              "var": "AVIONICS MASTER SWITCH",
+              "unit": "bool"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "event": "AVIONICS_MASTER_SET",
+              "toggleValue": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "generic.0.3",
+      "name": "PITOT HEAT (any aircraft, classic simvars)",
+      "category": "Anti-ice",
+      "notes": "Reads PITOT HEAT SWITCH (bool); sends PITOT_HEAT_TOGGLE.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "PITOT\nHEAT",
+            "icon": "pitot_heat",
+            "read": {
+              "var": "PITOT HEAT SWITCH",
+              "unit": "bool"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "event": "PITOT_HEAT_TOGGLE"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "generic.0.5",
+      "name": "BCN (any aircraft, classic simvars)",
+      "category": "Lights",
+      "notes": "Reads LIGHT BEACON (bool); sends TOGGLE_BEACON_LIGHTS.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "BCN",
+            "icon": "lights_beacon",
+            "read": {
+              "var": "LIGHT BEACON",
+              "unit": "bool"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "event": "TOGGLE_BEACON_LIGHTS"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "generic.0.6",
+      "name": "LAND (any aircraft, classic simvars)",
+      "category": "Lights",
+      "notes": "Reads LIGHT LANDING (bool); sends LANDING_LIGHTS_TOGGLE.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "LAND",
+            "icon": "lights_landing_lights",
+            "read": {
+              "var": "LIGHT LANDING",
+              "unit": "bool"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "event": "LANDING_LIGHTS_TOGGLE"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "generic.0.7",
+      "name": "TAXI (any aircraft, classic simvars)",
+      "category": "Lights",
+      "notes": "Reads LIGHT TAXI (bool); sends TOGGLE_TAXI_LIGHTS.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "TAXI",
+            "icon": "lights_taxi_lights",
+            "read": {
+              "var": "LIGHT TAXI",
+              "unit": "bool"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "event": "TOGGLE_TAXI_LIGHTS"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "generic.0.8",
+      "name": "NAV (any aircraft, classic simvars)",
+      "category": "Lights",
+      "notes": "Reads LIGHT NAV (bool); sends TOGGLE_NAV_LIGHTS.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "NAV",
+            "icon": "lights_nav_lights",
+            "read": {
+              "var": "LIGHT NAV",
+              "unit": "bool"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "event": "TOGGLE_NAV_LIGHTS"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "generic.0.9",
+      "name": "STRB (any aircraft, classic simvars)",
+      "category": "Lights",
+      "notes": "Reads LIGHT STROBE (bool); sends STROBES_TOGGLE.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "STRB",
+            "icon": "lights_strobes",
+            "read": {
+              "var": "LIGHT STROBE",
+              "unit": "bool"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "event": "STROBES_TOGGLE"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "generic.0.10",
+      "name": "COM1 (any aircraft, classic simvars)",
+      "category": "Radios",
+      "notes": "Reads COM ACTIVE FREQUENCY:1 (MHz); no press action.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "COM1",
+            "read": {
+              "var": "COM ACTIVE FREQUENCY:1",
+              "unit": "MHz"
+            },
+            "decimals": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "generic.0.11",
+      "name": "COM1 STBY (any aircraft, classic simvars)",
+      "category": "Radios",
+      "notes": "Reads COM STANDBY FREQUENCY:1 (MHz); no press action.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "COM1 STBY",
+            "read": {
+              "var": "COM STANDBY FREQUENCY:1",
+              "unit": "MHz"
+            },
+            "decimals": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "generic.0.12",
+      "name": "QNH (any aircraft, classic simvars)",
+      "category": "Instruments",
+      "notes": "Reads KOHLSMAN SETTING MB:1 (millibars); no press action.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "QNH",
+            "read": {
+              "var": "KOHLSMAN SETTING MB:1",
+              "unit": "millibars"
+            },
+            "decimals": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "generic.0.13",
+      "name": "XPDR (any aircraft, classic simvars)",
+      "category": "Radios",
+      "notes": "Reads TRANSPONDER CODE:1 (number); no press action.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "XPDR",
+            "read": {
+              "var": "TRANSPONDER CODE:1",
+              "unit": "number"
+            },
+            "pad": 4
+          }
+        }
+      ]
+    }
+  ]
+}

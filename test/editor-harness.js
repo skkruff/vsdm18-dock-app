@@ -16,7 +16,7 @@ const { FakeSim } = require('./fake-sim');
 async function startHarness({ iconDir = '', port = 0, profilesDir } = {}) {
   const dir = profilesDir || path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'switchboard-editor-')), 'profiles');
   const store = new ProfileStore({ dir, bundledDir: path.join(pluginDir, '..', 'profiles') });
-  store.seed(path.join(pluginDir, '..', 'presets.json'));
+  store.seed(path.join(pluginDir, '..', 'library.json'));
   const icons = new IconLibrary(iconDir, 'RGB');
   icons.scan();
   const sim = new FakeSim({

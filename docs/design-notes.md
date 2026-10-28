@@ -79,3 +79,10 @@ Dimmer knobs are not flight critical: put them on their own page.
 - Editor approved (scope change from the brief). Profiles in Documents\MSFS Switchboard. Preview
   of how keys look is part of the editor.
 - Pinned: transitions with some presentation.
+
+## Raised 2026-10-28 (library and face designer)
+
+- Everything built so far must be reusable when setting up new aircraft, and any key the user
+  makes must be savable for reuse: the key library (shipped items + "Save to library").
+- Optional per-key face designer: compose a library PNG (e.g. a "Barometer" icon) with a live
+  readout, or plain text when no suitable PNG exists. Built as face layers.

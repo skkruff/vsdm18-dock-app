@@ -18,8 +18,11 @@ On first start the plugin copies the C172 and generic profiles and a Magneto set
    - The dock picture matches the dock, with live values on the page the dock shows.
    - Click a key, change something (label, icon, layout by dragging), Save: the dock updates.
    - Try Learn: click Learn on a key's source, then flip a switch in the cockpit.
-   - Try the Magneto set preset on another page, or a new profile for the Caravan
-     (New, then "Use the aircraft loaded now" under Profile settings).
+   - Library: search it, drag the Magneto set onto another page, save one of your own keys to it.
+   - Face designer: on the QNH key, "Design a custom face", then move the icon and value around,
+     add your own text. Also try a text-only key on an empty slot (Add a key, Button, design a face).
+   - Try a new profile for the Caravan (New, then "Use the aircraft loaded now" under Profile
+     settings), built from library keys.
 7. Tell me what feels wrong or missing in the editor. It's a first version.
 
 If the editor page doesn't open: check the plugin log for an `editor` line (it shows the address,

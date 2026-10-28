@@ -63,10 +63,13 @@
         <div id="liveNote" class="live-note"></div>
       </div>
 
-      <details id="presetsPanel" open>
-        <summary>Presets (reusable groups of keys)</summary>
-        <div id="presetList"></div>
-        <button id="savePreset">Save selected keys as preset</button>
+      <details id="libraryPanel" open>
+        <summary>Library: reusable keys and groups</summary>
+        <div class="lib-tools">
+          <input id="libSearch" placeholder="Search the library (e.g. magneto, lights, COM)">
+          <button id="saveToLibrary" title="Save the selected key(s) to the library">Save selected to library</button>
+        </div>
+        <div id="libraryList"></div>
       </details>
       <p id="folderNote" class="muted"></p>
     </section>

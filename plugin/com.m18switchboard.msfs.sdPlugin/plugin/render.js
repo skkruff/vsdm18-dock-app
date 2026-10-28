@@ -7,6 +7,11 @@ const LABEL = '#ffffff';
 const DIM = '#9aa0a8';
 const READOUT = '#ffd040';
 
+function num(v, d) {
+  const n = Number(v);
+  return v === undefined || v === '' || Number.isNaN(n) ? d : n;
+}
+
 function esc(s) {
   return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
@@ -67,6 +72,42 @@ const tiles = {
       `<image href="${iconUri}" xlink:href="${iconUri}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" ` +
       `width="${(b.width * s).toFixed(1)}" height="${(b.height * s).toFixed(1)}" clip-path="url(#top)"/>` +
       lines(value, 110, { size: 40, color: READOUT }));
+  },
+  // A key face designed in the editor: layers drawn in order on a 144 x 144 key.
+  //   { kind: 'icon', icon, crop: 'auto' | 'full', x, y, w, h }   icon fitted into the box
+  //   { kind: 'text', text, x, y, size, color, w }                 centred on (x, y)
+  //   { kind: 'value', x, y, size, color, w }                      the live value, formatted
+  //   { kind: 'bar', x, y, w, h }                                  red / green / outline by state
+  //   { kind: 'rect', x, y, w, h, color }
+  // ctx: { iconFor(name) -> { uri, box } | null, value: string, state: 'on' | 'off' | 'clear' }
+  face(face, ctx) {
+    let body = '';
+    (face.layers || []).forEach((L, n) => {
+      const x = num(L.x, 0), y = num(L.y, 0), w = num(L.w, 144), h = num(L.h, 144);
+      if (L.kind === 'icon') {
+        const ic = ctx.iconFor(L.icon);
+        if (!ic) return;
+        const full = { x: 0, y: 0, w: ic.box ? ic.box.width : 512, h: ic.box ? ic.box.height : 512 };
+        const b = L.crop === 'full' || !ic.box ? full : ic.box;
+        const s = Math.min(w / b.w, h / b.h);
+        const ix = x + (w - b.w * s) / 2 - b.x * s;
+        const iy = y + (h - b.h * s) / 2 - b.y * s;
+        body += `<defs><clipPath id="c${n}"><rect x="${x}" y="${y}" width="${w}" height="${h}"/></clipPath></defs>` +
+          `<image href="${ic.uri}" xlink:href="${ic.uri}" x="${ix.toFixed(1)}" y="${iy.toFixed(1)}" ` +
+          `width="${(full.w * s).toFixed(1)}" height="${(full.h * s).toFixed(1)}" clip-path="url(#c${n})"/>`;
+      } else if (L.kind === 'text' || L.kind === 'value') {
+        const text = L.kind === 'value' ? ctx.value : (L.text || '');
+        body += lines(text, y, { size: num(L.size, 26), color: L.color || (L.kind === 'value' ? READOUT : LABEL), x, width: num(L.w, 136) });
+      } else if (L.kind === 'bar') {
+        const fill = STATE_COLORS[ctx.state];
+        body += fill
+          ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${fill}"/>`
+          : `<rect x="${x + 1}" y="${y + 1}" width="${w - 2}" height="${h - 2}" rx="6" fill="none" stroke="${DIM}" stroke-width="3"/>`;
+      } else if (L.kind === 'rect') {
+        body += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${num(L.r, 0)}" fill="${esc(L.color || '#333333')}"/>`;
+      }
+    });
+    return svgUri(body, esc(face.background || '#000000'));
   },
   // One slot's piece of a scene drawn across the whole panel.
   // scene: { rows: { 0: 'MSFS', 2: 'NOT CONNECTED' }, icons: { 7: dataUri }, color }

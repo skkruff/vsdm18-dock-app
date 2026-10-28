@@ -1,5 +1,7 @@
 // Key images. Library icons where the profile names one and the file exists; otherwise generated
 // SVG tiles styled like the library's RGB icons (black key, label, red/green/outlined state bar).
+const { contentBox } = require('./png');
+
 const STATE_COLORS = { on: '#b8f01c', off: '#f0204c' };
 const LABEL = '#ffffff';
 const DIM = '#9aa0a8';
@@ -30,9 +32,9 @@ function lines(text, y, { size = 26, color = LABEL, weight = 'bold', x = 72, wid
     `font-size="${fit}" fill="${color}" text-anchor="middle" dominant-baseline="middle">${esc(l)}</text>`).join('');
 }
 
-// The 15 LCD keys as one 720 x 432 canvas (5 x 3 keys of 144). The physical gaps between keys
-// are not part of the canvas, so text crossing a gap looks slightly stretched.
-const PANEL = { cols: 5, rows: 3, key: 144 };
+// The 15 LCD keys as one canvas that includes the physical gaps between keys (about a quarter of
+// a key wide on the M18), so text crossing a gap keeps its shape and only loses the hidden part.
+const PANEL = { cols: 5, rows: 3, key: 144, gap: 36 };
 
 function bar(state) {
   const fill = STATE_COLORS[state];
@@ -52,27 +54,40 @@ const tiles = {
   readout(label, value) {
     return svgUri(lines(label, 32, { size: 20, color: DIM }) + lines(value, 88, { size: 40, color: READOUT }));
   },
-  // Top of a library icon (its printed name) above a live value. The icon's state bar at the
-  // bottom is cut off.
-  iconReadout(iconUri, value) {
+  // A library icon's content (box: its bounding box in icon pixels, from png.contentBox) scaled
+  // into the top of the key, with a live value below. Without a box the whole icon is used.
+  iconReadout(iconUri, value, box) {
+    const area = { x: 6, y: 4, w: 132, h: 72 };
+    const b = box || { x: 0, y: 0, w: 512, h: 512, width: 512, height: 512 };
+    const s = Math.min(area.w / b.w, area.h / b.h);
+    const x = area.x + (area.w - b.w * s) / 2 - b.x * s;
+    const y = area.y + (area.h - b.h * s) / 2 - b.y * s;
     return svgUri(
-      `<defs><clipPath id="top"><rect width="144" height="78"/></clipPath></defs>` +
-      `<image href="${iconUri}" xlink:href="${iconUri}" x="0" y="0" width="144" height="144" clip-path="url(#top)"/>` +
-      lines(value, 112, { size: 38, color: READOUT }));
+      `<defs><clipPath id="top"><rect x="${area.x}" y="${area.y}" width="${area.w}" height="${area.h}"/></clipPath></defs>` +
+      `<image href="${iconUri}" xlink:href="${iconUri}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" ` +
+      `width="${(b.width * s).toFixed(1)}" height="${(b.height * s).toFixed(1)}" clip-path="url(#top)"/>` +
+      lines(value, 110, { size: 40, color: READOUT }));
   },
-  // One slot's piece of a message drawn across the whole panel. Each line sits inside one row of
-  // keys so no letters fall into the gaps between rows: one line in the middle row, two in the
-  // top and bottom rows, three in all rows.
-  banner(text, slot, { color = LABEL, size = 100 } = {}) {
-    const { cols, key } = PANEL;
-    const w = cols * key;
-    const ls = String(text).split('\n').slice(0, 3);
-    const rowsFor = { 1: [1], 2: [0, 2], 3: [0, 1, 2] }[ls.length];
-    const longest = Math.max(...ls.map(l => l.length));
-    const fit = Math.min(size, Math.floor(((w - 40) * 1.3) / Math.max(longest, 1)));
-    const body = ls.map((l, i) => lines(l, rowsFor[i] * key + key / 2, { size: fit, color, x: w / 2, width: w })).join('');
-    const x = (slot % cols) * key;
-    const y = Math.floor(slot / cols) * key;
+  // One slot's piece of a scene drawn across the whole panel.
+  // scene: { rows: { 0: 'MSFS', 2: 'NOT CONNECTED' }, icons: { 7: dataUri }, color }
+  // Each text row is centred on its row of keys, as large as fits across the panel.
+  scene(scene, slot) {
+    const { cols, rows, key, gap } = PANEL;
+    const pitch = key + gap;
+    const w = cols * key + (cols - 1) * gap;
+    const color = scene.color || LABEL;
+    let body = '';
+    for (const [row, text] of Object.entries(scene.rows || {})) {
+      const fit = Math.min(scene.size || 120, Math.floor(((w - 20) * 1.45) / Math.max(String(text).length, 1)));
+      body += lines(text, Number(row) * pitch + key / 2 + fit * 0.05, { size: fit, color, x: w / 2, width: w });
+    }
+    for (const [s, uri] of Object.entries(scene.icons || {})) {
+      const ix = (Number(s) % cols) * pitch;
+      const iy = Math.floor(Number(s) / cols) * pitch;
+      body += `<image href="${uri}" xlink:href="${uri}" x="${ix}" y="${iy}" width="${key}" height="${key}"/>`;
+    }
+    const x = (slot % cols) * pitch;
+    const y = Math.floor(slot / cols) * pitch;
     return svgUri(body, '#000000', `${x} ${y} ${key} ${key}`);
   },
   message(text) {
@@ -87,13 +102,32 @@ const tiles = {
 };
 
 class Renderer {
-  constructor(icons) { this.icons = icons; }
+  constructor(icons) {
+    this.icons = icons;
+    this.boxes = new Map(); // file -> content box (or null)
+  }
 
-  // Library icon for (base, state) as a data URI, or null if there is no such file.
+  _file(base, state) {
+    return base && this.icons ? this.icons.resolve(base, state) : null;
+  }
+
+  // Library icon for (base, state) as a data URI, or null if there is no such file. base may also
+  // be a full name such as magneto_off (state null).
   icon(base, state) {
-    if (!base || !this.icons) return null;
-    const file = this.icons.resolve(base, state);
+    const file = this._file(base, state);
     return file ? this.icons.dataUri(file) : null;
+  }
+
+  // Bounding box of the icon's visible content, for cropping. null if unknown.
+  iconBox(base, state) {
+    const file = this._file(base, state);
+    if (!file) return null;
+    if (!this.boxes.has(file)) {
+      let box = null;
+      try { box = contentBox(this.icons.read(file)); } catch (e) { box = null; }
+      this.boxes.set(file, box);
+    }
+    return this.boxes.get(file);
   }
 }
 

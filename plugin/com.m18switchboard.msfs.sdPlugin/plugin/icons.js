@@ -41,6 +41,10 @@ class IconLibrary {
     return this.files.has(name) ? name : null;
   }
 
+  read(file) {
+    return fs.readFileSync(path.join(this.dir, file));
+  }
+
   dataUri(file) {
     if (!this.cache.has(file)) {
       const b64 = fs.readFileSync(path.join(this.dir, file)).toString('base64');

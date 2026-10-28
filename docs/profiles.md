@@ -1,8 +1,11 @@
 # Profile format
 
-One JSON file per aircraft in `plugin/com.m18switchboard.msfs.sdPlugin/profiles/`. Adding an
-aircraft means adding a file; the engine should not need changing. Examples: `c172-g1000.json`,
-`generic.json`.
+One JSON file per aircraft in the user's profile folder (default
+`Documents\MSFS Switchboard\profiles`, config `profilesDir`). Normally edited with the editor
+(`editor.md`); this is the format underneath. The plugin ships starting profiles in
+`plugin/com.m18switchboard.msfs.sdPlugin/profiles/`, copied into the folder only when missing.
+Saving a file reloads it on the dock. Adding an aircraft means adding a file; the engine should
+not need changing.
 
 ```json
 {
@@ -16,6 +19,8 @@ aircraft means adding a file; the engine should not need changing. Examples: `c1
 - **match**: case-insensitive regexes per aircraft field. `path` is the aircraft.cfg path (best:
   it names the package), `title` the preset/livery title, `atcModel` the ATC model key (e.g.
   `ATCCOM.AC_MODEL C172.0.text`). Any hit selects the profile; files are tried alphabetically.
+- **banner**: one or two lines announced across the panel when the aircraft loads (e.g.
+  `["C172", "G1000"]`), with the MSFS logo icon in the centre key.
 - **fallback: true** instead of `match`: used when nothing else matches (the generic profile).
   The page announcement then says NO PROFILE.
 - **pages**: page 1 is the main page. The round buttons switch pages (◀ previous, main, next ▶),
@@ -40,6 +45,10 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
 - **text**: sim value to a word, shown on readouts (e.g. magneto `3` -> `BOTH`) and under the
   label on generated switch tiles (e.g. `ARM`).
 - **decimals**, **pad**: readout number format (`decimals: 3` -> 124.655, `pad: 4` -> 0007).
+- **valueIcons** (any type): sim value to a library icon name shown as the whole key, e.g.
+  `{ "3": "magneto_both" }`. Values not listed fall back to the normal look.
+- **icon on a readout**: the icon's visible content is found automatically, scaled into the top
+  of the key, and the value drawn below it.
 
 ## Sources (`read`)
 

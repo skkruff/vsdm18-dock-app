@@ -33,7 +33,8 @@ const str256 = s => { const b = Buffer.alloc(256); b.write(s, 'latin1'); return 
 const recvOpen = { applicationName: 'KittyHawk', applicationVersionMajor: 12, applicationVersionMinor: 1,
   applicationBuildMajor: 1, applicationBuildMinor: 0 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const C172_PATH = 'd:\\...\\asobo_c172sp_g1000\\presets\\asobo\\c172sp_avionics_passengers\\config\\aircraft.cfg';
+// Real path from the user's log (AircraftLoaded event form).
+const C172_PATH = 'd:\\mfs2024\\official2024\\onestore\\asobo-aircraft-c172sp-as1000\\simobjects\\airplanes\\asobo_c172sp_g1000\\presets\\asobo\\c172sp_avionics_passengers\\config\\aircraft.cfg';
 
 (async () => {
   let handle = new FakeHandle();
@@ -81,6 +82,9 @@ const C172_PATH = 'd:\\...\\asobo_c172sp_g1000\\presets\\asobo\\c172sp_avionics_
   handle.data('TITLE', str256('Black Square Caravan'));
   handle.data('ATC MODEL', str256('ATCCOM.AC_MODEL C208.0.text'));
   assert.strictEqual(handle.last('requestSystemState')[2], 'AircraftLoaded', 'asks for the new path');
+  // The sim answers with the old aircraft's path, in its relative form (user log 2026-10-28).
+  handle.emit('systemState', { requestID: handle.last('requestSystemState')[1],
+    dataString: 'SimObjects\\Airplanes\\asobo_c172sp_g1000\\presets\\asobo\\c172sp_avionics_passengers\\config\\aircraft.CFG' });
   await sleep(80);
   assert.strictEqual(seen.aircraft.length, 0, 'waits for the new path');
   handle.emit('eventFilename', { clientEventId: 1, fileName: 'bksq\\aircraft.cfg' });
@@ -88,11 +92,11 @@ const C172_PATH = 'd:\\...\\asobo_c172sp_g1000\\presets\\asobo\\c172sp_avionics_
   assert.deepStrictEqual(seen.aircraft.splice(0),
     [{ title: 'Black Square Caravan', atcModel: 'ATCCOM.AC_MODEL C208.0.text', path: 'bksq\\aircraft.cfg' }]);
 
-  // If no new path comes, announce without one rather than with the stale one.
-  handle.data('TITLE', str256('Some Other Aircraft'));
+  // If no different path comes (a livery of the same aircraft), the last path stands.
+  handle.data('TITLE', str256('Black Square Caravan, other livery'));
   await sleep(200);
   assert.deepStrictEqual(seen.aircraft.splice(0),
-    [{ title: 'Some Other Aircraft', atcModel: 'ATCCOM.AC_MODEL C208.0.text', path: undefined }]);
+    [{ title: 'Black Square Caravan, other livery', atcModel: 'ATCCOM.AC_MODEL C208.0.text', path: 'bksq\\aircraft.cfg' }]);
 
   // Input events: list (two pages), subscribe, change, get, set.
   const listing = sim.listInputEvents();

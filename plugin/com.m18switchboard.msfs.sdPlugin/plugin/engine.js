@@ -10,8 +10,9 @@ const { tiles } = require('./render');
 
 const LCD_SLOTS = 15;
 const NAV = { 15: 'prev', 16: 'main', 17: 'next' };
-const STATUS_TEXT = { offline: 'MSFS\nNOT CONNECTED', loading: 'LOADING\nAIRCRAFT' };
+const STATUS_ROWS = { offline: { 0: 'MSFS', 2: 'NOT CONNECTED' }, loading: { 0: 'MSFS', 2: 'LOADING' } };
 const STATUS_COLOR = '#9aa0a8';
+const LOGO_SLOT = 7;
 
 function sourceKey(src) {
   return src.input ? `input:${src.input}` : `var:${src.var}|${src.unit}`;
@@ -37,16 +38,18 @@ function formatValue(key, value) {
 }
 
 class ProfileEngine {
-  constructor({ sim, display, renderer, profiles, announcePages = true, announceMs = 800, log = () => {} }) {
-    Object.assign(this, { sim, display, renderer, profiles, announcePages, announceMs, log });
-    this.announcing = null; // page name shown across the panel, or null
+  constructor({ sim, display, renderer, profiles, announcePages = true, announceMs = 800,
+    announceAircraftMs = 2500, logoIcon = 'fs_logo_icon', log = () => {} }) {
+    Object.assign(this, { sim, display, renderer, profiles, announcePages, announceMs, announceAircraftMs, logoIcon, log });
+    this.scene = null; // panel-wide picture shown instead of the keys (aircraft or page name)
+    this.sceneTimer = null;
     this.holdTimers = new Map(); // slot -> interval re-sending a held position
+    this.swallowed = new Set(); // slots whose key down only dismissed an announcement
     this.status = 'offline'; // offline | loading | ready
     this.profile = null;
     this.pageIndex = 0;
     this.watches = new Map(); // sourceKey -> { src, value, error, unsub }
     this.generation = 0; // bumps on every aircraft/page change so stale async work is dropped
-    this.announceTimer = null;
   }
 
   start() {
@@ -56,6 +59,7 @@ class ProfileEngine {
       this._stopHolds();
       this.profile = null;
       this.status = 'offline';
+      this._clearScene();
       this.redrawAll();
     });
     this.sim.on('exception', e => this._onException(e));
@@ -70,7 +74,19 @@ class ProfileEngine {
     this.log('aircraft', { ...aircraft, profile: profile ? profile.id : null });
     this.profile = profile;
     this.pageIndex = 0;
-    await this._showPage();
+    await this._showPage({ aircraft: true });
+  }
+
+  setProfiles(profiles) {
+    this.profiles = profiles;
+    if (this.sim.aircraft && this.sim.aircraft.title !== undefined && this.status !== 'offline') {
+      // Re-match and redraw in place (same page if it still exists), without announcing.
+      const profile = matchProfile(profiles, this.sim.aircraft);
+      const samePage = profile && this.profile && profile.id === this.profile.id;
+      this.profile = profile;
+      if (!samePage || this.pageIndex >= profile.pages.length) this.pageIndex = 0;
+      return this._showPage({ quiet: true });
+    }
   }
 
   async setPage(index) {
@@ -80,26 +96,72 @@ class ProfileEngine {
     await this._showPage();
   }
 
-  async _showPage() {
+  // aircraft: a new aircraft was loaded (announce it, not the page). quiet: no announcement.
+  async _showPage({ aircraft = false, quiet = false } = {}) {
     const gen = ++this.generation;
     this._unwatchAll();
     this._stopHolds();
-    if (!this.profile) { this.status = 'loading'; return this.redrawAll(); }
+    if (!this.profile) { this.status = 'loading'; this._clearScene(); return this.redrawAll(); }
+    if (aircraft) this._showScene(this._aircraftScene(), this.announceAircraftMs);
+    else if (this.announcePages && !quiet) this._showScene({ rows: { 1: this.page.name } }, this.announceMs);
+    else this._clearScene();
+    // The announcement covers any wait for input events; only without one is "loading" shown.
     const sources = this._pageSources(this.page);
-    if (sources.some(s => s.input)) {
-      this.status = 'loading';
-      this.redrawAll();
+    if (sources.some(s => s.input) && (!this.sim.inputs || !this.sim.inputs.size)) {
+      if (!this.scene) { this.status = 'loading'; this.redrawAll(); }
       // Input event hashes are per aircraft; list them once per aircraft.
-      if (!this.sim.inputs || !this.sim.inputs.size) {
-        try { await this.sim.listInputEvents(); } catch (e) { this.log('input events unavailable', e.message); }
-        if (gen !== this.generation) return;
-      }
+      try { await this.sim.listInputEvents(); } catch (e) { this.log('input events unavailable', e.message); }
+      if (gen !== this.generation) return;
     }
     for (const src of sources) this._watch(src, gen);
     this.status = 'ready';
     this.log('page', { profile: this.profile.id, page: this.page.name });
-    this._announce(gen);
     this.redrawAll();
+  }
+
+  // Live values of the keys on the page being shown: { slot: value }.
+  liveValues() {
+    const values = {};
+    if (this.status !== 'ready') return values;
+    for (const [slot, key] of Object.entries(this.page.keys || {})) {
+      const w = key.read && this.watches.get(sourceKey(key.read));
+      if (w && w.value !== undefined) values[slot] = w.value;
+    }
+    return values;
+  }
+
+  // The 15 images of the announcement shown when this profile's aircraft loads.
+  aircraftSceneImages(profile) {
+    const scene = this._aircraftScene(profile);
+    return Array.from({ length: LCD_SLOTS }, (_, s) => tiles.scene(scene, s));
+  }
+
+  _aircraftScene(p = this.profile) {
+    const lines = p.fallback ? ['NO PROFILE', 'GENERIC'] : (p.banner || [p.name || p.id]);
+    const logo = this.renderer.icon(this.logoIcon, null);
+    return { rows: { 0: lines[0], ...(lines[1] ? { 2: lines[1] } : {}) }, icons: logo ? { [LOGO_SLOT]: logo } : {} };
+  }
+
+  _statusScene(status) {
+    const logo = this.renderer.icon(this.logoIcon, null);
+    return { rows: STATUS_ROWS[status], icons: logo ? { [LOGO_SLOT]: logo } : {}, color: STATUS_COLOR };
+  }
+
+  // Shows a panel-wide scene for ms, then the keys.
+  _showScene(scene, ms) {
+    clearTimeout(this.sceneTimer);
+    this.scene = scene;
+    this.redrawAll();
+    this.sceneTimer = setTimeout(() => {
+      if (this.scene !== scene) return;
+      this.scene = null;
+      this.redrawAll();
+    }, ms);
+  }
+
+  _clearScene() {
+    clearTimeout(this.sceneTimer);
+    this.scene = null;
   }
 
   _pageSources(page) {
@@ -165,34 +227,31 @@ class ProfileEngine {
   }
 
   _image(slot) {
-    if (this.status !== 'ready') return tiles.banner(STATUS_TEXT[this.status], slot, { color: STATUS_COLOR, size: 90 });
-    if (this.announcing) return tiles.banner(this.announcing, slot);
+    if (this.status === 'offline') return tiles.scene(this._statusScene('offline'), slot);
+    if (this.scene) return tiles.scene(this.scene, slot);
+    if (this.status === 'loading') return tiles.scene(this._statusScene('loading'), slot);
     const key = this.page.keys?.[slot];
     if (!key) return tiles.blank();
     const w = key.read ? this.watches.get(sourceKey(key.read)) : null;
-    if (w && w.error) return tiles.unavailable(key.label || '');
-    const value = w ? w.value : undefined;
+    return this.keyImage(key, w ? w.value : undefined, w && w.error);
+  }
+
+  // Image for one key definition showing a given value. Shared with the editor's previews.
+  keyImage(key, value, error) {
+    if (!key) return tiles.blank();
+    if (error) return tiles.unavailable(key.label || '');
+    // valueIcons: a library icon per sim value, shown whole (e.g. magneto_left for 2).
+    const valueIcon = this.renderer.icon(lookup(key.valueIcons, value), null);
+    if (valueIcon) return valueIcon;
     if (key.type === 'readout') {
       const icon = this.renderer.icon(key.icon, key.iconState || null);
-      return icon ? tiles.iconReadout(icon, formatValue(key, value)) : tiles.readout(key.label || '', formatValue(key, value));
+      return icon
+        ? tiles.iconReadout(icon, formatValue(key, value), this.renderer.iconBox(key.icon, key.iconState || null))
+        : tiles.readout(key.label || '', formatValue(key, value));
     }
     if (key.type === 'button') return this.renderer.icon(key.icon, null) || tiles.button(key.label || '');
     const state = value === undefined ? 'clear' : (lookup(key.states, value) || key.otherwise || 'clear');
     return this.renderer.icon(key.icon, state) || tiles.switch(key.label || '', state, lookup(key.text, value));
-  }
-
-  // Shows the page name across the whole panel for announceMs, then the keys. Value changes
-  // during the announcement are kept and drawn when it ends.
-  _announce(gen) {
-    clearTimeout(this.announceTimer);
-    this.announcing = null;
-    if (!this.announcePages) return;
-    this.announcing = this.profile.fallback ? `NO PROFILE\n${this.page.name}` : this.page.name;
-    this.announceTimer = setTimeout(() => {
-      if (gen !== this.generation) return;
-      this.announcing = null;
-      this.redrawAll();
-    }, this.announceMs);
   }
 
   _stopHolds() {
@@ -202,6 +261,8 @@ class ProfileEngine {
 
   keyDown(slot) {
     if (NAV[slot]) return this._nav(NAV[slot]);
+    // A press while an announcement covers the keys just dismisses it: the keys were not visible.
+    if (this.scene) { this.swallowed.add(slot); this._clearScene(); return this.redrawAll(); }
     const key = this.status === 'ready' ? this.page.keys?.[slot] : null;
     if (!key || !key.press) return;
     try {
@@ -227,6 +288,7 @@ class ProfileEngine {
 
   keyUp(slot) {
     this._stopHold(slot);
+    if (this.swallowed.delete(slot)) return; // its key down did nothing, so neither does key up
     const key = this.status === 'ready' ? this.page?.keys?.[slot] : null;
     if (!key || !key.press || key.press.release === undefined) return;
     try { this._press(key, 'up'); } catch (e) { this.log('release failed', { slot, error: e.message }); }

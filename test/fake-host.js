@@ -11,6 +11,10 @@ const pluginDir = path.join(__dirname, '..', 'plugin', 'com.m18switchboard.msfs.
 const device = { id: 'DEV1', name: 'VSDM18', type: 0, size: { columns: 5, rows: 3 } };
 const info = { application: { language: 'en', platform: 'windows', version: 'test' }, devices: [device] };
 
+const os = require('os');
+const fs = require('fs');
+const profilesDir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'switchboard-')), 'profiles');
+
 const wss = new WebSocket.Server({ port: 0 });
 const port = wss.address().port;
 const received = [];
@@ -37,7 +41,10 @@ wss.on('connection', s => {
 const child = spawn(process.execPath, [
   path.join(pluginDir, 'plugin', 'index.js'),
   '-port', String(port), '-pluginUUID', 'PLUGIN-UUID', '-registerEvent', 'registerPlugin', '-info', JSON.stringify(info),
-], { stdio: 'inherit' });
+], {
+  stdio: 'inherit',
+  env: { ...process.env, SWITCHBOARD_PROFILES_DIR: profilesDir, SWITCHBOARD_EDITOR_PORT: '0' },
+});
 
 const appear = (context, row, column) => sock.send(JSON.stringify({
   event: 'willAppear', action: 'com.m18switchboard.msfs.slot', context, device: 'DEV1',
@@ -56,7 +63,7 @@ const appear = (context, row, column) => sock.send(JSON.stringify({
     appear('ROUND_RIGHT', 2, 5);
     const centre = await waitFor(m => m.event === 'setImage' && m.context === 'CENTRE');
     assert.match(decodeURIComponent(centre.payload.image), /NOT CONNECTED/);
-    assert.match(decodeURIComponent(centre.payload.image), /viewBox="288 144 144 144"/);
+    assert.match(decodeURIComponent(centre.payload.image), /viewBox="360 180 144 144"/);
     const topLeft = await waitFor(m => m.event === 'setImage' && m.context === 'TOPLEFT');
     assert.match(decodeURIComponent(topLeft.payload.image), /viewBox="0 0 144 144"/);
     await sleep(200);
@@ -68,7 +75,8 @@ const appear = (context, row, column) => sock.send(JSON.stringify({
     await sleep(200);
     assert.strictEqual(child.exitCode, null, 'plugin still running');
 
-    console.log('fake-host: PASS (registration, slot mapping, offline state, presses while offline)');
+    assert.deepStrictEqual(fs.readdirSync(profilesDir).sort(), ['c172-g1000.json', 'generic.json'], 'shipped profiles copied to the profile folder');
+    console.log('fake-host: PASS (registration, slot mapping, offline state, presses while offline, profile folder seeded)');
     process.exitCode = 0;
   } catch (e) {
     console.error('fake-host: FAIL', e.message, received);

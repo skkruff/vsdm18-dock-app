@@ -1,3 +1,4 @@
 node_modules/
 logs/
 *.zip
+editor-e2e-failure.png

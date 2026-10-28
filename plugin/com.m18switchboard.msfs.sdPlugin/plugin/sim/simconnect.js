@@ -34,6 +34,13 @@ const AIRCRAFT_VARS = [
 
 function specKey(s) { return `${s.name}|${s.unit}|${s.type}`; }
 
+// The AircraftLoaded event gives an absolute lower-case path, the system state request a relative
+// one; compare them from the SimObjects folder on.
+function samePath(a, b) {
+  const norm = p => (p || '').toLowerCase().replace(/\//g, '\\').replace(/^.*?(simobjects\\)/, '$1');
+  return !!a && !!b && norm(a) === norm(b);
+}
+
 class SimConnectBackend extends EventEmitter {
   constructor({ appName = 'MSFS Switchboard', openFn = open, aircraftDebounceMs = 750, pathWaitMs = 5000 } = {}) {
     super();
@@ -53,6 +60,7 @@ class SimConnectBackend extends EventEmitter {
     this.lastTitle = undefined;
     this.titleChangedAt = 0;
     this.pathAt = 0;
+    this.pathBeforeTitleChange = undefined;
     this.inputs = new Map(); // input event name -> { hash, type }
     this.inputSubs = new Map(); // hash (bigint) -> { name, listeners: Set, value }
     this.inputLists = new Map(); // request id -> { found: [], resolve }
@@ -75,15 +83,11 @@ class SimConnectBackend extends EventEmitter {
     handle.on('eventFilename', e => {
       if (e.clientEventId !== AIRCRAFT_LOADED_EVENT) return;
       this.emit('aircraftLoaded', e.fileName);
-      this.aircraftPath = e.fileName;
-      this.pathAt = Date.now();
-      this._aircraftChanged();
+      this._gotPath(e.fileName);
     });
     handle.on('systemState', s => {
       if (s.requestID !== AIRCRAFT_STATE_REQUEST) return;
-      this.aircraftPath = s.dataString;
-      this.pathAt = Date.now();
-      this._aircraftChanged();
+      this._gotPath(s.dataString);
     });
     handle.on('inputEventsList', r => this._onInputList(r));
     handle.on('getInputEvent', r => {
@@ -293,23 +297,35 @@ class SimConnectBackend extends EventEmitter {
     }
   }
 
+  // After a title change the sim keeps reporting the previous aircraft's path for a few seconds,
+  // including in answer to a fresh request (user log 2026-10-28). So a path equal to the one in use
+  // at the title change counts as stale until a different one arrives.
+  _gotPath(path) {
+    const waitingForNew = this.titleChangedAt > this.pathAt;
+    if (waitingForNew && samePath(path, this.pathBeforeTitleChange)) return;
+    this.aircraftPath = path;
+    this.pathAt = Date.now();
+    this._aircraftChanged();
+  }
+
   // TITLE, ATC MODEL and the aircraft file arrive separately and up to seconds apart during a
   // load (the file path about 2.7 s after the title in MSFS 2024), so wait for them to settle
-  // before announcing. A path that arrived before the latest title change belongs to the previous
-  // aircraft: wait up to pathWaitMs for the new one, then announce without a path.
+  // before announcing. If no new path arrives within pathWaitMs (e.g. a livery change within the
+  // same aircraft), the last known path stands.
   _aircraftChanged() {
     const get = name => this.subs.get(specKey(AIRCRAFT_VARS.find(v => v.name === name)))?.value;
     const title = get('TITLE');
     if (title !== undefined && title !== this.lastTitle) {
       this.lastTitle = title;
       this.titleChangedAt = Date.now();
+      this.pathBeforeTitleChange = this.aircraftPath;
       if (this.handle) this._track(this.handle.requestSystemState(AIRCRAFT_STATE_REQUEST, 'AircraftLoaded'), 'system state AircraftLoaded');
     }
     clearTimeout(this.aircraftTimer);
     this.aircraftTimer = setTimeout(() => {
       const pathStale = this.pathAt < this.titleChangedAt;
       if (pathStale && Date.now() - this.titleChangedAt < this.pathWaitMs) return this._aircraftChanged();
-      const next = { title: get('TITLE'), atcModel: get('ATC MODEL'), path: pathStale ? undefined : this.aircraftPath };
+      const next = { title: get('TITLE'), atcModel: get('ATC MODEL'), path: this.aircraftPath };
       if (next.title === undefined || next.atcModel === undefined) return;
       const a = this.aircraft;
       if (next.title === a.title && next.atcModel === a.atcModel && next.path === a.path) return;

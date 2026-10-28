@@ -47,6 +47,16 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-10-28, dock + sim (user follow-up test, plugin log): START repeat works (the Asobo C172 still
+  drops briefly to BOTH between repeats, then cranks again; accepted). BAROMETRIC syncs the
+  altimeter. An SVG with an embedded PNG draws on the device. Panel-wide text drawn as if the keys
+  touched was hard to read (fixed: the canvas now includes the gaps). The stale path fix did not
+  work: asking the sim for the path right after a title change returns the *old* path (log
+  10:50:46, 10:50:59). Fixed by ignoring a path equal to the one in use at the title change until a
+  different one arrives; unit tested with the exact sequence.
+- 2026-10-28, unit + browser tests only: editor (`test/editor.e2e.js` against a fake sim). Not yet
+  run on the user's PC. Unverified there: Documents folder location (OneDrive may redirect it),
+  port 8765 free, `openUrl` from the round button.
 - 2026-10-28, dock + sim (user test, plugin log): Phase 2 works. node-simconnect 4.2.1 runs on VSD
   Craft's Node 20.8.1. All C172 keys control the cockpit, stay in sync and update instantly;
   setting input events works for every switch. Paging, generic fallback and restarts work.

@@ -1,6 +1,7 @@
 // Plugin entry point: wires the dock layer, the sim layer and the profile engine together.
 // Place the "Switchboard Slot" action on all 15 LCD keys and the 3 round buttons of one page.
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const log = require('./log');
 
@@ -10,8 +11,9 @@ process.on('unhandledRejection', e => log.error('unhandled rejection', e && e.st
 const { Dock } = require('./dock');
 const { IconLibrary } = require('./icons');
 const { Renderer } = require('./render');
-const { loadProfiles } = require('./profiles');
 const { ProfileEngine } = require('./engine');
+const { ProfileStore } = require('./store');
+const { createEditorServer } = require('./editor/server');
 
 const pluginRoot = path.join(__dirname, '..');
 const DEFAULTS = {
@@ -19,17 +21,27 @@ const DEFAULTS = {
   theme: 'RGB',
   announcePages: true,
   announceMs: 800,
+  announceAircraftMs: 2500,
   reconnectSeconds: 5,
+  // Profiles you edit live here, outside the plugin folder, so redeploying never touches them.
+  profilesDir: path.join(os.homedir(), 'Documents', 'MSFS Switchboard', 'profiles'),
+  editorPort: 8765,
 };
+const EDITOR_HOLD_MS = 1500; // hold the middle round button this long to open the editor
 
 function loadConfig() {
   const file = path.join(pluginRoot, 'config.json');
+  let config;
   try {
-    return { ...DEFAULTS, ...JSON.parse(fs.readFileSync(file, 'utf8')) };
+    config = { ...DEFAULTS, ...JSON.parse(fs.readFileSync(file, 'utf8')) };
   } catch (e) {
     if (e.code !== 'ENOENT') log.warn('config.json unreadable, using defaults', e.message);
-    return { ...DEFAULTS };
+    config = { ...DEFAULTS };
   }
+  // Overrides for tests and development.
+  if (process.env.SWITCHBOARD_PROFILES_DIR) config.profilesDir = process.env.SWITCHBOARD_PROFILES_DIR;
+  if (process.env.SWITCHBOARD_EDITOR_PORT) config.editorPort = Number(process.env.SWITCHBOARD_EDITOR_PORT);
+  return config;
 }
 
 // LCD keys report rows bottom-up (row 0 = bottom); round buttons report as column 5.
@@ -45,9 +57,16 @@ const dock = new Dock();
 const icons = new IconLibrary(config.iconDir, config.theme);
 log.info('icon library', { dir: config.iconDir, files: icons.scan() });
 
-const { profiles, errors } = loadProfiles(path.join(pluginRoot, 'profiles'));
-errors.forEach(e => log.error('profile rejected', e));
-log.info('profiles', profiles.map(p => p.id));
+const store = new ProfileStore({ dir: config.profilesDir, bundledDir: path.join(pluginRoot, 'profiles'), log: (...a) => log.warn(...a) });
+const seeded = store.seed(path.join(pluginRoot, 'presets.json'));
+if (seeded.length) log.info('profiles copied to your profile folder', { dir: config.profilesDir, files: seeded });
+function loadAll() {
+  const { profiles, errors } = store.load();
+  errors.forEach(e => log.error('profile rejected', e));
+  log.info('profiles', { dir: config.profilesDir, ids: profiles.map(p => p.id) });
+  return profiles;
+}
+const profiles = loadAll();
 
 // Loaded only after logging is set up, so a failure to load the SimConnect library is logged.
 const { SimConnectBackend } = require('./sim/simconnect');
@@ -75,9 +94,18 @@ const display = {
 
 const engine = new ProfileEngine({
   sim, display, profiles, renderer: new Renderer(icons),
-  announcePages: config.announcePages, announceMs: config.announceMs,
+  announcePages: config.announcePages, announceMs: config.announceMs, announceAircraftMs: config.announceAircraftMs,
   log: (...a) => log.info(...a),
 });
+
+// Saving in the editor (or by hand) reloads profiles; the dock updates in place.
+store.watch(() => engine.setProfiles(loadAll()));
+
+const editorUrl = `http://localhost:${config.editorPort}/`;
+createEditorServer({ store, engine, sim, icons, config, log: (...a) => log.warn(...a) })
+  .listen(config.editorPort)
+  .then(port => log.info('editor', { url: `http://localhost:${port}/` }))
+  .catch(e => log.error('editor not started', e.message));
 
 dock.on('willAppear', msg => {
   const slot = slotFor(msg.payload.coordinates);
@@ -92,8 +120,20 @@ dock.on('willDisappear', msg => {
   slots.delete(msg.context);
   if (contexts.get(slot) === msg.context) { contexts.delete(slot); shown.delete(slot); }
 });
-dock.on('keyDown', msg => { if (slots.has(msg.context)) engine.keyDown(slots.get(msg.context)); });
-dock.on('keyUp', msg => { if (slots.has(msg.context)) engine.keyUp(slots.get(msg.context)); });
+let middleDownAt = 0;
+dock.on('keyDown', msg => {
+  if (!slots.has(msg.context)) return;
+  const slot = slots.get(msg.context);
+  if (slot === 16) middleDownAt = Date.now();
+  engine.keyDown(slot);
+});
+dock.on('keyUp', msg => {
+  if (!slots.has(msg.context)) return;
+  const slot = slots.get(msg.context);
+  // Holding the middle round button opens the editor in the default browser.
+  if (slot === 16 && Date.now() - middleDownAt >= EDITOR_HOLD_MS) dock.send('openUrl', undefined, { url: editorUrl });
+  engine.keyUp(slot);
+});
 
 sim.on('connected', info => log.info('sim connected', info));
 sim.on('disconnected', () => { log.info('sim disconnected'); scheduleConnect(); });

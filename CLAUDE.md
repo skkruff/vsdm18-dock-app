@@ -5,10 +5,10 @@ architecture (single Node process; dock / sim / profile layers) and the phase pl
 
 ## Current state
 
-Phases 0, 1 and 2 done and tested by the user (2026-10-28). Follow-ups from the Phase 2 test in
-code, to recheck (`docs/phase2-followup-test.md`): START repeat while held, panel-wide banners,
-QNH press, icon above readout, stale aircraft path fix. Open: the editor (see
-`docs/design-notes.md`), keypad entry.
+Phases 0, 1 and 2 done and tested by the user (2026-10-28). The editor (approved by the user,
+2026-10-28, despite the brief listing a settings GUI as out of scope) is built: `docs/editor.md`.
+Profiles now live in the user's Documents folder. Awaiting the user's test
+(`docs/editor-test.md`). Next after that: keypad entry for XPDR / COM standby.
 
 ## Profile content principles (user, 2026-10-27)
 
@@ -36,15 +36,21 @@ data folder is still `%APPDATA%\HotSpot\StreamDock`.
   - `plugin/profiles.js`: profile loading, validation, aircraft matching.
   - `plugin/render.js`: key images (library icons or generated SVG tiles).
   - `plugin/icons.js`: icon library lookup (naming scheme in `docs/icons.md`).
+  - `plugin/png.js`: minimal PNG reader (finds an icon's content box for cropping).
+  - `plugin/store.js`: the user's profile folder (seed, read, write, watch) and presets.
+  - `plugin/editor/server.js` + `editor/public/`: the editor (local web page, port 8765).
   - `plugin/sim/simconnect.js`: sim layer, `SimBackend` implemented on node-simconnect.
-  - `profiles/*.json`: one per aircraft, format in `docs/profiles.md`. `config.json`: user settings.
+  - `profiles/*.json`, `presets.json`: shipped starting points, copied to the user's folder when
+    missing. Format in `docs/profiles.md`. `config.json`: user settings.
 - `scripts/`: `make-icons.js` (placeholder PNGs), `deploy.js` (copy to `%APPDATA%`, Windows),
   `index-icons.js` (lists the user's icon library into `docs/icon-index.md`),
   `sim-spike.js` (Phase 1: standalone sim test, `npm run sim:spike`), `sim-explore.js`
   (lists an aircraft's input events and reports cockpit changes, `npm run sim:explore`).
 - `test/`: `fake-host.js` (stand-in Stream Dock host), `icons.test.js`, `simconnect.test.js`
   (backend against a fake SimConnect handle), `engine.test.js` (engine with the real profiles
-  against a fake sim). Run all with `npm test`.
+  against a fake sim), `fake-sim.js`. Run all with `npm test`. `editor.e2e.js` drives the editor in
+  Chromium against `editor-harness.js` (`npm run test:editor`, needs Playwright);
+  `node test/editor-harness.js [iconDir]` runs the editor on a fake sim for development.
 - `docs/aircraft/`: per-aircraft control inventories and input event lists.
 - `docs/hardware.md`: M18 key layout and slot numbering. `docs/icons.md`, `docs/icon-index.md`:
   icon library.

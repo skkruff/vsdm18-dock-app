@@ -64,3 +64,18 @@ Dimmer knobs are not flight critical: put them on their own page.
   the library without describing changes in words. See the proposal in the conversation of
   2026-10-28 and its decision once made.
 - Mag state could use library icons instead of text (user has some in mind).
+
+## Decided 2026-10-28 (after the follow-up test)
+
+- Panel-wide messages: draw on a canvas that includes the physical gaps (a quarter of a key);
+  accept that bits of letters fall behind the bezels, make the text as big as fits. MSFS logo icon
+  (`fs_logo_icon`) in the centre key of status and aircraft screens.
+- Aircraft load: announce the aircraft (profile `banner`, e.g. C172 / G1000) for 2.5 s, not the main
+  page name. No "loading" flash when an announcement is already showing. Page switches announce
+  only the page name. A key press during an announcement just dismisses it.
+- Magneto state key shows the library's magneto_off/right/left/both/start icons (`valueIcons`).
+  It must be reusable in other profiles: shipped as the "Magneto set" preset.
+- Icon + value on one key: crop to the icon's content and scale it into the top of the key.
+- Editor approved (scope change from the brief). Profiles in Documents\MSFS Switchboard. Preview
+  of how keys look is part of the editor.
+- Pinned: transitions with some presentation.

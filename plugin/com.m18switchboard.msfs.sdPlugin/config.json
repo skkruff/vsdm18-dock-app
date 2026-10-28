@@ -3,5 +3,7 @@
   "theme": "RGB",
   "announcePages": true,
   "announceMs": 800,
+  "announceAircraftMs": 2500,
+  "editorPort": 8765,
   "reconnectSeconds": 5
 }

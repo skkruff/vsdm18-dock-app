@@ -2,6 +2,7 @@
   "id": "c172-g1000",
   "name": "Cessna 172 SP G1000 (Asobo, MSFS 2024)",
   "notes": "Controls and values: docs/aircraft/c172-controls.md. Standby battery modelled as ARM/OFF only (TEST not modelled). Pitot heat left out (user, 2026-10-28).",
+  "banner": ["C172", "G1000"],
   "match": {
     "path": ["asobo_c172sp_g1000", "c172sp-as1000"]
   },
@@ -37,7 +38,8 @@
         "11": { "type": "button", "label": "◀ MAG", "read": { "input": "ENGINE_MAGNETO_1" },
                 "press": { "step": -1, "min": 0 } },
         "12": { "type": "readout", "label": "MAGS", "read": { "input": "ENGINE_MAGNETO_1" },
-                "text": { "0": "OFF", "1": "R", "2": "L", "3": "BOTH", "4": "START" } },
+                "text": { "0": "OFF", "1": "R", "2": "L", "3": "BOTH", "4": "START" },
+                "valueIcons": { "0": "magneto_off", "1": "magneto_right", "2": "magneto_left", "3": "magneto_both", "4": "magneto_start" } },
         "13": { "type": "button", "label": "MAG ▶", "read": { "input": "ENGINE_MAGNETO_1" },
                 "press": { "step": 1, "max": 3 } },
         "14": { "type": "switch", "label": "START", "read": { "input": "ENGINE_MAGNETO_1" },

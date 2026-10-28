@@ -1,55 +1,17 @@
 // Profile engine against a fake sim and a recording display, using the real profiles.
 const assert = require('assert');
-const { EventEmitter } = require('events');
 const path = require('path');
 const pluginDir = path.join(__dirname, '..', 'plugin', 'com.m18switchboard.msfs.sdPlugin');
 const { ProfileEngine, formatValue } = require(path.join(pluginDir, 'plugin', 'engine'));
 const { loadProfiles } = require(path.join(pluginDir, 'plugin', 'profiles'));
 const { Renderer } = require(path.join(pluginDir, 'plugin', 'render'));
 
+const { FakeSim } = require('./fake-sim');
+
 const C172 = { title: 'C172SP G1000 Passengers', atcModel: 'ATCCOM.AC_MODEL C172.0.text',
   path: 'SimObjects\\Airplanes\\asobo_c172sp_g1000\\presets\\asobo\\c172sp_avionics_passengers\\config\\aircraft.CFG' };
 const CARAVAN = { title: 'Black Square Caravan', atcModel: 'ATCCOM.AC_MODEL C208.0.text',
   path: 'SimObjects\\Airplanes\\bksq-aircraft-caravanprocargopod\\aircraft.CFG' };
-
-class FakeSim extends EventEmitter {
-  constructor(inputValues) {
-    super();
-    this.inputValues = inputValues; // name -> value; the aircraft's input events
-    this.inputs = new Map();
-    this.inputSubs = new Map(); // name -> Set(cb)
-    this.varSubs = new Map(); // name -> Set(cb)
-    this.sets = [];
-    this.sent = [];
-  }
-  onAircraftChanged(cb) { this.on('aircraft', cb); }
-  async listInputEvents() {
-    for (const n of Object.keys(this.inputValues)) this.inputs.set(n, {});
-    return [...this.inputs.keys()];
-  }
-  subscribeInput(names, cb) {
-    for (const n of names) {
-      if (!this.inputs.has(n)) throw new Error(`unknown input event ${n}`);
-      if (!this.inputSubs.has(n)) this.inputSubs.set(n, new Set());
-      this.inputSubs.get(n).add(cb);
-    }
-    return () => names.forEach(n => this.inputSubs.get(n).delete(cb));
-  }
-  async getInput(n) { return this.inputValues[n]; }
-  setInput(n, v) { this.sets.push([n, v]); }
-  subscribe(vars, cb) {
-    for (const v of vars) {
-      if (!this.varSubs.has(v.name)) this.varSubs.set(v.name, new Set());
-      this.varSubs.get(v.name).add(cb);
-    }
-    return () => vars.forEach(v => this.varSubs.get(v.name).delete(cb));
-  }
-  send(a) { this.sent.push(a); }
-  // The sim reporting a change.
-  input(n, v) { this.inputValues[n] = v; for (const cb of this.inputSubs.get(n) || []) cb(n, v); }
-  simvar(n, v) { for (const cb of this.varSubs.get(n) || []) cb(n, v); }
-  activeInputSubs() { return [...this.inputSubs].filter(([, s]) => s.size).map(([n]) => n).sort(); }
-}
 
 const tick = () => new Promise(r => setTimeout(r, 5));
 const text = uri => decodeURIComponent(uri);
@@ -72,25 +34,31 @@ const text = uri => decodeURIComponent(uri);
     image: (s, u) => { images.set(s, u); history.push([s, decodeURIComponent(u)]); },
     title: () => {}, alert: s => alerts.push(s),
   };
-  const engine = new ProfileEngine({ sim, display, profiles, renderer: new Renderer(null), announceMs: 1 });
-  const announced = name => history.some(([s, svg]) => s === 0 && svg.includes(`>${name}<`) && svg.includes('x="360"'));
+  const engine = new ProfileEngine({ sim, display, profiles, renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
+  // Scenes span the panel: text is centred on the 864-wide canvas (5 keys + 4 gaps).
+  const announced = name => history.some(([s, svg]) => s === 0 && svg.includes(`>${name}<`) && svg.includes('x="432"'));
+  const sceneCount = name => history.filter(([s, svg]) => s === 0 && svg.includes(`>${name}<`)).length;
   engine.start();
 
   // Not connected: status message in the centre, other keys dark.
   // Not connected: one message across the whole panel; each key holds its piece of it.
   assert.match(text(images.get(7)), /NOT CONNECTED/);
   assert.match(text(images.get(0)), /viewBox="0 0 144 144"/);
-  assert.match(text(images.get(7)), /viewBox="288 144 144 144"/);
+  assert.match(text(images.get(7)), /viewBox="360 180 144 144"/, 'centre key cut from the panel, gaps included');
 
   sim.emit('connected');
+  assert.match(text(images.get(7)), /viewBox/);
+  assert.ok(history.some(([, svg]) => svg.includes('>LOADING<')), 'connected, no aircraft yet: loading');
+  const mark = history.length;
   sim.emit('aircraft', C172);
   await tick();
   assert.strictEqual(engine.profile.id, 'c172-g1000');
   assert.strictEqual(engine.page.name, 'Main');
-  assert.ok(history.some(([, svg]) => svg.includes('LOADING')), 'loading banner while input events are listed');
-  assert.ok(announced('Main'), 'page name shown across the panel');
+  assert.ok(announced('C172') && announced('G1000'), 'aircraft announced across the panel');
+  assert.ok(!history.slice(mark).some(([, svg]) => svg.includes('LOADING')), 'no loading flash: the aircraft scene covers the wait');
+  assert.strictEqual(sceneCount('Main'), 0, 'main page not announced on aircraft load');
   await new Promise(r => setTimeout(r, 30));
-  assert.doesNotMatch(text(images.get(2)), /x="360"/, 'announcement over, keys back');
+  assert.doesNotMatch(text(images.get(2)), /x="432"/, 'announcement over, keys back');
 
   // Keys show the sim's state.
   assert.match(text(images.get(2)), /BAT/);
@@ -171,11 +139,23 @@ const text = uri => decodeURIComponent(uri);
   await tick();
   assert.strictEqual(engine.page.name, 'Main');
 
+  // A press during an announcement only dismisses it; its key up does nothing either.
+  engine.announceMs = 10000;
+  engine.keyDown(15);
+  await tick();
+  assert.ok(engine.scene, 'page announcement showing');
+  const before2 = sim.sets.length + sim.sent.length;
+  engine.keyDown(14);
+  engine.keyUp(14);
+  assert.strictEqual(engine.scene, null, 'dismissed');
+  assert.strictEqual(sim.sets.length + sim.sent.length, before2, 'START not pressed, no release sent');
+  engine.announceMs = 1;
+
   // Unknown aircraft: generic profile, announced as such.
   sim.emit('aircraft', CARAVAN);
   await tick();
   assert.strictEqual(engine.profile.id, 'generic');
-  assert.ok(history.some(([, svg]) => svg.includes('>NO PROFILE<') && svg.includes('>Generic<')));
+  assert.ok(announced('NO PROFILE') && announced('GENERIC'));
   sim.simvar('LIGHT BEACON', true);
   assert.match(text(images.get(5)), /#b8f01c/);
   engine.keyDown(2);

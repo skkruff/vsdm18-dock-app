@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Switchboard Editor</title>
+  <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+  <header>
+    <div class="brand">Switchboard Editor</div>
+    <div class="profile-bar">
+      <select id="profileSelect" title="Profile file"></select>
+      <button id="newProfile" title="New profile">New</button>
+      <button id="dupProfile" title="Duplicate this profile">Duplicate</button>
+      <button id="delProfile" title="Delete this profile (a .bak copy is kept)">Delete</button>
+      <button id="saveProfile" class="primary" title="Save (Ctrl+S)">Save</button>
+      <span id="dirty" class="dirty" hidden>unsaved changes</span>
+    </div>
+    <div id="simStatus" class="sim-status">…</div>
+  </header>
+
+  <main>
+    <section class="left">
+      <details id="profileSettings">
+        <summary>Profile settings</summary>
+        <label>ID <input id="pId"></label>
+        <label>Name <input id="pName"></label>
+        <label>Announcement line 1 <input id="pBanner1" placeholder="e.g. C172"></label>
+        <label>Announcement line 2 <input id="pBanner2" placeholder="e.g. G1000"></label>
+        <label class="row"><input type="checkbox" id="pFallback"> Fallback (used when no other profile matches)</label>
+        <fieldset id="matchFields">
+          <legend>Matches aircraft when any pattern fits (one per line)</legend>
+          <label>File path <textarea id="mPath" rows="2"></textarea></label>
+          <label>Title <textarea id="mTitle" rows="2"></textarea></label>
+          <label>ATC model <textarea id="mAtc" rows="1"></textarea></label>
+          <button id="fillMatch">Use the aircraft loaded now</button>
+        </fieldset>
+        <button id="previewAnnouncement">Preview announcement</button>
+      </details>
+
+      <div class="pages">
+        <div id="pageTabs" class="tabs"></div>
+        <div class="page-tools">
+          <button id="addPage" title="Add page">+ Page</button>
+          <button id="renamePage">Rename</button>
+          <button id="movePageLeft" title="Move page left">◀</button>
+          <button id="movePageRight" title="Move page right">▶</button>
+          <button id="delPage">Delete page</button>
+          <button id="showOnDock" title="Show this page on the dock (profile must be in use)">Show on dock</button>
+        </div>
+      </div>
+
+      <div class="dock">
+        <div id="grid" class="grid"></div>
+        <div class="round">
+          <div class="rb" title="Previous page">◀ page</div>
+          <div class="rb" title="Main page (hold 1.5 s: open this editor)">main</div>
+          <div class="rb" title="Next page">page ▶</div>
+        </div>
+        <p class="hint">Click a key to edit it. Ctrl/Shift-click to select several. Drag to move or swap.
+          Ctrl+C / Ctrl+V copy and paste keys (also between pages and profiles). Delete removes.</p>
+        <div id="liveNote" class="live-note"></div>
+      </div>
+
+      <details id="presetsPanel" open>
+        <summary>Presets (reusable groups of keys)</summary>
+        <div id="presetList"></div>
+        <button id="savePreset">Save selected keys as preset</button>
+      </details>
+      <p id="folderNote" class="muted"></p>
+    </section>
+
+    <section class="right">
+      <div id="inspector"></div>
+    </section>
+  </main>
+
+  <div id="status" class="status"></div>
+
+  <dialog id="iconDialog">
+    <div class="dialog-head">
+      <input id="iconSearch" placeholder="Search icons (e.g. magneto, lights)">
+      <button id="iconNone">No icon</button>
+      <button id="iconClose">Close</button>
+    </div>
+    <div id="iconGrid" class="icon-grid"></div>
+  </dialog>
+
+  <datalist id="inputList"></datalist>
+  <datalist id="unitList">
+    <option value="bool"><option value="number"><option value="MHz"><option value="millibars">
+    <option value="inHg"><option value="feet"><option value="knots"><option value="percent"><option value="degrees">
+  </datalist>
+  <script src="editor.js"></script>
+</body>
+</html>

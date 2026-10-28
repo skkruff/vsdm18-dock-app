@@ -73,7 +73,7 @@ const text = uri => decodeURIComponent(uri);
     title: () => {}, alert: s => alerts.push(s),
   };
   const engine = new ProfileEngine({ sim, display, profiles, renderer: new Renderer(null), announceMs: 1 });
-  const announced = name => history.some(([s, svg]) => s === 0 && svg.includes(`>${name}<`) && svg.includes('font-size="110"'));
+  const announced = name => history.some(([s, svg]) => s === 0 && svg.includes(`>${name}<`) && svg.includes('x="360"'));
   engine.start();
 
   // Not connected: status message in the centre, other keys dark.
@@ -90,7 +90,7 @@ const text = uri => decodeURIComponent(uri);
   assert.ok(history.some(([, svg]) => svg.includes('LOADING')), 'loading banner while input events are listed');
   assert.ok(announced('Main'), 'page name shown across the panel');
   await new Promise(r => setTimeout(r, 30));
-  assert.doesNotMatch(text(images.get(2)), /font-size="110"/, 'announcement over, keys back');
+  assert.doesNotMatch(text(images.get(2)), /x="360"/, 'announcement over, keys back');
 
   // Keys show the sim's state.
   assert.match(text(images.get(2)), /BAT/);

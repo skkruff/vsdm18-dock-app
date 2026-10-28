@@ -23,10 +23,15 @@ if (!fs.existsSync(appDir)) {
   process.exit(1);
 }
 const dest = path.join(appDir, 'plugins', name);
+// Keep the user's config.json (icon folder, theme, ...) across deploys.
+const destConfig = path.join(dest, 'config.json');
+const keptConfig = fs.existsSync(destConfig) ? fs.readFileSync(destConfig) : null;
 fs.rmSync(dest, { recursive: true, force: true });
 fs.cpSync(src, dest, {
   recursive: true,
   filter: s => !path.relative(src, s).split(path.sep).includes('logs'),
 });
+if (keptConfig) fs.writeFileSync(destConfig, keptConfig);
 console.log(`Deployed to ${dest}`);
+console.log(keptConfig ? 'Kept your existing config.json.' : `Settings: ${destConfig}`);
 console.log(`Logs will appear in ${path.join(dest, 'logs')}`);

@@ -26,6 +26,11 @@ assert.strictEqual(lib.resolve('alt_hold', 'on'), 'alt_hold_on_RGB.png');
 assert.strictEqual(lib.resolve('alt_hold', 'clear'), null);
 assert.strictEqual(lib.resolve('anti_ice', null), 'anti_ice_RGB.png');
 assert.ok(lib.dataUri('alt_hold_on_RGB.png').startsWith('data:image/png;base64,iVBORw'));
+const { Renderer } = require('../plugin/com.m18switchboard.msfs.sdPlugin/plugin/render');
+const r = new Renderer(lib);
+assert.ok(r.icon('alt_hold', 'on').startsWith('data:image/png;base64,'), 'library icon used when present');
+assert.strictEqual(r.icon('alt_hold', 'clear'), null, 'missing state falls back to a generated tile');
+assert.strictEqual(new Renderer(null).icon('alt_hold', 'on'), null, 'no library at all');
 fs.rmSync(dir, { recursive: true });
 
 console.log('icons: PASS');

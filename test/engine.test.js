@@ -1,0 +1,196 @@
+// Profile engine against a fake sim and a recording display, using the real profiles.
+const assert = require('assert');
+const { EventEmitter } = require('events');
+const path = require('path');
+const pluginDir = path.join(__dirname, '..', 'plugin', 'com.m18switchboard.msfs.sdPlugin');
+const { ProfileEngine, formatValue } = require(path.join(pluginDir, 'plugin', 'engine'));
+const { loadProfiles } = require(path.join(pluginDir, 'plugin', 'profiles'));
+const { Renderer } = require(path.join(pluginDir, 'plugin', 'render'));
+
+const C172 = { title: 'C172SP G1000 Passengers', atcModel: 'ATCCOM.AC_MODEL C172.0.text',
+  path: 'SimObjects\\Airplanes\\asobo_c172sp_g1000\\presets\\asobo\\c172sp_avionics_passengers\\config\\aircraft.CFG' };
+const CARAVAN = { title: 'Black Square Caravan', atcModel: 'ATCCOM.AC_MODEL C208.0.text',
+  path: 'SimObjects\\Airplanes\\bksq-aircraft-caravanprocargopod\\aircraft.CFG' };
+
+class FakeSim extends EventEmitter {
+  constructor(inputValues) {
+    super();
+    this.inputValues = inputValues; // name -> value; the aircraft's input events
+    this.inputs = new Map();
+    this.inputSubs = new Map(); // name -> Set(cb)
+    this.varSubs = new Map(); // name -> Set(cb)
+    this.sets = [];
+    this.sent = [];
+  }
+  onAircraftChanged(cb) { this.on('aircraft', cb); }
+  async listInputEvents() {
+    for (const n of Object.keys(this.inputValues)) this.inputs.set(n, {});
+    return [...this.inputs.keys()];
+  }
+  subscribeInput(names, cb) {
+    for (const n of names) {
+      if (!this.inputs.has(n)) throw new Error(`unknown input event ${n}`);
+      if (!this.inputSubs.has(n)) this.inputSubs.set(n, new Set());
+      this.inputSubs.get(n).add(cb);
+    }
+    return () => names.forEach(n => this.inputSubs.get(n).delete(cb));
+  }
+  async getInput(n) { return this.inputValues[n]; }
+  setInput(n, v) { this.sets.push([n, v]); }
+  subscribe(vars, cb) {
+    for (const v of vars) {
+      if (!this.varSubs.has(v.name)) this.varSubs.set(v.name, new Set());
+      this.varSubs.get(v.name).add(cb);
+    }
+    return () => vars.forEach(v => this.varSubs.get(v.name).delete(cb));
+  }
+  send(a) { this.sent.push(a); }
+  // The sim reporting a change.
+  input(n, v) { this.inputValues[n] = v; for (const cb of this.inputSubs.get(n) || []) cb(n, v); }
+  simvar(n, v) { for (const cb of this.varSubs.get(n) || []) cb(n, v); }
+  activeInputSubs() { return [...this.inputSubs].filter(([, s]) => s.size).map(([n]) => n).sort(); }
+}
+
+const tick = () => new Promise(r => setTimeout(r, 5));
+const text = uri => decodeURIComponent(uri);
+
+(async () => {
+  const { profiles, errors } = loadProfiles(path.join(pluginDir, 'profiles'));
+  assert.deepStrictEqual(errors, [], 'shipped profiles validate');
+  assert.deepStrictEqual(profiles.map(p => p.id), ['c172-g1000', 'generic'], 'fallback last');
+
+  const sim = new FakeSim({
+    ELECTRICAL_BATTERY_STBY_2: 1, ELECTRICAL_ALTERNATOR_1: 0, ELECTRICAL_BATTERY_1: 0,
+    ELECTRICAL_LINE_BUS_1_TO_AVIONICS_BUS_1: 0, ELECTRICAL_LINE_BUS_2_TO_AVIONICS_BUS_2: 0,
+    LIGHTING_BEACON_1: 0, LIGHTING_LANDING_1: 0, LIGHTING_TAXI_1: 0, LIGHTING_NAV_0: 0, LIGHTING_STROBE_0: 0,
+    FUEL_PUMP_1: 0, ENGINE_MAGNETO_1: 3, DEICE_PITOT_1: 0, FUEL_SELECTOR_1: 1,
+  });
+  const images = new Map();
+  const titles = new Map();
+  const alerts = [];
+  const display = {
+    image: (s, u) => images.set(s, u), title: (s, t) => titles.set(s, t), alert: s => alerts.push(s),
+  };
+  const engine = new ProfileEngine({ sim, display, profiles, renderer: new Renderer(null), announceMs: 20 });
+  engine.start();
+
+  // Not connected: status message in the centre, other keys dark.
+  assert.match(text(images.get(7)), /not connected/);
+  assert.doesNotMatch(text(images.get(0)), /<text/);
+
+  sim.emit('connected');
+  sim.emit('aircraft', C172);
+  await tick();
+  assert.strictEqual(engine.profile.id, 'c172-g1000');
+  assert.strictEqual(engine.page.name, 'Main');
+  assert.strictEqual(titles.get(0), 'Main', 'page announced');
+  await new Promise(r => setTimeout(r, 30));
+  assert.strictEqual(titles.get(0), '', 'announcement cleared');
+
+  // Keys show the sim's state.
+  assert.match(text(images.get(2)), /BAT/);
+  assert.match(text(images.get(2)), /#f0204c/, 'battery off: red bar');
+  assert.match(text(images.get(0)), /OFF/, 'standby battery shows its position');
+  assert.match(text(images.get(12)), /BOTH/, 'magneto readout');
+
+  // Pressing sends a command but does not change the key; the sim's report does.
+  const before = images.get(2);
+  engine.keyDown(2);
+  assert.deepStrictEqual(sim.sets.pop(), ['ELECTRICAL_BATTERY_1', 1]);
+  assert.strictEqual(images.get(2), before, 'icon follows sim, not the press');
+  sim.input('ELECTRICAL_BATTERY_1', 1);
+  assert.match(text(images.get(2)), /#b8f01c/, 'battery on: green bar');
+  engine.keyDown(2);
+  assert.deepStrictEqual(sim.sets.pop(), ['ELECTRICAL_BATTERY_1', 0]);
+
+  engine.keyDown(0);
+  assert.deepStrictEqual(sim.sets.pop(), ['ELECTRICAL_BATTERY_STBY_2', 0], 'standby battery OFF -> ARM');
+
+  // Magnetos: ▶ stops at BOTH, ◀ steps down, START holds and springs back.
+  engine.keyDown(13);
+  assert.strictEqual(sim.sets.length, 0, 'MAG ▶ does nothing at BOTH');
+  engine.keyDown(11);
+  assert.deepStrictEqual(sim.sets.pop(), ['ENGINE_MAGNETO_1', 2]);
+  sim.input('ENGINE_MAGNETO_1', 0);
+  engine.keyDown(11);
+  assert.strictEqual(sim.sets.length, 0, 'MAG ◀ does nothing at OFF');
+  assert.match(text(images.get(12)), /OFF/);
+  sim.input('ENGINE_MAGNETO_1', 3);
+  engine.keyDown(14);
+  assert.deepStrictEqual(sim.sets.pop(), ['ENGINE_MAGNETO_1', 4]);
+  sim.input('ENGINE_MAGNETO_1', 4);
+  assert.match(text(images.get(14)), /#b8f01c/, 'START lit while cranking');
+  assert.match(text(images.get(12)), /START/);
+  engine.keyUp(14);
+  assert.deepStrictEqual(sim.sets.pop(), ['ENGINE_MAGNETO_1', 3]);
+  engine.keyUp(2);
+  assert.strictEqual(sim.sets.length, 0, 'key up only acts on keys with a release');
+
+  // Next page: only that page's sources are watched.
+  engine.keyDown(17);
+  await tick();
+  assert.strictEqual(engine.page.name, 'Auxiliary');
+  assert.deepStrictEqual(sim.activeInputSubs(), ['DEICE_PITOT_1', 'FUEL_SELECTOR_1']);
+  assert.ok(sim.varSubs.get('TRANSPONDER CODE:1').size === 1);
+  sim.simvar('TRANSPONDER CODE:1', 7);
+  assert.match(text(images.get(4)), />0007</);
+  sim.simvar('COM ACTIVE FREQUENCY:1', 124.655);
+  assert.match(text(images.get(0)), />124\.655</);
+  sim.simvar('KOHLSMAN SETTING MB:1', 1013.25);
+  assert.match(text(images.get(3)), />1013</);
+  assert.match(text(images.get(7)), /BOTH/, 'fuel selector');
+  assert.doesNotMatch(text(images.get(14)), /<text/, 'unused key is dark');
+  engine.keyDown(2);
+  assert.deepStrictEqual(sim.sent.pop(), { event: 'COM_STBY_RADIO_SWAP', value: 0 });
+  engine.keyDown(8);
+  assert.deepStrictEqual(sim.sets.pop(), ['FUEL_SELECTOR_1', 2]);
+
+  // Round buttons wrap around and return to main.
+  engine.keyDown(17);
+  await tick();
+  assert.strictEqual(engine.page.name, 'Main', 'next wraps');
+  assert.strictEqual(sim.varSubs.get('TRANSPONDER CODE:1').size, 0, 'old page unsubscribed');
+  engine.keyDown(15);
+  await tick();
+  assert.strictEqual(engine.page.name, 'Auxiliary', 'prev wraps');
+  engine.keyDown(16);
+  await tick();
+  assert.strictEqual(engine.page.name, 'Main');
+
+  // Unknown aircraft: generic profile, announced as such.
+  sim.emit('aircraft', CARAVAN);
+  await tick();
+  assert.strictEqual(engine.profile.id, 'generic');
+  assert.strictEqual(titles.get(0), 'NO PROFILE\nGeneric');
+  sim.simvar('LIGHT BEACON', true);
+  assert.match(text(images.get(5)), /#b8f01c/);
+  engine.keyDown(2);
+  assert.deepStrictEqual(sim.sent.pop(), { event: 'AVIONICS_MASTER_SET', value: 1 }, 'set-style event from current state');
+
+  // A profile input event the aircraft does not have: that key says N/A, the rest work.
+  delete sim.inputValues.LIGHTING_STROBE_0;
+  sim.inputs.clear();
+  sim.emit('aircraft', C172);
+  await tick();
+  assert.match(text(images.get(9)), /N\/A/);
+  assert.match(text(images.get(5)), /BCN/);
+
+  // Variable exceptions mark readouts unavailable.
+  engine.keyDown(17);
+  await tick();
+  sim.emit('exception', { name: 'NAME_UNRECOGNIZED', about: 'variable TRANSPONDER CODE:1 (number)' });
+  assert.match(text(images.get(4)), /N\/A/);
+
+  // Sim gone: back to the status message.
+  sim.emit('disconnected');
+  assert.match(text(images.get(7)), /not connected/);
+  const sentBefore = sim.sent.length + sim.sets.length;
+  engine.keyDown(2);
+  engine.keyDown(17);
+  assert.strictEqual(sim.sent.length + sim.sets.length, sentBefore, 'presses ignored while offline');
+  assert.strictEqual(engine.profile, null);
+
+  assert.strictEqual(formatValue({ decimals: 1 }, 1013.25), '1013.3');
+  assert.strictEqual(formatValue({}, undefined), '---');
+  console.log('engine: PASS');
+})().catch(e => { console.error('engine: FAIL', e); process.exitCode = 1; });

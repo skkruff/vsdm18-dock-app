@@ -5,9 +5,9 @@ architecture (single Node process; dock / sim / profile layers) and the phase pl
 
 ## Current state
 
-Phases 0 and 1 done (hardware 2026-10-27, sim 2026-10-27/28). The C172 is fully mapped through
-input events (`docs/aircraft/c172-controls.md`). Next: Phase 2, once the user approves the C172
-page layout.
+Phases 0 and 1 done (hardware 2026-10-27, sim 2026-10-27/28). Phase 2 code done (2026-10-28):
+profile engine, C172 profile (Main + Auxiliary pages, layout approved by the user, see
+`docs/design-notes.md`) and generic fallback. Awaiting the user's test (`docs/phase2-test.md`).
 
 ## Profile content principles (user, 2026-10-27)
 
@@ -30,15 +30,20 @@ data folder is still `%APPDATA%\HotSpot\StreamDock`.
 
 - `plugin/com.m18switchboard.msfs.sdPlugin/`: the Stream Dock plugin folder as deployed.
   - `plugin/dock.js`: dock layer, the only code that speaks the Stream Dock protocol.
-  - `plugin/index.js`: currently the Phase 0 diagnostic.
+  - `plugin/index.js`: entry point; wires dock, sim and engine; key coordinates to slots.
+  - `plugin/engine.js`: profile engine (pages, watches, presses, status screens).
+  - `plugin/profiles.js`: profile loading, validation, aircraft matching.
+  - `plugin/render.js`: key images (library icons or generated SVG tiles).
   - `plugin/icons.js`: icon library lookup (naming scheme in `docs/icons.md`).
   - `plugin/sim/simconnect.js`: sim layer, `SimBackend` implemented on node-simconnect.
+  - `profiles/*.json`: one per aircraft, format in `docs/profiles.md`. `config.json`: user settings.
 - `scripts/`: `make-icons.js` (placeholder PNGs), `deploy.js` (copy to `%APPDATA%`, Windows),
   `index-icons.js` (lists the user's icon library into `docs/icon-index.md`),
   `sim-spike.js` (Phase 1: standalone sim test, `npm run sim:spike`), `sim-explore.js`
   (lists an aircraft's input events and reports cockpit changes, `npm run sim:explore`).
 - `test/`: `fake-host.js` (stand-in Stream Dock host), `icons.test.js`, `simconnect.test.js`
-  (backend against a fake SimConnect handle). Run all with `npm test`.
+  (backend against a fake SimConnect handle), `engine.test.js` (engine with the real profiles
+  against a fake sim). Run all with `npm test`.
 - `docs/aircraft/`: per-aircraft control inventories and input event lists.
 - `docs/hardware.md`: M18 key layout and slot numbering. `docs/icons.md`, `docs/icon-index.md`:
   icon library.

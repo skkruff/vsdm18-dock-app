@@ -47,6 +47,12 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-10-28, unit tests only: Phase 2 engine and profiles (`test/engine.test.js`, fake sim):
+  state display, press-sends-but-icon-follows-sim, cycle/step/hold actions, magneto stops,
+  paging on round buttons, only active page watched, generic fallback, N/A for missing sources,
+  offline state. Not yet run on the dock with MSFS. Unverified in the sim: setting input events
+  other than the avionics buses, holding ENGINE_MAGNETO_1 at 4 (START), COM_STBY_RADIO_SWAP,
+  node-simconnect on VSD Craft's Node 20.8.1.
 - 2026-10-28, sim: explorer run in the C172 G1000 and the Black Square Caravan. Input event
   listing, live change reports and `set` all work against MSFS 2024. C172: every control the
   user worked was reported; full re-read found nothing missed. Caravan: standard controls

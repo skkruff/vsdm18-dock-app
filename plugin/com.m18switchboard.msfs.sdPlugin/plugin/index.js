@@ -1,110 +1,115 @@
-// Phase 0 diagnostic plugin.
-// Place the "Switchboard Slot" action on every key of one Stream Dock page. Each key then shows
-// its row/column. Pressing a key cycles it through display tests (see TESTS) and logs what
-// happened, so docs/verified.md can be filled in from the real M18.
+// Plugin entry point: wires the dock layer, the sim layer and the profile engine together.
+// Place the "Switchboard Slot" action on all 15 LCD keys and the 3 round buttons of one page.
 const fs = require('fs');
 const path = require('path');
-const { Dock } = require('./dock');
 const log = require('./log');
 
+process.on('uncaughtException', e => log.error('uncaught', e && e.stack || String(e)));
+process.on('unhandledRejection', e => log.error('unhandled rejection', e && e.stack || String(e)));
+
+const { Dock } = require('./dock');
+const { IconLibrary } = require('./icons');
+const { Renderer } = require('./render');
+const { loadProfiles } = require('./profiles');
+const { ProfileEngine } = require('./engine');
+
+const pluginRoot = path.join(__dirname, '..');
+const DEFAULTS = {
+  iconDir: 'D:\\MFS2024\\Flight Sim Dock\\Button Icon PNGs',
+  theme: 'RGB',
+  announcePages: true,
+  reconnectSeconds: 5,
+};
+
+function loadConfig() {
+  const file = path.join(pluginRoot, 'config.json');
+  try {
+    return { ...DEFAULTS, ...JSON.parse(fs.readFileSync(file, 'utf8')) };
+  } catch (e) {
+    if (e.code !== 'ENOENT') log.warn('config.json unreadable, using defaults', e.message);
+    return { ...DEFAULTS };
+  }
+}
+
+// LCD keys report rows bottom-up (row 0 = bottom); round buttons report as column 5.
+// See docs/hardware.md.
+function slotFor({ row, column }) {
+  return column === 5 ? 15 + row : (2 - row) * 5 + column;
+}
+
+const config = loadConfig();
+log.info('starting', { node: process.version, config });
+
 const dock = new Dock();
-const keys = new Map(); // context -> { device, row, column, test }
-const devices = new Map(); // device id -> deviceInfo
+const icons = new IconLibrary(config.iconDir, config.theme);
+log.info('icon library', { dir: config.iconDir, files: icons.scan() });
 
-const staticDir = path.join(__dirname, '..', 'static');
-const testPng = 'data:image/png;base64,' + fs.readFileSync(path.join(staticDir, 'test_144.png')).toString('base64');
+const { profiles, errors } = loadProfiles(path.join(pluginRoot, 'profiles'));
+errors.forEach(e => log.error('profile rejected', e));
+log.info('profiles', profiles.map(p => p.id));
 
-function svgUri(svg) {
-  return 'data:image/svg+xml;charset=utf8,' + encodeURIComponent(svg);
-}
+// Loaded only after logging is set up, so a failure to load the SimConnect library is logged.
+const { SimConnectBackend } = require('./sim/simconnect');
+const sim = new SimConnectBackend();
 
-// 144x144 frame with a 2px border at the very edge, so cropping or scaling is visible on the key.
-function frameSvg(lines, { bg = '#102030', fg = '#ffffff', size = 28 } = {}) {
-  const step = size * 1.15;
-  const y0 = 72 - ((lines.length - 1) * step) / 2;
-  const text = lines.map((l, i) =>
-    `<text x="72" y="${y0 + i * step}" font-family="Arial" font-weight="bold" font-size="${size}" fill="${fg}" text-anchor="middle" dominant-baseline="middle">${l}</text>`
-  ).join('');
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">` +
-    `<rect width="144" height="144" fill="${bg}"/>` +
-    `<rect x="1" y="1" width="142" height="142" fill="none" stroke="#ff3030" stroke-width="2"/>` +
-    text + `</svg>`;
-}
-
-function slotIndex(k) {
-  const dev = devices.get(k.device);
-  const cols = dev?.size?.columns;
-  return cols ? k.row * cols + k.column : null;
-}
-
-const TESTS = [
-  {
-    name: 'coords-svg',
-    run(ctx, k) {
-      const slot = slotIndex(k);
-      dock.setTitle(ctx, '');
-      dock.setImage(ctx, svgUri(frameSvg([`r${k.row} c${k.column}`, slot === null ? 'slot ?' : `slot ${slot}`], { size: 24 })));
-    },
+const contexts = new Map(); // slot -> dock context
+const slots = new Map(); // dock context -> slot
+const shown = new Map(); // slot -> last image sent, to skip identical redraws
+const display = {
+  image(slot, uri) {
+    const ctx = contexts.get(slot);
+    if (!ctx || shown.get(slot) === uri) return;
+    shown.set(slot, uri);
+    dock.setImage(ctx, uri);
   },
-  {
-    name: 'png-base64',
-    run(ctx) { dock.setTitle(ctx, ''); dock.setImage(ctx, testPng); },
+  title(slot, text) {
+    const ctx = contexts.get(slot);
+    if (ctx) dock.setTitle(ctx, text);
   },
-  {
-    name: 'title-only',
-    run(ctx) {
-      dock.setImage(ctx, svgUri(frameSvg([], { bg: '#000000' })));
-      dock.setTitle(ctx, 'TITLE\n2 lines');
-    },
+  alert(slot) {
+    const ctx = contexts.get(slot);
+    if (ctx) dock.showAlert(ctx);
   },
-  {
-    name: 'readout-svg',
-    run(ctx) {
-      dock.setTitle(ctx, '');
-      dock.setImage(ctx, svgUri(frameSvg(['QNH', '1013'], { bg: '#000000', fg: '#ffd040', size: 34 })));
-    },
-  },
-  {
-    name: 'state-1',
-    run(ctx) { dock.setState(ctx, 1); },
-  },
-];
+};
 
-function runTest(ctx) {
-  const k = keys.get(ctx);
-  if (!k) return;
-  const t = TESTS[k.test % TESTS.length];
-  log.info('test', { context: ctx, row: k.row, column: k.column, test: t.name });
-  t.run(ctx, k);
-}
-
-dock.on('message', msg => log.info('recv', msg));
-
-dock.on('connected', () => {
-  log.info('registered', { args: { ...dock.args, info: undefined } });
-  log.info('registration info', dock.args.info);
-  for (const d of dock.args.info.devices || []) devices.set(d.id, d);
-});
-
-dock.on('deviceDidConnect', msg => {
-  devices.set(msg.device, { id: msg.device, ...msg.deviceInfo });
-  // Redraw keys on this device now that we know its column count.
-  for (const [ctx, k] of keys) if (k.device === msg.device && k.test === 0) runTest(ctx);
+const engine = new ProfileEngine({
+  sim, display, profiles, renderer: new Renderer(icons), announcePages: config.announcePages,
+  log: (...a) => log.info(...a),
 });
 
 dock.on('willAppear', msg => {
-  const c = msg.payload?.coordinates || {};
-  keys.set(msg.context, { device: msg.device, row: c.row, column: c.column, test: 0 });
-  runTest(msg.context);
+  const slot = slotFor(msg.payload.coordinates);
+  contexts.set(slot, msg.context);
+  slots.set(msg.context, slot);
+  shown.delete(slot);
+  dock.setTitle(msg.context, '');
+  engine.redraw(slot);
 });
-
-dock.on('willDisappear', msg => keys.delete(msg.context));
-
-dock.on('keyUp', msg => {
-  const k = keys.get(msg.context);
-  if (!k) return;
-  k.test += 1;
-  runTest(msg.context);
+dock.on('willDisappear', msg => {
+  const slot = slots.get(msg.context);
+  slots.delete(msg.context);
+  if (contexts.get(slot) === msg.context) { contexts.delete(slot); shown.delete(slot); }
 });
+dock.on('keyDown', msg => { if (slots.has(msg.context)) engine.keyDown(slots.get(msg.context)); });
+dock.on('keyUp', msg => { if (slots.has(msg.context)) engine.keyUp(slots.get(msg.context)); });
 
+sim.on('connected', info => log.info('sim connected', info));
+sim.on('disconnected', () => { log.info('sim disconnected'); scheduleConnect(); });
+
+let connectTimer = null;
+function scheduleConnect() {
+  if (connectTimer) return;
+  connectTimer = setTimeout(connect, config.reconnectSeconds * 1000);
+}
+async function connect() {
+  connectTimer = null;
+  try {
+    await sim.connect();
+  } catch (e) {
+    scheduleConnect(); // sim not running yet; quiet retry
+  }
+}
+
+engine.start();
 dock.connect();
+connect();

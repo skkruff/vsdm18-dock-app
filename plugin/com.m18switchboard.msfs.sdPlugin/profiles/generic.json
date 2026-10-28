@@ -1,0 +1,37 @@
+{
+  "id": "generic",
+  "name": "Generic fallback (any aircraft without a profile)",
+  "notes": "Classic simvars and events only, so it works without knowing the aircraft. Verified on the C172 on 2026-10-27, except avionics master, which some aircraft (C172 G1000) ignore.",
+  "fallback": true,
+  "pages": [
+    {
+      "name": "Generic",
+      "keys": {
+        "0": { "type": "switch", "label": "BAT", "icon": "master_battery", "read": { "var": "ELECTRICAL MASTER BATTERY", "unit": "bool" },
+               "states": { "0": "off", "1": "on" }, "press": { "event": "TOGGLE_MASTER_BATTERY" } },
+        "1": { "type": "switch", "label": "ALT", "icon": "master_alternator", "read": { "var": "GENERAL ENG MASTER ALTERNATOR:1", "unit": "bool" },
+               "states": { "0": "off", "1": "on" }, "press": { "event": "TOGGLE_MASTER_ALTERNATOR" } },
+        "2": { "type": "switch", "label": "AVIONICS", "icon": "avionics_master", "read": { "var": "AVIONICS MASTER SWITCH", "unit": "bool" },
+               "states": { "0": "off", "1": "on" }, "press": { "event": "AVIONICS_MASTER_SET", "toggleValue": true } },
+        "3": { "type": "switch", "label": "PITOT\nHEAT", "icon": "pitot_heat", "read": { "var": "PITOT HEAT SWITCH", "unit": "bool" },
+               "states": { "0": "off", "1": "on" }, "press": { "event": "PITOT_HEAT_TOGGLE" } },
+
+        "5": { "type": "switch", "label": "BCN", "icon": "lights_beacon", "read": { "var": "LIGHT BEACON", "unit": "bool" },
+               "states": { "0": "off", "1": "on" }, "press": { "event": "TOGGLE_BEACON_LIGHTS" } },
+        "6": { "type": "switch", "label": "LAND", "icon": "lights_landing_lights", "read": { "var": "LIGHT LANDING", "unit": "bool" },
+               "states": { "0": "off", "1": "on" }, "press": { "event": "LANDING_LIGHTS_TOGGLE" } },
+        "7": { "type": "switch", "label": "TAXI", "icon": "lights_taxi_lights", "read": { "var": "LIGHT TAXI", "unit": "bool" },
+               "states": { "0": "off", "1": "on" }, "press": { "event": "TOGGLE_TAXI_LIGHTS" } },
+        "8": { "type": "switch", "label": "NAV", "icon": "lights_nav_lights", "read": { "var": "LIGHT NAV", "unit": "bool" },
+               "states": { "0": "off", "1": "on" }, "press": { "event": "TOGGLE_NAV_LIGHTS" } },
+        "9": { "type": "switch", "label": "STRB", "icon": "lights_strobes", "read": { "var": "LIGHT STROBE", "unit": "bool" },
+               "states": { "0": "off", "1": "on" }, "press": { "event": "STROBES_TOGGLE" } },
+
+        "10": { "type": "readout", "label": "COM1", "read": { "var": "COM ACTIVE FREQUENCY:1", "unit": "MHz" }, "decimals": 3 },
+        "11": { "type": "readout", "label": "COM1 STBY", "read": { "var": "COM STANDBY FREQUENCY:1", "unit": "MHz" }, "decimals": 3 },
+        "12": { "type": "readout", "label": "QNH", "read": { "var": "KOHLSMAN SETTING MB:1", "unit": "millibars" }, "decimals": 0 },
+        "13": { "type": "readout", "label": "XPDR", "read": { "var": "TRANSPONDER CODE:1", "unit": "number" }, "pad": 4 }
+      }
+    }
+  ]
+}

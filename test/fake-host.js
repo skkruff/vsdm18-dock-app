@@ -1,14 +1,14 @@
-// Stand-in for the Stream Dock app: launches the plugin the way the SDK templates expect,
-// sends a few host events, and checks the plugin's replies. This proves our side of the
-// protocol only; it says nothing about how the real M18 behaves.
-// The device size here is a test value, not the M18's real layout.
+// Stand-in for the Stream Dock app: launches the plugin the way the SDK templates expect, places
+// the action on keys, and checks the plugin's replies. There is no sim here, so the plugin should
+// sit in its "MSFS not connected" state. Proves our side of the protocol and the slot mapping
+// only, not how the real M18 or MSFS behave.
 const { spawn } = require('child_process');
 const path = require('path');
 const assert = require('assert');
 const WebSocket = require(path.join(__dirname, '..', 'plugin', 'com.m18switchboard.msfs.sdPlugin', 'plugin', 'node_modules', 'ws'));
 
 const pluginDir = path.join(__dirname, '..', 'plugin', 'com.m18switchboard.msfs.sdPlugin');
-const device = { id: 'DEV1', name: 'Test device', type: 0, size: { columns: 5, rows: 3 } };
+const device = { id: 'DEV1', name: 'VSDM18', type: 0, size: { columns: 5, rows: 3 } };
 const info = { application: { language: 'en', platform: 'windows', version: 'test' }, devices: [device] };
 
 const wss = new WebSocket.Server({ port: 0 });
@@ -16,7 +16,7 @@ const port = wss.address().port;
 const received = [];
 let sock;
 
-function waitFor(pred, ms = 3000) {
+function waitFor(pred, ms = 5000) {
   return new Promise((resolve, reject) => {
     const t0 = Date.now();
     (function poll() {
@@ -27,6 +27,7 @@ function waitFor(pred, ms = 3000) {
     })();
   });
 }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 wss.on('connection', s => {
   sock = s;
@@ -38,26 +39,34 @@ const child = spawn(process.execPath, [
   '-port', String(port), '-pluginUUID', 'PLUGIN-UUID', '-registerEvent', 'registerPlugin', '-info', JSON.stringify(info),
 ], { stdio: 'inherit' });
 
+const appear = (context, row, column) => sock.send(JSON.stringify({
+  event: 'willAppear', action: 'com.m18switchboard.msfs.slot', context, device: 'DEV1',
+  payload: { controller: 'Keypad', coordinates: { row, column }, settings: {}, state: 0, isInMultiAction: false },
+}));
+
 (async () => {
   try {
     const reg = await waitFor(m => m.event === 'registerPlugin');
     assert.strictEqual(reg.uuid, 'PLUGIN-UUID');
 
-    const send = o => sock.send(JSON.stringify(o));
-    send({ event: 'willAppear', action: 'com.m18switchboard.msfs.slot', context: 'K7', device: 'DEV1',
-      payload: { coordinates: { row: 1, column: 2 }, settings: {}, state: 0, isInMultiAction: false } });
+    // Row 1 column 2 is the centre key, slot 7: status message. Row 2 column 0 is slot 0: dark.
+    appear('CENTRE', 1, 2);
+    appear('TOPLEFT', 2, 0);
+    appear('ROUND_RIGHT', 2, 5);
+    const centre = await waitFor(m => m.event === 'setImage' && m.context === 'CENTRE');
+    assert.match(decodeURIComponent(centre.payload.image), /not connected/);
+    const topLeft = await waitFor(m => m.event === 'setImage' && m.context === 'TOPLEFT');
+    assert.doesNotMatch(decodeURIComponent(topLeft.payload.image), /<text/);
+    await sleep(200);
+    assert.ok(!received.some(m => m.event === 'setImage' && m.context === 'ROUND_RIGHT'), 'round buttons get no image');
 
-    const img = await waitFor(m => m.event === 'setImage' && m.context === 'K7');
-    assert.ok(img.payload.image.startsWith('data:image/svg+xml'));
-    assert.ok(decodeURIComponent(img.payload.image).includes('slot 7'), 'row 1 col 2 on a 5-wide grid is slot 7');
+    // Presses while the sim is away do nothing and do not crash the plugin.
+    sock.send(JSON.stringify({ event: 'keyDown', context: 'ROUND_RIGHT', device: 'DEV1', payload: { coordinates: { row: 2, column: 5 } } }));
+    sock.send(JSON.stringify({ event: 'keyDown', context: 'CENTRE', device: 'DEV1', payload: { coordinates: { row: 1, column: 2 } } }));
+    await sleep(200);
+    assert.strictEqual(child.exitCode, null, 'plugin still running');
 
-    received.length = 0;
-    send({ event: 'keyUp', action: 'com.m18switchboard.msfs.slot', context: 'K7', device: 'DEV1',
-      payload: { coordinates: { row: 1, column: 2 }, settings: {}, state: 0 } });
-    const png = await waitFor(m => m.event === 'setImage' && m.context === 'K7');
-    assert.ok(png.payload.image.startsWith('data:image/png;base64,iVBOR'), 'second test sends a base64 PNG');
-
-    console.log('fake-host: PASS (registration, willAppear -> coords tile, keyUp -> PNG test)');
+    console.log('fake-host: PASS (registration, slot mapping, offline state, presses while offline)');
     process.exitCode = 0;
   } catch (e) {
     console.error('fake-host: FAIL', e.message, received);

@@ -766,7 +766,7 @@ function renderInspector() {
   if (pkind === 'hold') {
     box.append(field('While held', input(p.hold, v => setP('hold', num(v)), { type: 'number' })));
     box.append(field('On release', input(p.release, v => setP('release', num(v)), { type: 'number' })));
-    box.append(field('Repeat every ms', input(p.repeatMs, v => setP('repeatMs', num(v)), { type: 'number', min: 0 }), 'Re-sends while held, for positions the aircraft drops (e.g. START). Empty = once.'));
+    box.append(field('Repeat every ms', input(p.repeatMs, v => setP('repeatMs', num(v)), { type: 'number', min: 0 }), 'Re-sends while held, for positions the aircraft drops. Empty = once. G1000 softkeys need 130 ms or less to stay held; the C172 START works at 250.'));
   }
   if (pkind === 'set') box.append(field('Value', input(p.set, v => setP('set', num(v)), { type: 'number' })));
   if (pkind === 'event') {

@@ -47,7 +47,15 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
-- 2026-10-29, unverified (from SDK knowledge, not tested): the G1000 audio panel COM1 key lights
+- 2026-10-29, dock + sim (user test): the COM1 audio key works as proposed: reads `COM RECEIVE:1`,
+  press holds `AS1000_COM_1_MIDCOM` at 1 and releases to 0; the bar follows the panel LED.
+- 2026-10-29, dock + sim (user test): a hold repeat of about 130-140 ms or faster keeps a G1000
+  softkey held; slower and it drops. Probably true of all softkeys; not known for other holdable
+  inputs (C172 START held fine at 250 ms).
+- 2026-10-29, unverified (catalog from SDK knowledge, not tested in the sim): autopilot simvars
+  added for armed/active states (ALT/APR/GS arm and active, PIT, BANK, max bank, NAV source, CDI
+  GPS/NAV, TO/GA) and on/off/set events for each mode. Use Test in Browse to confirm per aircraft.
+- 2026-10-29, proposed then confirmed below: the G1000 audio panel COM1 key lights
   from simvar `COM RECEIVE:1` (bool); the softkey input event `AS1000_COM_1_MIDCOM` is only
   1 while pressed. Proposed key: read `COM RECEIVE:1`, press holds the input event at 1, releases
   to 0. Added COM RECEIVE / TRANSMIT simvars and COM1/2_RECEIVE_SELECT to the catalogs.

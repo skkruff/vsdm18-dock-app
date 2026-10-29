@@ -433,5 +433,175 @@
   "cat": "Radios",
   "name": "COM_RECEIVE_ALL_TOGGLE",
   "desc": "Audio panel: receive all COMs on/off"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT_ON",
+  "desc": "Autopilot on"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT_OFF",
+  "desc": "Autopilot off"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT_DISENGAGE_TOGGLE",
+  "desc": "Autopilot disconnect switch"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_HDG_HOLD_ON",
+  "desc": "HDG mode on"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_HDG_HOLD_OFF",
+  "desc": "HDG mode off"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_NAV1_HOLD_ON",
+  "desc": "NAV mode on"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_NAV1_HOLD_OFF",
+  "desc": "NAV mode off"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_APR_HOLD_ON",
+  "desc": "APR mode on"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_APR_HOLD_OFF",
+  "desc": "APR mode off"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_ALT_HOLD_ON",
+  "desc": "ALT hold on"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_ALT_HOLD_OFF",
+  "desc": "ALT hold off"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_VS_ON",
+  "desc": "VS mode on"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_VS_OFF",
+  "desc": "VS mode off"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "FLIGHT_LEVEL_CHANGE_ON",
+  "desc": "FLC on"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "FLIGHT_LEVEL_CHANGE_OFF",
+  "desc": "FLC off"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "YAW_DAMPER_ON",
+  "desc": "Yaw damper on"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "YAW_DAMPER_OFF",
+  "desc": "Yaw damper off"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_WING_LEVELER",
+  "desc": "Wing leveler (LVL) toggle"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_PITCH_LEVELER",
+  "desc": "Pitch leveler toggle"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_ATT_HOLD",
+  "desc": "Attitude hold toggle"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_BANK_HOLD",
+  "desc": "Bank hold toggle"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_MAX_BANK_INC",
+  "desc": "Max bank up (BANK)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_MAX_BANK_DEC",
+  "desc": "Max bank down"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_PITCH_REF_INC_UP",
+  "desc": "Pitch reference up (nose up wheel)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_PITCH_REF_INC_DN",
+  "desc": "Pitch reference down"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "HEADING_BUG_SET",
+  "desc": "Set heading bug (value: degrees)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_ALT_VAR_SET_ENGLISH",
+  "desc": "Set selected altitude (value: feet)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_VS_VAR_SET_ENGLISH",
+  "desc": "Set vertical speed (value: ft/min)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AP_SPD_VAR_SET",
+  "desc": "Set selected airspeed (value: knots)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "TOGGLE_GPS_DRIVES_NAV1",
+  "desc": "CDI: toggle GPS / NAV"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "VOR2_OBI_INC",
+  "desc": "NAV2 course up"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "VOR2_OBI_DEC",
+  "desc": "NAV2 course down"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTO_THROTTLE_ARM",
+  "desc": "Autothrottle arm toggle"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTO_THROTTLE_TO_GA",
+  "desc": "TO/GA"
  }
 ]

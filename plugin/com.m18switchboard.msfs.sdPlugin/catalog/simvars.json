@@ -769,5 +769,113 @@
   "name": "COM RECEIVE ALL",
   "unit": "bool",
   "desc": "Audio panel receiving all COMs"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT AVAILABLE",
+  "unit": "bool",
+  "desc": "Aircraft has an autopilot"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT DISENGAGED",
+  "unit": "bool",
+  "desc": "Autopilot disconnected (disconnect switch)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT ALTITUDE ARM",
+  "unit": "bool",
+  "desc": "ALT armed (will capture the selected altitude)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT APPROACH ARM",
+  "unit": "bool",
+  "desc": "APR armed"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT APPROACH ACTIVE",
+  "unit": "bool",
+  "desc": "APR captured / active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT APPROACH IS LOCALIZER",
+  "unit": "bool",
+  "desc": "Approach is a localizer (not GPS)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT GLIDESLOPE ARM",
+  "unit": "bool",
+  "desc": "GS armed"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT GLIDESLOPE ACTIVE",
+  "unit": "bool",
+  "desc": "GS captured / active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT PITCH HOLD",
+  "unit": "bool",
+  "desc": "PIT mode (pitch hold) active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT PITCH HOLD REF",
+  "unit": "degrees",
+  "desc": "Pitch reference held in PIT mode"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT ATTITUDE HOLD",
+  "unit": "bool",
+  "desc": "Attitude hold active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT BANK HOLD",
+  "unit": "bool",
+  "desc": "Bank hold active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT MAX BANK",
+  "unit": "degrees",
+  "desc": "Maximum bank angle (BANK / half bank)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT NAV SELECTED",
+  "unit": "number",
+  "desc": "NAV source followed by the autopilot (1 or 2)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "GPS DRIVES NAV1",
+  "unit": "bool",
+  "desc": "CDI source is GPS (0 = VLOC/NAV)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT TAKEOFF POWER ACTIVE",
+  "unit": "bool",
+  "desc": "TO/GA mode active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT THROTTLE ARM",
+  "unit": "bool",
+  "desc": "Autothrottle armed"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT MACH HOLD",
+  "unit": "bool",
+  "desc": "Mach hold active"
  }
 ]

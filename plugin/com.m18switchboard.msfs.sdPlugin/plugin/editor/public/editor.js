@@ -794,11 +794,11 @@ function renderInspector() {
   // Press
   box.append(el('h4', {}, 'When pressed', key.type === 'armable' ? info('armablePress') : null));
   const p = key.press || {};
-  const pkind = !key.press ? 'none' : p.event ? 'event' : p.cycle ? 'cycle' : p.step !== undefined ? 'step' : p.hold !== undefined ? 'hold' : p.set !== undefined ? 'set' : 'none';
+  const pkind = !key.press ? 'none' : p.event !== undefined ? 'event' : p.cycle ? 'cycle' : p.step !== undefined ? 'step' : p.hold !== undefined ? 'hold' : p.set !== undefined ? 'set' : 'none';
   box.append(field('Action', select_([['none', 'Nothing'], ['cycle', 'Toggle / cycle values'], ['step', 'Step up or down'], ['hold', 'Hold (spring-loaded)'], ['set', 'Set a value'], ['event', 'Send a sim event']], pkind, v => {
     const target = p.input;
     key.press = { cycle: { cycle: [0, 1] }, step: { step: 1 }, hold: { hold: 1, release: 0 }, set: { set: 1 }, event: { event: '' } }[v];
-    if (!key.press) delete key.press; else if (target) key.press.input = target;
+    if (!key.press) delete key.press; else if (target && v !== 'event') key.press.input = target;
     redraw();
   })));
   const num = v => (v === '' ? undefined : Number(v));

@@ -219,6 +219,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.deepStrictEqual(ar.sublabels, { armed: 'ARM' });
     assert.strictEqual(ar.press.input, 'LIGHTING_TAXI_1');
 
+    // Choosing "Send a sim event" keeps that choice while the event name is still empty (user
+    // report 2026-10-29: it fell back to Nothing), and saving without a name is refused.
+    await page.selectOption('#inspector .field:has-text("Action") select', 'event');
+    assert.strictEqual(await page.inputValue('#inspector .field:has-text("Action") select'), 'event');
+    assert.ok(await page.isVisible('#inspector .field:has-text("Event") input'));
+    await page.click('#saveProfile');
+    await page.waitForSelector('.status.bad:has-text("needs the event")');
+    await page.fill('#inspector .field:has-text("Event") input', 'AP_APR_HOLD');
+    await save();
+    assert.deepStrictEqual(file().pages[1].keys['8'].press, { event: 'AP_APR_HOLD' });
+
     // A save that fails validation is refused with a message, and the file is untouched.
     await page.click(slot(8));
     await page.click('#inspector details summary');

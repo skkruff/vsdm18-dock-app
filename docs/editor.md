@@ -32,7 +32,9 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   - **Switch (armable)**: for autopilot modes that arm before they engage. Instead of "Reads from
     the sim" and "Look per value" it shows the look as three numbered steps checked top to bottom:
     1 green (active) when a source is a value, 2 otherwise white (armed) when a second source is a
-    value, 3 otherwise clear or off. Sublabels and faces are per step; Preview picks a step.
+    value, 3 otherwise clear or off. "+ or" under a step adds another source; any one of them is
+    enough (e.g. green on ILS capture or GPS approach active). Sublabels and faces are per step;
+    Preview picks a step.
   - **ⓘ** next to a label explains it: hover for the text, click to keep it open. So far on the
     armable key and "Acts on"; more to follow.
   - Label and icon (picker shows your library; switch icons use their on/off/clear versions).

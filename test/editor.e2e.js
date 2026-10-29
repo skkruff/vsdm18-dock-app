@@ -204,6 +204,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.selectOption('#inspector .ladder .step >> nth=0 >> .field:has-text("Source") select', 'var');
     await page.fill('#inspector .ladder .step >> nth=0 >> input[placeholder^="e.g. NAV"]', 'AUTOPILOT APPROACH ACTIVE');
     await page.fill('#inspector .ladder .step >> nth=1 >> input[placeholder^="e.g. NAV"]', 'AUTOPILOT APPROACH ARM');
+    await page.click('#inspector .ladder .step >> nth=0 >> button.add-or');
+    await page.fill('#inspector .ladder .step >> nth=0 >> .or-source input[placeholder^="e.g. NAV"]', 'AUTOPILOT APPROACH CAPTURED');
     await page.fill('#inspector .field:has-text("When armed") input', 'ARM');
     await page.fill('#inspector .field:has-text("Acts on") input', 'LIGHTING_TAXI_1');
     await page.selectOption('#inspector .field:has-text("Preview") select', 'armed');
@@ -217,6 +219,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.strictEqual(ar.read.var, 'AUTOPILOT APPROACH ACTIVE');
     assert.strictEqual(ar.armed.var, 'AUTOPILOT APPROACH ARM');
     assert.deepStrictEqual(ar.sublabels, { armed: 'ARM' });
+    assert.deepStrictEqual(ar.activeOr, [{ read: { var: 'AUTOPILOT APPROACH CAPTURED', unit: 'bool' } }], '"or" source saved');
     assert.strictEqual(ar.press.input, 'LIGHTING_TAXI_1');
 
     // Choosing "Send a sim event" keeps that choice while the event name is still empty (user

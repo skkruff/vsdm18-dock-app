@@ -148,3 +148,7 @@ input.narrow { width: 6em; }
   background: #1d232c; border: 1px solid #3a4250; border-radius: 6px; color: #dde3ea; font-size: 12px; line-height: 1.4;
   text-transform: none; letter-spacing: normal; white-space: normal; }
 .info.open .info-text { display: block; }
+.or-source { border-left: 2px dashed #3a4250; padding-left: 10px; margin: 6px 0 6px 4px; }
+.or-word { font-weight: 600; color: #7fb4ff; text-transform: uppercase; font-size: 12px; }
+.or-source .step-head button { margin-left: auto; padding: 0 8px; }
+button.add-or { margin: 2px 0 4px; font-size: 12px; padding: 2px 10px; }

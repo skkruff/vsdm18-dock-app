@@ -38,6 +38,7 @@ function lookup(map, value) {
 function keySources(key) {
   const out = key.read ? [key.read] : [];
   if (key.type === 'armable' && key.armed) out.push(key.armed);
+  if (key.type === 'armable') out.push(...armableOrSources(key));
   const faces = [key.face, ...Object.values(key.valueFaces || {})].filter(Boolean);
   for (const f of faces) for (const L of f.layers || []) if (L.kind === 'value' && L.read) out.push(L.read);
   return out;
@@ -46,12 +47,19 @@ function keySources(key) {
 // Armable keys (user, 2026-10-29): a fixed ladder, checked top to bottom.
 //   active when read is activeIs (default 1), else armed when armed is armedIs (default 1), else
 //   otherwise. Unknown active value: clear, like any switch before the sim answers.
+//   activeOr / armedOr: more sources for a step, any one of which is enough, e.g. ILS capture or
+//   GPS approach active: [{ read: { var, unit }, is }] (is defaults to 1).
 // Returns 'active' | 'armed' | 'otherwise' | undefined.
-function armableStep(key, active, armed) {
-  if (active === undefined) return undefined;
-  if (same(active, key.activeIs ?? 1)) return 'active';
-  if (armed !== undefined && same(armed, key.armedIs ?? 1)) return 'armed';
+function armableStep(key, active, armed, valueOf = () => undefined) {
+  const any = (main, is, more) => (main !== undefined && same(main, is ?? 1))
+    || (more || []).some(o => o.read && same(valueOf(o.read), o.is ?? 1));
+  if (active === undefined && !(key.activeOr || []).some(o => o.read && valueOf(o.read) !== undefined)) return undefined;
+  if (any(active, key.activeIs, key.activeOr)) return 'active';
+  if (any(armed, key.armedIs, key.armedOr)) return 'armed';
   return 'otherwise';
+}
+function armableOrSources(key) {
+  return [...(key.activeOr || []), ...(key.armedOr || [])].map(o => o.read).filter(Boolean);
 }
 const same = (a, b) => String(a) === String(b);
 const ARMABLE_STATE = { active: 'on', armed: 'armed' };
@@ -365,7 +373,7 @@ class ProfileEngine {
   // Armable: faces and sublabels are per step (active / armed / otherwise), not per sim value.
   _armableImage(key, value, valueOf) {
     // The editor previews a step by name; sim values are numbers.
-    const step = ARMABLE_STEPS.includes(value) ? value : armableStep(key, value, key.armed ? valueOf(key.armed) : undefined);
+    const step = ARMABLE_STEPS.includes(value) ? value : armableStep(key, value, key.armed ? valueOf(key.armed) : undefined, valueOf);
     const state = armableState(key, step);
     const face = (step && key.valueFaces && key.valueFaces[step]) || key.face;
     const sublabel = step && key.sublabels && key.sublabels[step] !== undefined ? key.sublabels[step] : key.sublabel;

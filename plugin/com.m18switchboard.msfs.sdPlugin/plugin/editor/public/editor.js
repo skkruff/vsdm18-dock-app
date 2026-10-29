@@ -887,14 +887,37 @@ function armableLadder(key) {
     el('div', { class: 'step' },
       el('div', { class: 'step-head' }, el('span', { class: 'step-n' }, '1'), el('span', { class: 'swatch on' }), 'Green (active) when', info('armableActive')),
       sourceEditor(key.read, r => { if (r) key.read = r; else delete key.read; if (r) delete r.hint; }, { unit: 'bool' }),
-      isField('activeIs')),
+      isField('activeIs'), orSources(key, 'activeOr')),
     el('div', { class: 'step' },
       el('div', { class: 'step-head' }, el('span', { class: 'step-n' }, '2'), 'otherwise', el('span', { class: 'swatch armed' }), 'White (armed) when', info('armableArmed')),
       sourceEditor(key.armed, r => { key.armed = r || { var: '', unit: 'bool' }; if (r) delete r.hint; }, { unit: 'bool' }),
-      isField('armedIs')),
+      isField('armedIs'), orSources(key, 'armedOr')),
     el('div', { class: 'step' },
       el('div', { class: 'step-head' }, el('span', { class: 'step-n' }, '3'), 'otherwise', info('armableOtherwise')),
       field('shows', select_([['', 'clear (outline)'], ['off', 'off (red)']], key.otherwise || '', v => { if (v) key.otherwise = v; else delete key.otherwise; changed(); }))));
+  return box;
+}
+
+// More sources for a ladder step, any one of which is enough ("or"), e.g. ILS capture or GPS
+// approach active (user, 2026-10-29).
+function orSources(key, k) {
+  const box = el('div', { class: 'or-sources' });
+  (key[k] || []).forEach((o, i) => {
+    box.append(el('div', { class: 'or-source' },
+      el('div', { class: 'step-head' }, el('span', { class: 'or-word' }, 'or'),
+        el('button', { title: 'Remove this "or"', on: { click: () => {
+          key[k].splice(i, 1);
+          if (!key[k].length) delete key[k];
+          changed(); renderInspector();
+        } } }, '✕')),
+      sourceEditor(o.read, r => { o.read = r || { var: '', unit: 'bool' }; if (r) delete r.hint; }, { unit: 'bool' }),
+      field('is', input(o.is ?? 1, v => { if (v === '' || v === '1') delete o.is; else o.is = isNaN(Number(v)) ? v : Number(v); changed(); }, { class: 'narrow' }))));
+  });
+  box.append(el('button', { class: 'add-or', title: 'Add another source; any one of them is enough', on: { click: () => {
+    key[k] = key[k] || [];
+    key[k].push({ read: { var: '', unit: 'bool' } });
+    changed(); renderInspector();
+  } } }, '+ or'));
   return box;
 }
 

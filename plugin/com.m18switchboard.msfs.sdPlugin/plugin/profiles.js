@@ -17,6 +17,9 @@ function validate(p, file) {
       if (!KEY_TYPES.includes(key.type)) errors.push(`${where}: type must be one of ${KEY_TYPES.join(', ')}`);
       if (key.type !== 'button' && !key.read) errors.push(`${where}: ${key.type} needs read`);
       if (key.type === 'armable' && !(key.armed && (key.armed.input || key.armed.var))) errors.push(`${where}: armable needs an armed source`);
+      for (const k of ['activeOr', 'armedOr']) {
+        for (const o of key[k] || []) if (!(o.read && (o.read.input || o.read.var))) errors.push(`${where}: an "or" source in ${k} is empty`);
+      }
       for (const [name, face] of [['face', key.face], ...Object.entries(key.valueFaces || {}).map(([v, f]) => [`face for value ${v}`, f])]) {
         if (!face) continue;
         if (!Array.isArray(face.layers)) { errors.push(`${where}: ${name} needs a layers list`); continue; }

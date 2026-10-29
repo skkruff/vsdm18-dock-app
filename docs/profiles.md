@@ -48,6 +48,9 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
   **armed** (white, Look "Bar armed") when the `armed` source is `armedIs` (default 1), else
   `otherwise` (`clear` default, or `off`). Unknown active value shows clear. Library icons have no
   armed version: armed draws the icon's clear version with its bar filled in the armed colour.
+  `activeOr` / `armedOr`: more sources for a step, any one of which is enough, as
+  `[{ "read": { "var", "unit" }, "is": 1 }]` (`is` defaults to 1), e.g. ILS capture or GPS
+  approach active on one APR key.
   `sublabels` and `valueFaces` are keyed by step (`active`, `armed`, `otherwise`), not by value.
   A press usually needs `press.input` (the panel button), since the sources are simvars.
   ```json

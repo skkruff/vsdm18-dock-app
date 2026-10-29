@@ -29,3 +29,6 @@ stay in Groups; new ones also go in a category you choose.
     on capture. Same for GS, NAV, ALT.
 11. With a PNG icon on the key: armed should look like your clear icon with a white bar.
 12. ⓘ: hover and click the ones on the armable key and "Acts on". Is the text clear?
+13. APR for both approach kinds: step 1 `AUTOPILOT APPROACH CAPTURED`, "+ or"
+    `AUTOPILOT APPROACH ACTIVE`; step 2 `AUTOPILOT APPROACH HOLD`. Fly an ILS and an RNAV approach;
+    note which simvars change (Test) at "APR pressed" and "captured".

@@ -232,6 +232,23 @@ const text = uri => decodeURIComponent(uri);
     const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
     assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'armable', read: ak.read } } }] }, 'x'), /armed source/);
     validate({ id: 'x', match: {}, pages: [{ keys: { 0: ak } }] }, 'x');
+
+    // "or": ILS capture or GPS approach active; APR selected as armed.
+    const both = {
+      type: 'armable', label: 'APR', read: { var: 'AUTOPILOT APPROACH CAPTURED', unit: 'bool' },
+      activeOr: [{ read: { var: 'AUTOPILOT APPROACH ACTIVE', unit: 'bool' } }],
+      armed: { var: 'AUTOPILOT APPROACH HOLD', unit: 'bool' },
+    };
+    assert.deepStrictEqual(keySources(both).map(s => s.var), ['AUTOPILOT APPROACH CAPTURED', 'AUTOPILOT APPROACH HOLD', 'AUTOPILOT APPROACH ACTIVE']);
+    const at = vals => text(engine.keyImage(both, vals.captured, null, src => vals[{ 'AUTOPILOT APPROACH ACTIVE': 'gps', 'AUTOPILOT APPROACH HOLD': 'hold' }[src.var]]));
+    assert.match(at({ captured: 1, gps: 0, hold: 1 }), /fill="#b8f01c"/, 'ILS captured: active');
+    assert.match(at({ captured: 0, gps: 1, hold: 1 }), /fill="#b8f01c"/, 'GPS approach active: active');
+    assert.match(at({ captured: 0, gps: 0, hold: 1 }), /fill="#ffffff"/, 'selected only: armed');
+    assert.match(at({ captured: 0, gps: 0, hold: 0 }), /fill="none"/, 'off');
+    assert.match(at({ captured: undefined, gps: 1, hold: 1 }), /fill="#b8f01c"/, 'an "or" source alone is enough');
+    const armedOr = { ...ak, armedOr: [{ read: { var: 'B', unit: 'bool' }, is: 2 }] };
+    assert.match(text(engine.keyImage(armedOr, 0, null, s => (s.var === 'B' ? 2 : 0))), /fill="#ffffff"/, 'armed "or" with its own value');
+    assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { ...both, activeOr: [{ read: { var: '' } }] } } }] }, 'x'), /"or" source/);
   }
 
   // Page names slide sideways while shown; keys without text are not resent each frame.

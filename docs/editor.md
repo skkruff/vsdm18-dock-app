@@ -41,10 +41,11 @@ never touches this folder: shipped profiles are copied in only when you don't ha
       once, you choose which one from the list.
     - **Browse…** (input events): every input event of the loaded aircraft with its current value,
       searchable.
-    - **Browse…** (simvars): about 120 common simvars by category with descriptions and units,
-      searchable ("nav1", "fuel", "heading"); **Test** reads one from the sim to check this
+    - **Browse…** (simvars): every simvar in the MSFS 2024 SDK (about 1,700) by category with
+      descriptions and units, common ones first (★), searchable ("nav1", "fuel", "heading"); **Test** reads one from the sim to check this
       aircraft has it. Any other name (also L:vars) can be typed in.
-  - Sim events for presses: **Browse…** lists about 80 common events; **Send** fires one now so
+  - Sim events for presses: **Browse…** lists every key event in the MSFS 2024 SDK (about 2,100,
+    common ones first) with what value it takes; **Send** fires one now so
     you can see what it does.
   - Look per value (switch), icon per value (e.g. the magneto icons).
   - **Sublabel** (any key type): a smaller line under the label, either fixed or per sim value

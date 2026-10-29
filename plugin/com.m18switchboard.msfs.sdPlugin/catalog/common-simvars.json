@@ -1,0 +1,887 @@
+[
+ {
+  "cat": "Radios",
+  "name": "COM ACTIVE FREQUENCY:1",
+  "unit": "MHz",
+  "desc": "COM1 active frequency",
+  "decimals": 3
+ },
+ {
+  "cat": "Radios",
+  "name": "COM STANDBY FREQUENCY:1",
+  "unit": "MHz",
+  "desc": "COM1 standby frequency",
+  "decimals": 3
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV ACTIVE FREQUENCY:1",
+  "unit": "MHz",
+  "desc": "NAV1 active frequency",
+  "decimals": 2
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV STANDBY FREQUENCY:1",
+  "unit": "MHz",
+  "desc": "NAV1 standby frequency",
+  "decimals": 2
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV OBS:1",
+  "unit": "degrees",
+  "desc": "NAV1 selected course (OBS)",
+  "pad": 3
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV DME:1",
+  "unit": "nautical miles",
+  "desc": "NAV1 DME distance",
+  "decimals": 1
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV HAS NAV:1",
+  "unit": "bool",
+  "desc": "NAV1 receiving a station"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM ACTIVE FREQUENCY:2",
+  "unit": "MHz",
+  "desc": "COM2 active frequency",
+  "decimals": 3
+ },
+ {
+  "cat": "Radios",
+  "name": "COM STANDBY FREQUENCY:2",
+  "unit": "MHz",
+  "desc": "COM2 standby frequency",
+  "decimals": 3
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV ACTIVE FREQUENCY:2",
+  "unit": "MHz",
+  "desc": "NAV2 active frequency",
+  "decimals": 2
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV STANDBY FREQUENCY:2",
+  "unit": "MHz",
+  "desc": "NAV2 standby frequency",
+  "decimals": 2
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV OBS:2",
+  "unit": "degrees",
+  "desc": "NAV2 selected course (OBS)",
+  "pad": 3
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV DME:2",
+  "unit": "nautical miles",
+  "desc": "NAV2 DME distance",
+  "decimals": 1
+ },
+ {
+  "cat": "Radios",
+  "name": "NAV HAS NAV:2",
+  "unit": "bool",
+  "desc": "NAV2 receiving a station"
+ },
+ {
+  "cat": "Radios",
+  "name": "ADF ACTIVE FREQUENCY:1",
+  "unit": "KHz",
+  "desc": "ADF1 active frequency"
+ },
+ {
+  "cat": "Radios",
+  "name": "ADF STANDBY FREQUENCY:1",
+  "unit": "KHz",
+  "desc": "ADF1 standby frequency"
+ },
+ {
+  "cat": "Radios",
+  "name": "TRANSPONDER CODE:1",
+  "unit": "number",
+  "desc": "Transponder squawk code (plain number, e.g. 1200)",
+  "pad": 4
+ },
+ {
+  "cat": "Radios",
+  "name": "TRANSPONDER STATE:1",
+  "unit": "number",
+  "desc": "Transponder mode (0 off, 1 standby, 2 test, 3 on, 4 alt)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT MASTER",
+  "unit": "bool",
+  "desc": "Autopilot engaged"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT FLIGHT DIRECTOR ACTIVE",
+  "unit": "bool",
+  "desc": "Flight director on"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT HEADING LOCK",
+  "unit": "bool",
+  "desc": "Heading mode active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT HEADING LOCK DIR",
+  "unit": "degrees",
+  "desc": "Heading bug",
+  "pad": 3
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT ALTITUDE LOCK",
+  "unit": "bool",
+  "desc": "Altitude hold active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT ALTITUDE LOCK VAR",
+  "unit": "feet",
+  "desc": "Selected altitude"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT VERTICAL HOLD",
+  "unit": "bool",
+  "desc": "Vertical speed mode active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT VERTICAL HOLD VAR",
+  "unit": "feet per minute",
+  "desc": "Selected vertical speed"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT NAV1 LOCK",
+  "unit": "bool",
+  "desc": "NAV mode active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT APPROACH HOLD",
+  "unit": "bool",
+  "desc": "APR mode selected (armed or flying the approach)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT BACKCOURSE HOLD",
+  "unit": "bool",
+  "desc": "Back course mode active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT GLIDESLOPE HOLD",
+  "unit": "bool",
+  "desc": "GS mode selected"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT FLIGHT LEVEL CHANGE",
+  "unit": "bool",
+  "desc": "FLC mode active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT AIRSPEED HOLD",
+  "unit": "bool",
+  "desc": "Airspeed hold active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT AIRSPEED HOLD VAR",
+  "unit": "knots",
+  "desc": "Selected airspeed"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT YAW DAMPER",
+  "unit": "bool",
+  "desc": "Yaw damper on"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT WING LEVELER",
+  "unit": "bool",
+  "desc": "Wing leveler active"
+ },
+ {
+  "cat": "Instruments",
+  "name": "KOHLSMAN SETTING MB:1",
+  "unit": "millibars",
+  "desc": "Altimeter setting (hPa)"
+ },
+ {
+  "cat": "Instruments",
+  "name": "KOHLSMAN SETTING HG:1",
+  "unit": "inHg",
+  "desc": "Altimeter setting (inHg)",
+  "decimals": 2
+ },
+ {
+  "cat": "Instruments",
+  "name": "INDICATED ALTITUDE",
+  "unit": "feet",
+  "desc": "Altimeter reading"
+ },
+ {
+  "cat": "Instruments",
+  "name": "PLANE ALTITUDE",
+  "unit": "feet",
+  "desc": "True altitude above sea level"
+ },
+ {
+  "cat": "Instruments",
+  "name": "PLANE ALT ABOVE GROUND",
+  "unit": "feet",
+  "desc": "Height above ground"
+ },
+ {
+  "cat": "Instruments",
+  "name": "AIRSPEED INDICATED",
+  "unit": "knots",
+  "desc": "Indicated airspeed"
+ },
+ {
+  "cat": "Instruments",
+  "name": "AIRSPEED TRUE",
+  "unit": "knots",
+  "desc": "True airspeed"
+ },
+ {
+  "cat": "Instruments",
+  "name": "GROUND VELOCITY",
+  "unit": "knots",
+  "desc": "Ground speed"
+ },
+ {
+  "cat": "Instruments",
+  "name": "VERTICAL SPEED",
+  "unit": "feet per minute",
+  "desc": "Vertical speed"
+ },
+ {
+  "cat": "Instruments",
+  "name": "PLANE HEADING DEGREES MAGNETIC",
+  "unit": "degrees",
+  "desc": "Magnetic heading",
+  "pad": 3
+ },
+ {
+  "cat": "Instruments",
+  "name": "PLANE HEADING DEGREES TRUE",
+  "unit": "degrees",
+  "desc": "True heading",
+  "pad": 3
+ },
+ {
+  "cat": "Instruments",
+  "name": "HEADING INDICATOR",
+  "unit": "degrees",
+  "desc": "Heading indicator (DG) reading",
+  "pad": 3
+ },
+ {
+  "cat": "Instruments",
+  "name": "PLANE PITCH DEGREES",
+  "unit": "degrees",
+  "desc": "Pitch (positive = nose down)"
+ },
+ {
+  "cat": "Instruments",
+  "name": "PLANE BANK DEGREES",
+  "unit": "degrees",
+  "desc": "Bank angle"
+ },
+ {
+  "cat": "Instruments",
+  "name": "STALL WARNING",
+  "unit": "bool",
+  "desc": "Stall warning active"
+ },
+ {
+  "cat": "Instruments",
+  "name": "OVERSPEED WARNING",
+  "unit": "bool",
+  "desc": "Overspeed warning active"
+ },
+ {
+  "cat": "Engine",
+  "name": "GENERAL ENG RPM:1",
+  "unit": "rpm",
+  "desc": "Engine RPM"
+ },
+ {
+  "cat": "Engine",
+  "name": "PROP RPM:1",
+  "unit": "rpm",
+  "desc": "Propeller RPM"
+ },
+ {
+  "cat": "Engine",
+  "name": "RECIP ENG MANIFOLD PRESSURE:1",
+  "unit": "inHg",
+  "desc": "Manifold pressure",
+  "decimals": 1
+ },
+ {
+  "cat": "Engine",
+  "name": "ENG FUEL FLOW GPH:1",
+  "unit": "gallons per hour",
+  "desc": "Fuel flow",
+  "decimals": 1
+ },
+ {
+  "cat": "Engine",
+  "name": "GENERAL ENG OIL TEMPERATURE:1",
+  "unit": "fahrenheit",
+  "desc": "Oil temperature"
+ },
+ {
+  "cat": "Engine",
+  "name": "GENERAL ENG OIL PRESSURE:1",
+  "unit": "psi",
+  "desc": "Oil pressure"
+ },
+ {
+  "cat": "Engine",
+  "name": "GENERAL ENG EXHAUST GAS TEMPERATURE:1",
+  "unit": "fahrenheit",
+  "desc": "Exhaust gas temperature (EGT)"
+ },
+ {
+  "cat": "Engine",
+  "name": "RECIP ENG CYLINDER HEAD TEMPERATURE:1",
+  "unit": "fahrenheit",
+  "desc": "Cylinder head temperature (CHT)"
+ },
+ {
+  "cat": "Engine",
+  "name": "GENERAL ENG THROTTLE LEVER POSITION:1",
+  "unit": "percent",
+  "desc": "Throttle lever"
+ },
+ {
+  "cat": "Engine",
+  "name": "GENERAL ENG MIXTURE LEVER POSITION:1",
+  "unit": "percent",
+  "desc": "Mixture lever"
+ },
+ {
+  "cat": "Engine",
+  "name": "GENERAL ENG PROPELLER LEVER POSITION:1",
+  "unit": "percent",
+  "desc": "Propeller lever"
+ },
+ {
+  "cat": "Engine",
+  "name": "GENERAL ENG COMBUSTION:1",
+  "unit": "bool",
+  "desc": "Engine running"
+ },
+ {
+  "cat": "Engine",
+  "name": "GENERAL ENG STARTER:1",
+  "unit": "bool",
+  "desc": "Starter engaged"
+ },
+ {
+  "cat": "Engine",
+  "name": "RECIP ENG LEFT MAGNETO:1",
+  "unit": "bool",
+  "desc": "Left magneto on"
+ },
+ {
+  "cat": "Engine",
+  "name": "RECIP ENG RIGHT MAGNETO:1",
+  "unit": "bool",
+  "desc": "Right magneto on"
+ },
+ {
+  "cat": "Engine",
+  "name": "TURB ENG N1:1",
+  "unit": "percent",
+  "desc": "Turbine N1 / Ng",
+  "decimals": 1
+ },
+ {
+  "cat": "Engine",
+  "name": "TURB ENG N2:1",
+  "unit": "percent",
+  "desc": "Turbine N2",
+  "decimals": 1
+ },
+ {
+  "cat": "Engine",
+  "name": "ENG TORQUE:1",
+  "unit": "foot pounds",
+  "desc": "Engine torque"
+ },
+ {
+  "cat": "Engine",
+  "name": "GENERAL ENG MASTER ALTERNATOR:1",
+  "unit": "bool",
+  "desc": "Alternator switch"
+ },
+ {
+  "cat": "Fuel",
+  "name": "FUEL TOTAL QUANTITY",
+  "unit": "gallons",
+  "desc": "Total fuel",
+  "decimals": 1
+ },
+ {
+  "cat": "Fuel",
+  "name": "FUEL TOTAL QUANTITY WEIGHT",
+  "unit": "pounds",
+  "desc": "Total fuel weight"
+ },
+ {
+  "cat": "Fuel",
+  "name": "FUEL LEFT QUANTITY",
+  "unit": "gallons",
+  "desc": "Fuel in left tanks",
+  "decimals": 1
+ },
+ {
+  "cat": "Fuel",
+  "name": "FUEL RIGHT QUANTITY",
+  "unit": "gallons",
+  "desc": "Fuel in right tanks",
+  "decimals": 1
+ },
+ {
+  "cat": "Fuel",
+  "name": "FUEL TANK SELECTOR:1",
+  "unit": "number",
+  "desc": "Fuel selector position (simulator enum)"
+ },
+ {
+  "cat": "Fuel",
+  "name": "GENERAL ENG FUEL PUMP SWITCH:1",
+  "unit": "bool",
+  "desc": "Electric fuel pump switch"
+ },
+ {
+  "cat": "Electrical",
+  "name": "ELECTRICAL MASTER BATTERY",
+  "unit": "bool",
+  "desc": "Battery master"
+ },
+ {
+  "cat": "Electrical",
+  "name": "AVIONICS MASTER SWITCH",
+  "unit": "bool",
+  "desc": "Avionics master (classic; some aircraft ignore it)"
+ },
+ {
+  "cat": "Electrical",
+  "name": "ELECTRICAL MAIN BUS VOLTAGE",
+  "unit": "volts",
+  "desc": "Main bus voltage",
+  "decimals": 1
+ },
+ {
+  "cat": "Electrical",
+  "name": "ELECTRICAL BATTERY VOLTAGE",
+  "unit": "volts",
+  "desc": "Battery voltage",
+  "decimals": 1
+ },
+ {
+  "cat": "Electrical",
+  "name": "ELECTRICAL TOTAL LOAD AMPS",
+  "unit": "amperes",
+  "desc": "Total electrical load"
+ },
+ {
+  "cat": "Lights",
+  "name": "LIGHT BEACON",
+  "unit": "bool",
+  "desc": "Beacon lights on"
+ },
+ {
+  "cat": "Lights",
+  "name": "LIGHT LANDING",
+  "unit": "bool",
+  "desc": "Landing lights on"
+ },
+ {
+  "cat": "Lights",
+  "name": "LIGHT TAXI",
+  "unit": "bool",
+  "desc": "Taxi lights on"
+ },
+ {
+  "cat": "Lights",
+  "name": "LIGHT NAV",
+  "unit": "bool",
+  "desc": "Navigation lights on"
+ },
+ {
+  "cat": "Lights",
+  "name": "LIGHT STROBE",
+  "unit": "bool",
+  "desc": "Strobe lights on"
+ },
+ {
+  "cat": "Lights",
+  "name": "LIGHT PANEL",
+  "unit": "bool",
+  "desc": "Panel lights on"
+ },
+ {
+  "cat": "Lights",
+  "name": "LIGHT RECOGNITION",
+  "unit": "bool",
+  "desc": "Recognition lights on"
+ },
+ {
+  "cat": "Lights",
+  "name": "LIGHT WING",
+  "unit": "bool",
+  "desc": "Wing lights on"
+ },
+ {
+  "cat": "Lights",
+  "name": "LIGHT LOGO",
+  "unit": "bool",
+  "desc": "Logo lights on"
+ },
+ {
+  "cat": "Lights",
+  "name": "LIGHT CABIN",
+  "unit": "bool",
+  "desc": "Cabin lights on"
+ },
+ {
+  "cat": "Controls",
+  "name": "FLAPS HANDLE INDEX",
+  "unit": "number",
+  "desc": "Flap lever notch (0 = up)"
+ },
+ {
+  "cat": "Controls",
+  "name": "FLAPS HANDLE PERCENT",
+  "unit": "percent",
+  "desc": "Flap lever position"
+ },
+ {
+  "cat": "Controls",
+  "name": "TRAILING EDGE FLAPS LEFT ANGLE",
+  "unit": "degrees",
+  "desc": "Flap angle"
+ },
+ {
+  "cat": "Controls",
+  "name": "GEAR HANDLE POSITION",
+  "unit": "bool",
+  "desc": "Gear lever down"
+ },
+ {
+  "cat": "Controls",
+  "name": "GEAR CENTER POSITION",
+  "unit": "percent",
+  "desc": "Nose gear extension"
+ },
+ {
+  "cat": "Controls",
+  "name": "BRAKE PARKING POSITION",
+  "unit": "bool",
+  "desc": "Parking brake set"
+ },
+ {
+  "cat": "Controls",
+  "name": "ELEVATOR TRIM PCT",
+  "unit": "percent over 100",
+  "desc": "Elevator trim (-1 to 1)",
+  "decimals": 2
+ },
+ {
+  "cat": "Controls",
+  "name": "RUDDER TRIM PCT",
+  "unit": "percent over 100",
+  "desc": "Rudder trim (-1 to 1)",
+  "decimals": 2
+ },
+ {
+  "cat": "Controls",
+  "name": "AILERON TRIM PCT",
+  "unit": "percent over 100",
+  "desc": "Aileron trim (-1 to 1)",
+  "decimals": 2
+ },
+ {
+  "cat": "Controls",
+  "name": "SPOILERS ARMED",
+  "unit": "bool",
+  "desc": "Spoilers armed"
+ },
+ {
+  "cat": "Controls",
+  "name": "SPOILERS HANDLE POSITION",
+  "unit": "percent",
+  "desc": "Spoiler lever"
+ },
+ {
+  "cat": "Anti-ice",
+  "name": "PITOT HEAT",
+  "unit": "bool",
+  "desc": "Pitot heat on"
+ },
+ {
+  "cat": "Anti-ice",
+  "name": "PITOT HEAT SWITCH",
+  "unit": "bool",
+  "desc": "Pitot heat switch"
+ },
+ {
+  "cat": "Anti-ice",
+  "name": "STRUCTURAL DEICE SWITCH",
+  "unit": "bool",
+  "desc": "Airframe de-ice switch"
+ },
+ {
+  "cat": "Anti-ice",
+  "name": "PROP DEICE SWITCH:1",
+  "unit": "bool",
+  "desc": "Propeller de-ice switch"
+ },
+ {
+  "cat": "Anti-ice",
+  "name": "WINDSHIELD DEICE SWITCH",
+  "unit": "bool",
+  "desc": "Windshield de-ice switch"
+ },
+ {
+  "cat": "Anti-ice",
+  "name": "ENG ANTI ICE:1",
+  "unit": "bool",
+  "desc": "Engine anti-ice"
+ },
+ {
+  "cat": "Environment",
+  "name": "AMBIENT TEMPERATURE",
+  "unit": "celsius",
+  "desc": "Outside air temperature"
+ },
+ {
+  "cat": "Environment",
+  "name": "AMBIENT WIND VELOCITY",
+  "unit": "knots",
+  "desc": "Wind speed"
+ },
+ {
+  "cat": "Environment",
+  "name": "AMBIENT WIND DIRECTION",
+  "unit": "degrees",
+  "desc": "Wind direction",
+  "pad": 3
+ },
+ {
+  "cat": "Environment",
+  "name": "SEA LEVEL PRESSURE",
+  "unit": "millibars",
+  "desc": "Sea level pressure (actual weather, hPa)"
+ },
+ {
+  "cat": "Environment",
+  "name": "AMBIENT VISIBILITY",
+  "unit": "meters",
+  "desc": "Visibility"
+ },
+ {
+  "cat": "Environment",
+  "name": "LOCAL TIME",
+  "unit": "seconds",
+  "desc": "Local time of day (show as HH:MM with format time)",
+  "format": "time"
+ },
+ {
+  "cat": "Environment",
+  "name": "ZULU TIME",
+  "unit": "seconds",
+  "desc": "UTC time of day (show as HH:MM with format time)",
+  "format": "time"
+ },
+ {
+  "cat": "Environment",
+  "name": "SIMULATION RATE",
+  "unit": "number",
+  "desc": "Sim rate"
+ },
+ {
+  "cat": "Environment",
+  "name": "SIM ON GROUND",
+  "unit": "bool",
+  "desc": "Aircraft on the ground"
+ },
+ {
+  "cat": "Environment",
+  "name": "TOTAL WEIGHT",
+  "unit": "pounds",
+  "desc": "Aircraft weight"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM RECEIVE:1",
+  "unit": "bool",
+  "desc": "COM1 audio on (audio panel COM1 key lit)"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM RECEIVE:2",
+  "unit": "bool",
+  "desc": "COM2 audio on (audio panel COM2 key lit)"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM TRANSMIT:1",
+  "unit": "bool",
+  "desc": "COM1 selected to transmit (COM1 MIC lit)"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM TRANSMIT:2",
+  "unit": "bool",
+  "desc": "COM2 selected to transmit (COM2 MIC lit)"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM RECEIVE ALL",
+  "unit": "bool",
+  "desc": "Audio panel receiving all COMs"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT AVAILABLE",
+  "unit": "bool",
+  "desc": "Aircraft has an autopilot"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT DISENGAGED",
+  "unit": "bool",
+  "desc": "Autopilot disconnected (disconnect switch)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT ALTITUDE ARM",
+  "unit": "bool",
+  "desc": "ALT armed (will capture the selected altitude)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT APPROACH ARM",
+  "unit": "bool",
+  "desc": "SDK: true once a flight-plan (GPS) approach reaches its arming point, usually the second-last waypoint"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT APPROACH ACTIVE",
+  "unit": "bool",
+  "desc": "SDK: autopilot flying the approach part of the flight plan (last legs)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT APPROACH IS LOCALIZER",
+  "unit": "bool",
+  "desc": "Approach is a localizer (not GPS)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT GLIDESLOPE ARM",
+  "unit": "bool",
+  "desc": "SDK: \"the autopilot is active on the glide slope\""
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT GLIDESLOPE ACTIVE",
+  "unit": "bool",
+  "desc": "SDK: receiving the glideslope and following it down"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT PITCH HOLD",
+  "unit": "bool",
+  "desc": "PIT mode (pitch hold) active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT PITCH HOLD REF",
+  "unit": "degrees",
+  "desc": "Pitch reference held in PIT mode"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT ATTITUDE HOLD",
+  "unit": "bool",
+  "desc": "Attitude hold active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT BANK HOLD",
+  "unit": "bool",
+  "desc": "Bank hold active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT MAX BANK",
+  "unit": "degrees",
+  "desc": "Maximum bank angle (BANK / half bank)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT NAV SELECTED",
+  "unit": "number",
+  "desc": "NAV source followed by the autopilot (1 or 2)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "GPS DRIVES NAV1",
+  "unit": "bool",
+  "desc": "CDI source is GPS (0 = VLOC/NAV)"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT TAKEOFF POWER ACTIVE",
+  "unit": "bool",
+  "desc": "TO/GA mode active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT THROTTLE ARM",
+  "unit": "bool",
+  "desc": "Autothrottle armed"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT MACH HOLD",
+  "unit": "bool",
+  "desc": "Mach hold active"
+ },
+ {
+  "cat": "Autopilot",
+  "name": "AUTOPILOT APPROACH CAPTURED",
+  "unit": "bool",
+  "desc": "SDK: lateral NAV mode engaged and within 5° of the tuned NAV course (localizer captured)"
+ }
+]

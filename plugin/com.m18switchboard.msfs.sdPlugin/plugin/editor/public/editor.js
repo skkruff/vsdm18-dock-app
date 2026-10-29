@@ -599,10 +599,12 @@ const HELP = {
   armable: 'For modes that arm before they engage (APR, GS, NAV/LOC capture, ALT). The key checks its '
     + 'two sources in order: green while the mode is active, white while it is only armed, otherwise '
     + 'the look you choose. HDG, VS, FLC, YD and AP are only on or off: use an ordinary Switch for those.',
-  armableActive: 'Checked first. For the default autopilot: AUTOPILOT APPROACH ACTIVE, AUTOPILOT GLIDESLOPE ACTIVE, '
-    + 'AUTOPILOT NAV1 LOCK or AUTOPILOT ALTITUDE LOCK (unit bool, is 1). Use Test to see the value now.',
-  armableArmed: 'Checked only when the mode is not active. For the default autopilot: AUTOPILOT APPROACH ARM, '
-    + 'AUTOPILOT GLIDESLOPE ARM or AUTOPILOT ALTITUDE ARM (unit bool, is 1).',
+  armableActive: 'Checked first. Candidates for the default autopilot (unit bool, is 1): ILS approach: '
+    + 'AUTOPILOT APPROACH CAPTURED (localizer within 5°); glideslope: AUTOPILOT GLIDESLOPE ACTIVE; altitude: '
+    + 'AUTOPILOT ALTITUDE LOCK. The SDK descriptions are terse and aircraft differ: confirm with Test while flying an approach.',
+  armableArmed: 'Checked only when the mode is not active. Candidates: AUTOPILOT APPROACH HOLD (APR selected), '
+    + 'AUTOPILOT GLIDESLOPE HOLD (GS selected), AUTOPILOT ALTITUDE ARM. AUTOPILOT APPROACH ARM/ACTIVE are about GPS '
+    + 'flight-plan approaches, per the SDK.',
   armableOtherwise: 'Neither active nor armed. Clear (outline) suits autopilot modes.',
   armablePress: 'The source is usually a simvar, so set "Acts on" to the panel button\'s input event. G1000 buttons: '
     + 'Hold, while held 1, on release 0. Softkeys drop a held press unless re-sent every 130 ms or less.',
@@ -969,8 +971,8 @@ async function browse(what, onPick) {
         onPick({ name: name.value.trim().toUpperCase().replace(/^L:/, 'L:'), unit: unit ? unit.value : undefined });
       } } }, 'Use')),
       el('p', { class: 'muted' }, what === 'simvars'
-        ? 'Names from the MSFS SDK. Use Test to check one gives a value in this aircraft. Third-party aircraft often use their own L:vars instead.'
-        : 'Names from the MSFS SDK. "Send" fires it in the sim right away, so you can see what it does.'));
+        ? `All ${rows.length} simvars of the MSFS 2024 SDK; ★ marks common ones, listed first. Use Test to check one gives a value in this aircraft. Third-party aircraft often use their own L:vars instead.`
+        : `All ${rows.length} key events of the MSFS 2024 SDK; ★ marks common ones, listed first. "Send" fires it in the sim right away, so you can see what it does.`));
     }
   } catch (e) {
     list.innerHTML = '';

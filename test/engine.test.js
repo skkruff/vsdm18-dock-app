@@ -186,6 +186,11 @@ const text = uri => decodeURIComponent(uri);
   engine.keyDown(17);
   assert.strictEqual(sim.sent.length + sim.sets.length, sentBefore, 'presses ignored while offline');
   assert.strictEqual(engine.profile, null);
+  // The status message sways back and forth for as long as it is up.
+  const offlineFrames = () => history.filter(([s]) => s === 12).length;
+  const framesBefore = offlineFrames();
+  await new Promise(r => setTimeout(r, 350));
+  assert.ok(offlineFrames() - framesBefore >= 3, 'NOT CONNECTED keeps moving');
 
   // Faces: per-value face wins, value layers can read their own source, time format.
   const { keySources } = require(path.join(pluginDir, 'plugin', 'engine'));

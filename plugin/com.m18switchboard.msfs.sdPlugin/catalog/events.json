@@ -418,5 +418,20 @@
   "cat": "Sim",
   "name": "SIM_RATE_DECR",
   "desc": "Sim rate down"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM1_RECEIVE_SELECT",
+  "desc": "COM1 audio on/off (value 1 on, 0 off)"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM2_RECEIVE_SELECT",
+  "desc": "COM2 audio on/off (value 1 on, 0 off)"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM_RECEIVE_ALL_TOGGLE",
+  "desc": "Audio panel: receive all COMs on/off"
  }
 ]

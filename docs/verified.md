@@ -47,6 +47,12 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-10-29, unverified (from SDK knowledge, not tested): the G1000 audio panel COM1 key lights
+  from simvar `COM RECEIVE:1` (bool); the softkey input event `AS1000_COM_1_MIDCOM` is only
+  1 while pressed. Proposed key: read `COM RECEIVE:1`, press holds the input event at 1, releases
+  to 0. Added COM RECEIVE / TRANSMIT simvars and COM1/2_RECEIVE_SELECT to the catalogs.
+- 2026-10-29, unit test only: status screens (NOT CONNECTED, loading) sway back and forth while up;
+  slide amplitude 24 -> 32.
 - 2026-10-28, user test of editor round 3 (Windows, dock + sim): NAV1 lookups from the simvar
   catalog, swap events, a Chrono LOCAL TIME key and a custom library category work. Reported and
   since fixed in code (unit + browser tests only, not yet on the dock): face designer layers jumping

@@ -81,18 +81,18 @@ class ProfileEngine {
   }
 
   start() {
-    this.sim.on('connected', () => { this.status = 'loading'; this._slide(1500); });
+    this.sim.on('connected', () => { this.status = 'loading'; this._sway(); });
     this.sim.on('disconnected', () => {
       this._unwatchAll();
       this._stopHolds();
       this.profile = null;
       this.status = 'offline';
       this._clearScene();
-      this._slide(1500);
+      this._sway();
     });
     this.sim.on('exception', e => this._onException(e));
     this.sim.onAircraftChanged(a => this.setAircraft(a));
-    this.redrawAll();
+    this._sway();
   }
 
   get page() { return this.profile ? this.profile.pages[this.pageIndex] : null; }
@@ -129,20 +129,21 @@ class ProfileEngine {
     const gen = ++this.generation;
     this._unwatchAll();
     this._stopHolds();
-    if (!this.profile) { this.status = 'loading'; this._clearScene(); return this.redrawAll(); }
+    if (!this.profile) { this.status = 'loading'; this._clearScene(); this._sway(); return this.redrawAll(); }
     if (aircraft) this._showScene(this._aircraftScene(), this.announceAircraftMs);
     else if (this.announcePages && !quiet) this._showScene({ rows: { 1: this.page.name } }, this.announceMs);
     else this._clearScene();
     // The announcement covers any wait for input events; only without one is "loading" shown.
     const sources = this._pageSources(this.page);
     if (sources.some(s => s.input) && (!this.sim.inputs || !this.sim.inputs.size)) {
-      if (!this.scene) { this.status = 'loading'; this.redrawAll(); }
+      if (!this.scene) { this.status = 'loading'; this._sway(); }
       // Input event hashes are per aircraft; list them once per aircraft.
       try { await this.sim.listInputEvents(); } catch (e) { this.log('input events unavailable', e.message); }
       if (gen !== this.generation) return;
     }
     for (const src of sources) this._watch(src, gen);
     this.status = 'ready';
+    if (!this.scene) this._stopSlide();
     this.log('page', { profile: this.profile.id, page: this.page.name });
     this.redrawAll();
   }
@@ -197,21 +198,29 @@ class ProfileEngine {
 
   // Slides panel-wide text from left to right over ms, so the letters hidden behind the bezels
   // between keys pass into view (user, 2026-10-28). Only keys showing text are redrawn per frame.
-  _slide(ms) {
+  // With loop, it keeps sliding back and forth, each way taking ms: status screens that stay up
+  // until something changes (NOT CONNECTED, loading) sway at the page banner's pace (user, 2026-10-29).
+  _slide(ms, loop = false) {
     this._stopSlide();
     if (!this.animateScenes) { this.slide = 0; return this.redrawAll(); }
-    const amplitude = 24; // canvas units either side; the gap between keys is 36
+    const amplitude = 32; // canvas units either side; the gap between keys is 36 (was 24, user asked for a bit more)
     const start = Date.now();
     const frame = () => {
-      const p = Math.min(1, (Date.now() - start) / ms);
+      const t = (Date.now() - start) / ms;
+      const p = loop ? t % 1 : Math.min(1, t);
       const eased = p < 0.5 ? 2 * p * p : 1 - 2 * (1 - p) * (1 - p);
-      this.slide = Math.round(-amplitude + 2 * amplitude * eased);
+      const forward = !loop || Math.floor(t) % 2 === 0;
+      this.slide = Math.round((forward ? -1 : 1) * (-amplitude + 2 * amplitude * eased));
       this.redrawAll();
-      if (p >= 1) this._stopSlide(false);
+      if (!loop && p >= 1) this._stopSlide(false);
     };
-    frame();
     this.slideTimer = setInterval(frame, 1000 / this.sceneFps);
+    if (this.slideTimer.unref) this.slideTimer.unref(); // a swaying status screen must not keep the process alive
+    frame();
   }
+
+  // Status screens: sway until the next scene or status change stops it.
+  _sway() { this._slide(this.announceMs, true); }
 
   _stopSlide(reset = true) {
     clearInterval(this.slideTimer);

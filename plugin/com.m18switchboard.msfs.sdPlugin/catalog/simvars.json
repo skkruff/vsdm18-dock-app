@@ -739,5 +739,35 @@
   "name": "TOTAL WEIGHT",
   "unit": "pounds",
   "desc": "Aircraft weight"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM RECEIVE:1",
+  "unit": "bool",
+  "desc": "COM1 audio on (audio panel COM1 key lit)"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM RECEIVE:2",
+  "unit": "bool",
+  "desc": "COM2 audio on (audio panel COM2 key lit)"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM TRANSMIT:1",
+  "unit": "bool",
+  "desc": "COM1 selected to transmit (COM1 MIC lit)"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM TRANSMIT:2",
+  "unit": "bool",
+  "desc": "COM2 selected to transmit (COM2 MIC lit)"
+ },
+ {
+  "cat": "Radios",
+  "name": "COM RECEIVE ALL",
+  "unit": "bool",
+  "desc": "Audio panel receiving all COMs"
  }
 ]

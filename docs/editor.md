@@ -17,7 +17,7 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   "Preview announcement" shows it on the dock picture.
 - **Look**: the font of all drawn text (7 bundled condensed fonts, default Barlow Condensed Bold;
   text is drawn as shapes, so it looks the same in the editor and on the dock) and the colours of
-  readouts, labels, sublabels and the state bar. Bar and readout colours are measured from your
+  readouts, labels, sublabels and the state bar (on, off, armed). Bar and readout colours are measured from your
   icons at start-up (`master_battery` on/off/clear, `set_altimeter`); ↺ goes back to the measured
   value. Bar size and corners are fixed (corner 9.5). Saved in `settings.json` next to the
   profiles folder.
@@ -28,7 +28,13 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   - Click to select, Ctrl/Shift-click for several, drag to move/swap.
   - Ctrl+C / Ctrl+V copy and paste, also between pages and profiles. Delete removes.
 - **Inspector** (right): everything about the selected key.
-  - Type: switch (on/off look), readout (live value), button.
+  - Type: switch (on/off look), switch (armable), readout (live value), button.
+  - **Switch (armable)**: for autopilot modes that arm before they engage. Instead of "Reads from
+    the sim" and "Look per value" it shows the look as three numbered steps checked top to bottom:
+    1 green (active) when a source is a value, 2 otherwise white (armed) when a second source is a
+    value, 3 otherwise clear or off. Sublabels and faces are per step; Preview picks a step.
+  - **ⓘ** next to a label explains it: hover for the text, click to keep it open. So far on the
+    armable key and "Acts on"; more to follow.
   - Label and icon (picker shows your library; switch icons use their on/off/clear versions).
   - Source: an input event or a simvar and unit.
     - **Learn**: click it, then move the control in the cockpit. If several controls change at

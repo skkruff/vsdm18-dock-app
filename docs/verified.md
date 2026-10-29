@@ -47,6 +47,9 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-10-29, unit + browser tests only: Switch (armable) key type (active / armed / otherwise
+  ladder, white armed bar, armed PNG = clear icon with filled bar) and ⓘ help. Not yet on the dock
+  or in the sim; that the ARM/ACTIVE simvars behave as expected in the C172's G1000 is unverified.
 - 2026-10-29, dock + sim (user test): the COM1 audio key works as proposed: reads `COM RECEIVE:1`,
   press holds `AS1000_COM_1_MIDCOM` at 1 and releases to 0; the bar follows the panel LED.
 - 2026-10-29, dock + sim (user test): a hold repeat of about 130-140 ms or faster keeps a G1000

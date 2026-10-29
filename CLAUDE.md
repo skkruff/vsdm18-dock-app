@@ -14,7 +14,9 @@ measured from icons + Look panel, faces per value, value layers with their own s
 dialogs (input events with values, simvar/event catalogs with Test/Send), Learn with candidates,
 save-in-place bug fix. Round 4 (2026-10-28): fixed bars and Barlow default, sliding splash,
 library categories (dropdown, automatic Groups, duplicate fix), group drop outlines, Sublabel on all
-keys, insert asks only about missing input events. Awaiting the user's test (`docs/editor-test.md`). Next after that: keypad entry for XPDR / COM standby.
+keys, insert asks only about missing input events. 2026-10-29: status screens sway, COM receive
+and autopilot simvars in the catalog, Switch (armable) key type, ⓘ help (texts in `HELP`; more in
+the polish pass, `docs/design-notes.md`). Awaiting the user's test (`docs/editor-test.md`). Next after that: keypad entry for XPDR / COM standby.
 
 ## Profile content principles (user, 2026-10-27)
 

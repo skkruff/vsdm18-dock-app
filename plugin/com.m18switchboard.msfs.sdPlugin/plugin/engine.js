@@ -37,9 +37,27 @@ function lookup(map, value) {
 // Every sim source a key uses: its own, plus value layers with their own source in its faces.
 function keySources(key) {
   const out = key.read ? [key.read] : [];
+  if (key.type === 'armable' && key.armed) out.push(key.armed);
   const faces = [key.face, ...Object.values(key.valueFaces || {})].filter(Boolean);
   for (const f of faces) for (const L of f.layers || []) if (L.kind === 'value' && L.read) out.push(L.read);
   return out;
+}
+
+// Armable keys (user, 2026-10-29): a fixed ladder, checked top to bottom.
+//   active when read is activeIs (default 1), else armed when armed is armedIs (default 1), else
+//   otherwise. Unknown active value: clear, like any switch before the sim answers.
+// Returns 'active' | 'armed' | 'otherwise' | undefined.
+function armableStep(key, active, armed) {
+  if (active === undefined) return undefined;
+  if (same(active, key.activeIs ?? 1)) return 'active';
+  if (armed !== undefined && same(armed, key.armedIs ?? 1)) return 'armed';
+  return 'otherwise';
+}
+const same = (a, b) => String(a) === String(b);
+const ARMABLE_STATE = { active: 'on', armed: 'armed' };
+const ARMABLE_STEPS = ['active', 'armed', 'otherwise'];
+function armableState(key, step) {
+  return step === undefined ? 'clear' : ARMABLE_STATE[step] || key.otherwise || 'clear';
 }
 
 // Sublabel: per-value text if there is one for this value, else the fixed sublabel. Switches made
@@ -314,6 +332,7 @@ class ProfileEngine {
   keyImage(key, value, error, valueOf = () => undefined) {
     if (!key) return tiles.blank();
     if (error) return tiles.unavailable(key.label || '');
+    if (key.type === 'armable') return this._armableImage(key, value, valueOf);
     const valueFace = lookup(key.valueFaces, value);
     const valueIcon = valueFace ? null : this.renderer.icon(lookup(key.valueIcons, value), null);
     if (valueIcon) return valueIcon;
@@ -341,6 +360,30 @@ class ProfileEngine {
     if (key.type === 'button') return this.renderer.icon(key.icon, null) || tiles.button(key.label || '', sublabelFor(key, value));
     const state = value === undefined ? 'clear' : (lookup(key.states, value) || key.otherwise || 'clear');
     return this.renderer.icon(key.icon, state) || tiles.switch(key.label || '', state, sublabelFor(key, value));
+  }
+
+  // Armable: faces and sublabels are per step (active / armed / otherwise), not per sim value.
+  _armableImage(key, value, valueOf) {
+    // The editor previews a step by name; sim values are numbers.
+    const step = ARMABLE_STEPS.includes(value) ? value : armableStep(key, value, key.armed ? valueOf(key.armed) : undefined);
+    const state = armableState(key, step);
+    const face = (step && key.valueFaces && key.valueFaces[step]) || key.face;
+    const sublabel = step && key.sublabels && key.sublabels[step] !== undefined ? key.sublabels[step] : key.sublabel;
+    if (face) {
+      const iconFor = name => {
+        const n = name || key.icon;
+        const st = !name ? (state === 'armed' ? 'clear' : state) : null;
+        const uri = this.renderer.icon(n, st);
+        return uri ? { uri, box: this.renderer.iconBox(n, st) } : null;
+      };
+      const valueFor = L => formatValue(L.read ? L : { ...key, ...pick(L, ['decimals', 'pad', 'format']) }, L.read ? valueOf(L.read) : value);
+      return tiles.face(face, { iconFor, valueFor, state });
+    }
+    if (state === 'armed') {
+      const clear = this.renderer.icon(key.icon, 'clear');
+      if (clear) return tiles.armedIcon(clear);
+    }
+    return this.renderer.icon(key.icon, state) || tiles.switch(key.label || '', state, sublabel);
   }
 
   _stopHolds() {

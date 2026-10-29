@@ -29,6 +29,7 @@ const DEFAULT_STYLE = {
   readout: '#4fc3f7',
   on: '#b8f01c',
   off: '#f0204c',
+  armed: '#ffffff', // armable keys: mode armed, not yet active (G1000 shows armed modes in white)
   clearStroke: '#8a8f98',
   clearWidth: 3,
   // Measured from the user's master_battery icons (2026-10-28), corner set by the user. Fixed
@@ -139,7 +140,7 @@ function fallbackLines(ls, y, size, color, x, width) {
 const PANEL = { cols: 5, rows: 3, key: 144, gap: 36 };
 
 function bar(state, b = style.bar) {
-  const fill = style[state === 'on' ? 'on' : state === 'off' ? 'off' : null];
+  const fill = style[state === 'on' || state === 'off' || state === 'armed' ? state : null];
   if (fill) return `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.r}" fill="${fill}"/>`;
   const sw = style.clearWidth;
   return `<rect x="${b.x + sw / 2}" y="${b.y + sw / 2}" width="${b.w - sw}" height="${b.h - sw}" rx="${Math.max(0, b.r - sw / 2)}" ` +
@@ -178,6 +179,11 @@ const tiles = {
       lines(value, sublabel ? 100 : 94, { size: sublabel ? 42 : 46, color: style.readout, width: 132 }));
   },
   // A library icon's content scaled into the top of the key, with a live value below.
+  // A library icon has no armed version: its clear version with the bar filled in the armed colour.
+  // The bar geometry is the one measured from the user's icons, so the fill lands on their outline.
+  armedIcon(clearUri) {
+    return svgUri(placedIcon(clearUri, null, { x: 0, y: 0, w: 144, h: 144 }, 'armed', 'full') + bar('armed'));
+  },
   iconReadout(iconUri, value, box, sublabel) {
     return svgUri(placedIcon(iconUri, box, { x: 6, y: 6, w: 132, h: sublabel ? 56 : 70 }, 'top') +
       (sublabel ? lines(sublabel, 76, { size: SUBLABEL_SIZE, color: style.dim }) : '') +

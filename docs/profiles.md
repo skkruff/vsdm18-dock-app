@@ -37,11 +37,26 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
 | type | Shows | Needs |
 |---|---|---|
 | `switch` | library icon `<icon>_<state>_<theme>.png`, or a generated tile with a red/green bar | `read`, `states` |
+| `armable` | like a switch, with a third look: armed (white bar) | `read` (active source), `armed` |
 | `readout` | label and a live value; with `icon`, the top of that library icon above the value | `read` |
 | `button` | stateless library icon `<icon>_<theme>.png` or the label | `press` |
 
 - **states** (switch): sim value to `on`, `off` or `clear`. `otherwise`: state for values not in
   the map. Unknown value (not yet read, sim reconnecting) shows `clear`.
+- **armable** (user, 2026-10-29): for modes that arm before they engage (APR, GS, NAV capture,
+  ALT). Checked top to bottom: **active** (green) when `read` is `activeIs` (default 1), else
+  **armed** (white, Look "Bar armed") when the `armed` source is `armedIs` (default 1), else
+  `otherwise` (`clear` default, or `off`). Unknown active value shows clear. Library icons have no
+  armed version: armed draws the icon's clear version with its bar filled in the armed colour.
+  `sublabels` and `valueFaces` are keyed by step (`active`, `armed`, `otherwise`), not by value.
+  A press usually needs `press.input` (the panel button), since the sources are simvars.
+  ```json
+  { "type": "armable", "label": "APR",
+    "read": { "var": "AUTOPILOT APPROACH ACTIVE", "unit": "bool" },
+    "armed": { "var": "AUTOPILOT APPROACH ARM", "unit": "bool" },
+    "sublabels": { "active": "LOC", "armed": "ARM" },
+    "press": { "input": "<the APR button's input event>", "hold": 1, "release": 0 } }
+  ```
 - **text** (readout): sim value to a word shown instead of the number (e.g. magneto `3` -> `BOTH`).
 - **sublabel** (any type): a smaller line under the label on drawn tiles. **sublabels**: sim value
   to a sublabel (e.g. `{ "0": "ARM", "1": "OFF" }`); a value not listed shows `sublabel`. Older

@@ -20,3 +20,12 @@ stay in Groups; new ones also go in a category you choose.
    fixed, and per value when the key reads the sim. Readout labels are in the Labels colour.
    Sublabels are a little bigger than before.
 9. **Empty key**: shows "Add key", no "null".
+
+## Switch (armable), 2026-10-29
+
+10. On the autopilot page, a key's Type "Switch (armable)". Step 1: Browse a simvar, e.g.
+    `AUTOPILOT APPROACH ACTIVE`; step 2: `AUTOPILOT APPROACH ARM`. "When pressed": Hold 1 / 0 with
+    "Acts on" the APR button's input event (Learn finds it). Fly an ILS: white while armed, green
+    on capture. Same for GS, NAV, ALT.
+11. With a PNG icon on the key: armed should look like your clear icon with a white bar.
+12. ⓘ: hover and click the ones on the armable key and "Acts on". Is the text clear?

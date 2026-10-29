@@ -136,3 +136,15 @@ dialog.browse[open] { display: flex; }
 dialog.small-dialog { width: min(480px, 92vw); height: auto; padding: 16px 18px; }
 dialog.small-dialog h3 { margin: 0 0 10px; font-size: 15px; }
 .dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.ladder .step { border-left: 3px solid #3a4250; padding: 4px 0 6px 10px; margin: 6px 0 10px; }
+.ladder .step-head { display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 4px; }
+.ladder .step-n { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #3a4250; font-size: 12px; }
+.swatch { display: inline-block; width: 22px; height: 10px; border-radius: 3px; }
+.swatch.on { background: #b8f01c; }
+.swatch.armed { background: #ffffff; }
+input.narrow { width: 6em; }
+.info { position: relative; display: inline-block; margin-left: 5px; cursor: help; color: #7fb4ff; font-weight: normal; }
+.info .info-text { display: none; position: absolute; z-index: 20; left: 0; top: 1.5em; width: 300px; padding: 8px 10px;
+  background: #1d232c; border: 1px solid #3a4250; border-radius: 6px; color: #dde3ea; font-size: 12px; line-height: 1.4;
+  text-transform: none; letter-spacing: normal; white-space: normal; }
+.info.open .info-text { display: block; }

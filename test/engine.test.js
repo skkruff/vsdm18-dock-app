@@ -206,6 +206,34 @@ const text = uri => decodeURIComponent(uri);
   assert.match(text(engine.keyImage(fk, 1)), /aria-label="ONE"/, 'face for value 1');
   assert.strictEqual(formatValue({ format: 'time' }, 13 * 3600 + 7 * 60 + 30), '13:07');
 
+  // Switch (armable): active, else armed, else otherwise; both sources watched.
+  {
+    const ak = {
+      type: 'armable', label: 'APR', read: { var: 'AUTOPILOT APPROACH ACTIVE', unit: 'bool' },
+      armed: { var: 'AUTOPILOT APPROACH ARM', unit: 'bool' }, sublabels: { active: 'LOC', armed: 'ARM' },
+    };
+    assert.deepStrictEqual(keySources(ak).map(s => s.var), ['AUTOPILOT APPROACH ACTIVE', 'AUTOPILOT APPROACH ARM']);
+    const img = (active, armed) => text(engine.keyImage(ak, active, null, () => armed));
+    assert.match(img(1, 1), /fill="#b8f01c"/, 'active wins over armed');
+    assert.match(img(1, 1), /aria-label="LOC"/);
+    assert.match(img(0, 1), /fill="#ffffff"/, 'armed: white bar');
+    assert.match(img(0, 1), /aria-label="ARM"/);
+    assert.match(img(0, 0), /fill="none"/, 'otherwise: outline');
+    assert.match(img(undefined, 1), /fill="none"/, 'unknown: outline');
+    assert.match(text(engine.keyImage({ ...ak, otherwise: 'off' }, 0, null, () => 0)), /fill="#f0204c"/, 'otherwise can be off');
+    assert.match(text(engine.keyImage({ ...ak, activeIs: 2 }, 2, null, () => 0)), /fill="#b8f01c"/, 'activeIs');
+    assert.match(text(engine.keyImage(ak, 'armed')), /fill="#ffffff"/, 'editor preview by step name');
+    const faced = { ...ak, valueFaces: { armed: { layers: [{ kind: 'text', text: 'ARMED FACE' }] } } };
+    assert.match(text(engine.keyImage(faced, 0, null, () => 1)), /aria-label="ARMED FACE"/, 'face per step');
+    const { tiles } = require(path.join(pluginDir, 'plugin', 'render'));
+    const armedIcon = text(tiles.armedIcon('data:image/png;base64,AAAA'));
+    assert.match(armedIcon, /<image href="data:image\/png;base64,AAAA"/, 'PNG icon: its clear version');
+    assert.match(armedIcon, /fill="#ffffff"/, 'with the bar filled white');
+    const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
+    assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'armable', read: ak.read } } }] }, 'x'), /armed source/);
+    validate({ id: 'x', match: {}, pages: [{ keys: { 0: ak } }] }, 'x');
+  }
+
   // Page names slide sideways while shown; keys without text are not resent each frame.
   {
     const sim2 = new FakeSim({ ...sim.inputValues, LIGHTING_STROBE_0: 0 });

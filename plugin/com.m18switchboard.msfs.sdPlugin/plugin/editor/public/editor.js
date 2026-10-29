@@ -289,6 +289,7 @@ async function renderGrid() {
 // A value that shows the key in its "on" look when nothing else is known.
 function defaultPreview(key) {
   if (!key) return undefined;
+  if (key.type === 'armable') return 'active';
   const on = Object.entries(key.states || {}).find(([, s]) => s === 'on');
   if (on) return on[0];
   const firstText = Object.keys(key.text || key.valueIcons || {})[0];
@@ -588,8 +589,40 @@ function clearDropMarks() {
 
 // ---------- inspector ----------
 
-function field(label, control, note) {
-  return el('label', { class: 'field' }, el('span', {}, label), control, note ? el('span', {}) : null, note ? el('span', { class: 'muted' }, note) : null);
+function field(label, control, note, help) {
+  return el('label', { class: 'field' }, el('span', {}, label, help ? info(help) : null), control, note ? el('span', {}) : null, note ? el('span', { class: 'muted' }, note) : null);
+}
+
+// ⓘ next to a label: the help text on hover, or pinned open by a click (user, 2026-10-29). Texts
+// live in HELP so they are easy to find and correct.
+const HELP = {
+  armable: 'For modes that arm before they engage (APR, GS, NAV/LOC capture, ALT). The key checks its '
+    + 'two sources in order: green while the mode is active, white while it is only armed, otherwise '
+    + 'the look you choose. HDG, VS, FLC, YD and AP are only on or off: use an ordinary Switch for those.',
+  armableActive: 'Checked first. For the default autopilot: AUTOPILOT APPROACH ACTIVE, AUTOPILOT GLIDESLOPE ACTIVE, '
+    + 'AUTOPILOT NAV1 LOCK or AUTOPILOT ALTITUDE LOCK (unit bool, is 1). Use Test to see the value now.',
+  armableArmed: 'Checked only when the mode is not active. For the default autopilot: AUTOPILOT APPROACH ARM, '
+    + 'AUTOPILOT GLIDESLOPE ARM or AUTOPILOT ALTITUDE ARM (unit bool, is 1).',
+  armableOtherwise: 'Neither active nor armed. Clear (outline) suits autopilot modes.',
+  armablePress: 'The source is usually a simvar, so set "Acts on" to the panel button\'s input event. G1000 buttons: '
+    + 'Hold, while held 1, on release 0. Softkeys drop a held press unless re-sent every 130 ms or less.',
+  actsOn: 'The input event the press changes. Needed whenever the key reads a simvar, because a simvar cannot be pressed.',
+};
+
+function info(id) {
+  const text = HELP[id];
+  const tip = el('span', { class: 'info-text' }, text);
+  const i = el('span', { class: 'info', title: text, role: 'button', tabindex: '0', 'data-help': id,
+    on: { click: e => {
+      e.preventDefault(); e.stopPropagation();
+      tip.style.left = '';
+      if (!i.classList.toggle('open')) return;
+      // Keep it inside the panel it opens in.
+      const panel = (i.closest('#inspector, dialog, details') || document.body).getBoundingClientRect();
+      const r = tip.getBoundingClientRect();
+      if (r.right > panel.right - 8) tip.style.left = `${Math.min(0, panel.right - 8 - r.right)}px`;
+    } } }, 'ⓘ', tip);
+  return i;
 }
 
 function input(value, onInput, attrs = {}) {
@@ -679,29 +712,33 @@ function renderInspector() {
   const redraw = () => { changed(); renderInspector(); };
   box.append(el('h3', {}, `Key ${slot}`));
 
-  box.append(field('Type', select_([['switch', 'Switch (on/off look)'], ['readout', 'Readout (live value)'], ['button', 'Button']], key.type, v => {
+  box.append(field('Type', select_([['switch', 'Switch (on/off look)'], ['armable', 'Switch (armable)'], ['readout', 'Readout (live value)'], ['button', 'Button']], key.type, v => {
     key.type = v;
     if (v === 'switch' && !key.states) key.states = { 0: 'off', 1: 'on' };
+    if (v === 'armable' && !key.armed) key.armed = { var: '', unit: 'bool' };
     redraw();
-  })));
+  }), null, key.type === 'armable' ? 'armable' : null));
   box.append(field('Label', el('textarea', { rows: 2, on: { input: e => { key.label = e.target.value; changed(); } } }, key.label || ''),
     'Shown on drawn tiles. A new line starts a second line.'));
 
   // Icon
-  const iconMode = key.type === 'switch' ? 'switch' : 'any';
+  const switchLike = key.type === 'switch' || key.type === 'armable';
+  const iconMode = switchLike ? 'switch' : 'any';
   box.append(field('Icon', el('div', { class: 'icon-chip' },
-    iconThumb(key.icon ? (key.type === 'switch' ? `${key.icon}_on` : key.icon) : null),
+    iconThumb(key.icon ? (switchLike ? `${key.icon}_on` : key.icon) : null),
     el('span', {}, key.icon || 'none (drawn tile)'),
     el('button', { on: { click: () => pickIcon(iconMode, name => { if (name) key.icon = name; else delete key.icon; redraw(); }) } }, 'Choose…')),
-  key.type === 'switch' ? 'Switch icons use the icon\'s on / off / clear versions.'
+  key.type === 'armable' ? 'Uses the icon\'s on / off / clear versions; armed is the clear one with its bar filled white.'
+    : key.type === 'switch' ? 'Switch icons use the icon\'s on / off / clear versions.'
     : key.type === 'readout' ? 'Drawn above the value, scaled to fit.' : null));
 
   box.append(el('h4', {}, 'Face (optional)'));
   box.append(faceDesigner(key, slot));
 
+  if (key.type === 'armable') box.append(armableLadder(key));
   // Source
-  box.append(el('h4', {}, 'Reads from the sim'));
-  box.append(sourceEditor(key.read, r => {
+  if (key.type !== 'armable') box.append(el('h4', {}, 'Reads from the sim'));
+  if (key.type !== 'armable') box.append(sourceEditor(key.read, r => {
     if (r) key.read = r; else delete key.read;
     // A simvar chosen from the catalog brings a sensible number format for an unformatted readout.
     if (r && r.hint && key.type === 'readout') {
@@ -722,9 +759,18 @@ function renderInspector() {
   // (user, 2026-10-28). Switches used `text` for this before; it moves over here.
   if (key.type === 'switch' && key.text && !key.sublabels) { key.sublabels = key.text; delete key.text; }
   box.append(el('h4', {}, 'Sublabel'));
-  box.append(field('Sublabel', input(key.sublabel, v => { if (v) key.sublabel = v; else delete key.sublabel; changed(); }),
+  if (key.type === 'armable') {
+    // One per step of the ladder, e.g. LOC when active, ARM when armed.
+    for (const [step, name] of [['active', 'When active'], ['armed', 'When armed'], ['otherwise', 'Otherwise']]) {
+      box.append(field(name, input(key.sublabels && key.sublabels[step], v => {
+        key.sublabels = key.sublabels || {};
+        if (v) key.sublabels[step] = v; else delete key.sublabels[step];
+        changed();
+      })));
+    }
+  } else box.append(field('Sublabel', input(key.sublabel, v => { if (v) key.sublabel = v; else delete key.sublabel; changed(); }),
     key.read ? 'shown for any value without its own below' : 'smaller text under the label'));
-  if (key.read) {
+  if (key.read && key.type !== 'armable') {
     key.sublabels = key.sublabels || {};
     box.append(mapEditor(key.sublabels, (v, set) => input(v, set), { label: 'sublabel', value: '' }));
   }
@@ -733,7 +779,7 @@ function renderInspector() {
     key.text = key.text || {};
     box.append(mapEditor(key.text, (v, set) => input(v, set), { label: 'text', value: '' }));
   }
-  if (key.type !== 'button') {
+  if (key.type !== 'button' && key.type !== 'armable') {
     box.append(el('h4', {}, 'Icon per value (replaces the whole key)'));
     key.valueIcons = key.valueIcons || {};
     box.append(mapEditor(key.valueIcons, (v, set) => el('div', { class: 'inline' }, iconThumb(v), el('span', {}, v || '—'),
@@ -746,7 +792,7 @@ function renderInspector() {
   }
 
   // Press
-  box.append(el('h4', {}, 'When pressed'));
+  box.append(el('h4', {}, 'When pressed', key.type === 'armable' ? info('armablePress') : null));
   const p = key.press || {};
   const pkind = !key.press ? 'none' : p.event ? 'event' : p.cycle ? 'cycle' : p.step !== undefined ? 'step' : p.hold !== undefined ? 'hold' : p.set !== undefined ? 'set' : 'none';
   box.append(field('Action', select_([['none', 'Nothing'], ['cycle', 'Toggle / cycle values'], ['step', 'Step up or down'], ['hold', 'Hold (spring-loaded)'], ['set', 'Set a value'], ['event', 'Send a sim event']], pkind, v => {
@@ -782,13 +828,16 @@ function renderInspector() {
   if (['cycle', 'step', 'hold', 'set'].includes(pkind)) {
     const actsOn = input(p.input, v => setP('input', v || undefined), { list: 'inputList', placeholder: key.read && key.read.input ? `(same as source: ${key.read.input})` : 'input event' });
     box.append(field('Acts on', el('div', { class: 'inline' }, actsOn,
-      el('button', { on: { click: () => browse('inputs', c => { setP('input', c.name); renderInspector(); }) } }, 'Browse…'))));
+      el('button', { on: { click: () => browse('inputs', c => { setP('input', c.name); renderInspector(); }) } }, 'Browse…')), null, 'actsOn'));
   }
 
   // Preview value
   box.append(el('h4', {}, 'Preview'));
   const pvKey = `${S.page}:${slot}`;
-  box.append(field('Preview value', input(S.previewValues[pvKey], v => { S.previewValues[pvKey] = v; renderGrid(); renderInspector(); }, { placeholder: isLivePage() ? 'live from sim' : `default: ${defaultPreview(key) ?? 'unknown'}` }),
+  if (key.type === 'armable') {
+    box.append(field('Preview', select_([['', isLivePage() ? 'live from sim' : 'active (default)'], ['active', 'active'], ['armed', 'armed'], ['otherwise', 'otherwise']],
+      S.previewValues[pvKey] || '', v => { S.previewValues[pvKey] = v; renderGrid(); renderInspector(); })));
+  } else box.append(field('Preview value', input(S.previewValues[pvKey], v => { S.previewValues[pvKey] = v; renderGrid(); renderInspector(); }, { placeholder: isLivePage() ? 'live from sim' : `default: ${defaultPreview(key) ?? 'unknown'}` }),
     'Try values to see each look. Empty = live value (when this page is on the dock) or a default.'));
 
   // Raw JSON
@@ -826,13 +875,34 @@ async function learnInto(inputEl, apply) {
 }
 
 // Editor for a sim source: { input } or { var, unit }. onChange(newRead | null).
-function sourceEditor(read, onChange, { allowNone = false } = {}) {
+// Switch (armable): a fixed ladder read top to bottom (user, 2026-10-29). The first step uses the
+// key's own source (read), so presses and Learn work as on any key.
+function armableLadder(key) {
+  const box = el('div', { class: 'ladder' });
+  const isField = (k, help) => field('is', input(key[k] ?? 1, v => { if (v === '' || v === '1') delete key[k]; else key[k] = isNaN(Number(v)) ? v : Number(v); changed(); },
+    { class: 'narrow' }), null, help);
+  box.append(el('h4', {}, 'Look (checked top to bottom)'),
+    el('div', { class: 'step' },
+      el('div', { class: 'step-head' }, el('span', { class: 'step-n' }, '1'), el('span', { class: 'swatch on' }), 'Green (active) when', info('armableActive')),
+      sourceEditor(key.read, r => { if (r) key.read = r; else delete key.read; if (r) delete r.hint; }, { unit: 'bool' }),
+      isField('activeIs')),
+    el('div', { class: 'step' },
+      el('div', { class: 'step-head' }, el('span', { class: 'step-n' }, '2'), 'otherwise', el('span', { class: 'swatch armed' }), 'White (armed) when', info('armableArmed')),
+      sourceEditor(key.armed, r => { key.armed = r || { var: '', unit: 'bool' }; if (r) delete r.hint; }, { unit: 'bool' }),
+      isField('armedIs')),
+    el('div', { class: 'step' },
+      el('div', { class: 'step-head' }, el('span', { class: 'step-n' }, '3'), 'otherwise', info('armableOtherwise')),
+      field('shows', select_([['', 'clear (outline)'], ['off', 'off (red)']], key.otherwise || '', v => { if (v) key.otherwise = v; else delete key.otherwise; changed(); }))));
+  return box;
+}
+
+function sourceEditor(read, onChange, { allowNone = false, unit = 'number' } = {}) {
   const box = el('div', { class: 'source' });
   const kind = !read ? 'none' : read.input !== undefined ? 'input' : 'var';
   const set = r => { onChange(r); changed(); renderInspector(); };
   const kinds = [['input', 'Input event (cockpit control)'], ['var', 'Simvar (sim value)']];
   box.append(field('Source', select_(allowNone ? [['none', 'Nothing'], ...kinds] : kinds, kind, v => {
-    set(v === 'none' ? null : v === 'input' ? { input: '' } : { var: '', unit: 'number' });
+    set(v === 'none' ? null : v === 'input' ? { input: '' } : { var: '', unit });
   })));
   if (kind === 'input') {
     const inp = input(read.input, v => { read.input = v; changed(); }, { list: 'inputList', placeholder: 'e.g. ELECTRICAL_BATTERY_1' });
@@ -954,7 +1024,7 @@ function defaultFace(key) {
       ? { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: 70 }, { kind: 'value', x: 72, y: 108, size: 42 }] }
       : { layers: [{ kind: 'text', text: label, x: 72, y: 28, size: 24 }, { kind: 'value', x: 72, y: 96, size: 46 }] };
   }
-  if (key.type === 'switch') {
+  if (key.type === 'switch' || key.type === 'armable') {
     return key.icon
       ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }] }
       : { layers: [{ kind: 'text', text: label, x: 72, y: 46, size: 30 }, { kind: 'bar' }] };
@@ -999,19 +1069,27 @@ function faceDesigner(key, slot) {
 
   // Which face: the default one, or one per sim value (e.g. a different look for each magneto
   // position). Values without their own face use the default.
+  const armable = key.type === 'armable';
+  const addFace = v => {
+    key.valueFaces = key.valueFaces || {};
+    key.valueFaces[v] = clone(key.face || defaultFace(key));
+    faceTarget = v;
+    faceLayer = 0;
+    changed(); renderInspector();
+  };
   const tabs = el('div', { class: 'face-tabs' },
     el('button', { class: faceTarget === 'default' ? 'active' : '', on: { click: () => { faceTarget = 'default'; faceLayer = 0; renderInspector(); } } },
       key.face ? 'Default face' : 'Default (automatic)'),
-    ...Object.keys(valueFaces).map(v => el('button', { class: faceTarget === v ? 'active' : '', on: { click: () => { faceTarget = v; faceLayer = 0; renderInspector(); } } },
+    armable ? [
+      ...Object.keys(valueFaces).map(v => el('button', { class: faceTarget === v ? 'active' : '', on: { click: () => { faceTarget = v; faceLayer = 0; renderInspector(); } } }, `when ${v}`)),
+      ...['active', 'armed', 'otherwise'].filter(v => !valueFaces[v]).map(v => el('button', { title: `Design a separate face shown when the key is ${v}`, on: { click: () => addFace(v) } }, `+ face when ${v}`)),
+    ] : null,
+    ...(armable ? [] : Object.keys(valueFaces)).map(v => el('button', { class: faceTarget === v ? 'active' : '', on: { click: () => { faceTarget = v; faceLayer = 0; renderInspector(); } } },
       `value ${v}${key.text && key.text[v] ? ` (${key.text[v]})` : ''}`)),
-    el('button', { title: 'Design a separate face shown when the sim value is this', on: { click: () => {
+    armable ? null : el('button', { title: 'Design a separate face shown when the sim value is this', on: { click: () => {
       const v = prompt('Face for which sim value? (e.g. 0, 1, 3)', String(Object.keys(key.states || key.text || {})[0] ?? '0'));
       if (v === null || v.trim() === '') return;
-      key.valueFaces = key.valueFaces || {};
-      key.valueFaces[v.trim()] = clone(key.face || defaultFace(key));
-      faceTarget = v.trim();
-      faceLayer = 0;
-      changed(); renderInspector();
+      addFace(v.trim());
     } } }, '+ face for a value'));
   box.append(tabs);
 
@@ -1021,7 +1099,7 @@ function faceDesigner(key, slot) {
       el('button', { on: { click: () => { key.face = defaultFace(key); faceLayer = 0; changed(); renderInspector(); } } }, 'Design a custom face'));
     return box;
   }
-  if (faceTarget !== 'default') box.append(el('p', { class: 'muted' }, `Shown while the sim value is ${faceTarget}. The preview shows that value.`));
+  if (faceTarget !== 'default') box.append(el('p', { class: 'muted' }, armable ? `Shown while the key is ${faceTarget}.` : `Shown while the sim value is ${faceTarget}. The preview shows that value.`));
 
   const preview = el('img', { class: 'face-preview', alt: 'face preview', draggable: 'false' });
   // Only the newest request may update the picture: answers can arrive out of order while a
@@ -1172,13 +1250,14 @@ function lookValue(k, d) {
   return (S.look && S.look.style && S.look.style[k]) || d;
 }
 
-const LOOK_FIELDS = { readout: '#lookReadout', label: '#lookLabel', dim: '#lookDim', on: '#lookOn', off: '#lookOff' };
+const LOOK_FIELDS = { readout: '#lookReadout', label: '#lookLabel', dim: '#lookDim', on: '#lookOn', off: '#lookOff', armed: '#lookArmed' };
 const SAMPLE_KEYS = {
   0: { type: 'switch', label: 'FUEL\nPUMP', read: { input: 'X' }, states: { 0: 'off', 1: 'on' } },
   1: { type: 'switch', label: 'AVN\nBUS 1', read: { input: 'X' }, states: { 0: 'off', 1: 'on' } },
   2: { type: 'switch', label: 'STBY\nBATT', read: { input: 'X' }, states: { 0: 'off', 1: 'on' } },
   3: { type: 'readout', label: 'COM1', read: { var: 'X', unit: 'MHz' }, decimals: 3 },
   4: { type: 'button', label: '◀ MAG' },
+  5: { type: 'armable', label: 'APR', read: { var: 'X', unit: 'bool' }, armed: { var: 'Y', unit: 'bool' } },
 };
 
 async function loadLook() {
@@ -1191,7 +1270,7 @@ async function loadLook() {
   $('#lookMeasured').textContent = m.barSource
     ? `Measured from your icons: bar from ${m.barSource}${m.readoutSource ? `, readout colour from ${m.readoutSource}` : ''}.`
     : 'Could not measure your icons (icon folder not found?); using built-in defaults.';
-  const { images } = await api('POST', '/api/render', { keys: SAMPLE_KEYS, values: { 0: 1, 1: 0, 2: undefined, 3: 124.85 } });
+  const { images } = await api('POST', '/api/render', { keys: SAMPLE_KEYS, values: { 0: 1, 1: 0, 2: undefined, 3: 124.85, 5: 'armed' } });
   const box = $('#lookSamples');
   box.innerHTML = '';
   for (const i of Object.keys(SAMPLE_KEYS)) box.append(el('img', { src: images[i], alt: '' }));

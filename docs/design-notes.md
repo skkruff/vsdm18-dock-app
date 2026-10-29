@@ -112,3 +112,9 @@ Dimmer knobs are not flight critical: put them on their own page.
 - Possible uses: master caution / warning colour (stall, low fuel, low voltage), autopilot
   disconnect flash, parking brake set reminder, gear unsafe, colour per page or per aircraft,
   sim connected / disconnected.
+
+## Editor help (ⓘ), 2026-10-29
+
+The ⓘ mechanism is built (texts in `HELP` in `editor.js`); so far only on the armable key and
+"Acts on". Polishing step: write help for the remaining key setup intricacies (hold repeat timings,
+cycle vs set, sources vs Acts on, faces per value, crop auto/full).

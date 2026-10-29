@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const KEY_TYPES = ['switch', 'button', 'readout'];
+const KEY_TYPES = ['switch', 'armable', 'button', 'readout'];
 const LCD_SLOTS = 15;
 
 function validate(p, file) {
@@ -16,6 +16,7 @@ function validate(p, file) {
       if (!(Number(slot) >= 0 && Number(slot) < LCD_SLOTS)) errors.push(`${where}: slot must be 0-14`);
       if (!KEY_TYPES.includes(key.type)) errors.push(`${where}: type must be one of ${KEY_TYPES.join(', ')}`);
       if (key.type !== 'button' && !key.read) errors.push(`${where}: ${key.type} needs read`);
+      if (key.type === 'armable' && !(key.armed && (key.armed.input || key.armed.var))) errors.push(`${where}: armable needs an armed source`);
       for (const [name, face] of [['face', key.face], ...Object.entries(key.valueFaces || {}).map(([v, f]) => [`face for value ${v}`, f])]) {
         if (!face) continue;
         if (!Array.isArray(face.layers)) { errors.push(`${where}: ${name} needs a layers list`); continue; }

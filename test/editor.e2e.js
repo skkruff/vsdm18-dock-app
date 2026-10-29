@@ -28,7 +28,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   try {
     await page.goto(`http://localhost:${h.port}/`);
     await page.waitForSelector(`${slot(0)} img`);
-    assert.match(await page.textContent('#simStatus'), /MSFS connected/);
+    await page.waitForFunction(() => /MSFS connected/.test(document.querySelector('#simStatus').textContent), null, { timeout: 5000 });
     await page.waitForSelector('.tab.active .ondock', { timeout: 5000 }); // after the first status poll
     assert.match(await page.textContent('.tab.active'), /on dock/, 'the page on the dock is marked');
 
@@ -196,6 +196,29 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.deepStrictEqual(learned.press, { cycle: [0, 1] });
     assert.strictEqual(learned.sublabel, 'GROUND', 'sublabel on any key');
 
+    // Switch (armable): the ladder sets two sources; the armed preview shows a white bar.
+    const emptyAux = 8; // the key just learned becomes an armable one
+    await page.click(slot(emptyAux));
+    await page.selectOption('#inspector select >> nth=0', 'armable');
+    await page.waitForSelector('#inspector .ladder');
+    await page.selectOption('#inspector .ladder .step >> nth=0 >> .field:has-text("Source") select', 'var');
+    await page.fill('#inspector .ladder .step >> nth=0 >> input[placeholder^="e.g. NAV"]', 'AUTOPILOT APPROACH ACTIVE');
+    await page.fill('#inspector .ladder .step >> nth=1 >> input[placeholder^="e.g. NAV"]', 'AUTOPILOT APPROACH ARM');
+    await page.fill('#inspector .field:has-text("When armed") input', 'ARM');
+    await page.fill('#inspector .field:has-text("Acts on") input', 'LIGHTING_TAXI_1');
+    await page.selectOption('#inspector .field:has-text("Preview") select', 'armed');
+    await page.waitForFunction(s => /ffffff/i.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
+    // The ⓘ pins its explanation open on click.
+    await page.click('#inspector .info[data-help="armable"]');
+    assert.ok(await page.isVisible('#inspector .info.open .info-text:has-text("armed")'));
+    await save();
+    const ar = file().pages[1].keys[String(emptyAux)];
+    assert.strictEqual(ar.type, 'armable');
+    assert.strictEqual(ar.read.var, 'AUTOPILOT APPROACH ACTIVE');
+    assert.strictEqual(ar.armed.var, 'AUTOPILOT APPROACH ARM');
+    assert.deepStrictEqual(ar.sublabels, { armed: 'ARM' });
+    assert.strictEqual(ar.press.input, 'LIGHTING_TAXI_1');
+
     // A save that fails validation is refused with a message, and the file is untouched.
     await page.click(slot(8));
     await page.click('#inspector details summary');
@@ -204,7 +227,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('#saveProfile');
     await page.waitForSelector('.status.bad');
     assert.match(await page.textContent('.status'), /needs read/);
-    assert.deepStrictEqual(file().pages[1].keys['8'].read, { input: 'LIGHTING_TAXI_1' });
+    assert.strictEqual(file().pages[1].keys['8'].type, 'armable', 'file untouched');
 
     assert.deepStrictEqual(errors, [], 'no page errors');
     console.log('editor e2e: PASS (edit+save+reload, drag swap, library, face designer incl. per-value faces and extra live values, save regression, learn candidates, catalogs, look, copy/paste, validation)');

@@ -55,7 +55,7 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 - 2026-10-29, unverified (catalog from SDK knowledge, not tested in the sim): autopilot simvars
   added for armed/active states (ALT/APR/GS arm and active, PIT, BANK, max bank, NAV source, CDI
   GPS/NAV, TO/GA) and on/off/set events for each mode. Use Test in Browse to confirm per aircraft.
-- 2026-10-29, proposed then confirmed below: the G1000 audio panel COM1 key lights
+- 2026-10-29, proposed (confirmed by the user test above): the G1000 audio panel COM1 key lights
   from simvar `COM RECEIVE:1` (bool); the softkey input event `AS1000_COM_1_MIDCOM` is only
   1 while pressed. Proposed key: read `COM RECEIVE:1`, press holds the input event at 1, releases
   to 0. Added COM RECEIVE / TRANSMIT simvars and COM1/2_RECEIVE_SELECT to the catalogs.

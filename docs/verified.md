@@ -48,7 +48,8 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
 - 2026-10-29, user report, fixed (unit + browser tests): sublabels did not show on keys with a
-  custom face; faces now have a Sublabel layer, and new faces include it when the key has one.
+  custom face; faces now have a Sublabel layer, every new face includes it (movable), and typing a
+  sublabel adds it to older faces. Drawn tiles of every type draw sublabels (rechecked).
 - 2026-10-29, unit + browser tests only: "or" sources on armable steps (activeOr / armedOr).
 - 2026-10-29, from the MSFS 2024 SDK docs: Browse catalogs now hold all 1,660 SDK simvars and
   2,098 key events (`scripts/build-catalog.py`). All hand-picked names exist in the SDK. The SDK

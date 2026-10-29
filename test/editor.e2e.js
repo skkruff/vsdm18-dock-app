@@ -99,6 +99,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('#inspector button:has-text("Design a custom face")');
     await page.click('#inspector button:has-text("+ Text")');
     await page.fill('#inspector .layer.active textarea', 'BARO');
+    await page.locator('.face-preview').scrollIntoViewIfNeeded();
     const box = await page.locator('.face-preview').boundingBox();
     await page.mouse.move(box.x + 144, box.y + 72);
     await page.mouse.down();
@@ -106,15 +107,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.mouse.up();
     await save();
     const face = file().pages[1].keys['3'].face;
-    assert.deepStrictEqual(face.layers.map(l => l.kind), ['icon', 'value', 'text'], 'default face from the key, plus a text layer');
-    assert.strictEqual(face.layers[2].text, 'BARO');
-    assert.strictEqual(face.layers[2].y, 26, 'dragged up 20 px on the 2x preview = 10 key units');
+    assert.deepStrictEqual(face.layers.map(l => l.kind), ['icon', 'sublabel', 'value', 'text'], 'default face from the key (sublabel ready to move), plus a text layer');
+    assert.strictEqual(face.layers[3].text, 'BARO');
+    assert.strictEqual(face.layers[3].y, 26, 'dragged up 20 px on the 2x preview = 10 key units');
     assert.ok((await page.getAttribute(`${slot(3)} img`, 'src')).includes('BARO'), 'the dock picture uses the face');
 
     // Regression (user report): after saving, further edits to the open face must still save.
     await page.fill('#inspector .layer.active textarea', 'BARO 2');
     await save();
-    assert.strictEqual(file().pages[1].keys['3'].face.layers[2].text, 'BARO 2', 'edit after save is kept');
+    assert.strictEqual(file().pages[1].keys['3'].face.layers[3].text, 'BARO 2', 'edit after save is kept');
 
     // A second live value on the same key, from its own simvar picked in the catalog.
     await page.click('#inspector button:has-text("+ Live value")');
@@ -125,7 +126,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.waitForSelector('dialog.browse .browse-row:has-text("NAV ACTIVE FREQUENCY:1") .test-out:has-text("110.5")');
     await page.click('dialog.browse .browse-row:has-text("NAV ACTIVE FREQUENCY:1") .mono');
     await save();
-    const nav = file().pages[1].keys['3'].face.layers[3];
+    const nav = file().pages[1].keys['3'].face.layers[4];
     assert.deepStrictEqual(nav.read, { var: 'NAV ACTIVE FREQUENCY:1', unit: 'MHz' });
     assert.strictEqual(nav.decimals, 2, 'catalog suggests the format');
     await sleep(300);
@@ -209,6 +210,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.fill('#inspector .field:has-text("When armed") input', 'ARM');
     await page.fill('#inspector .field:has-text("Acts on") input', 'LIGHTING_TAXI_1');
     await page.selectOption('#inspector .field:has-text("Preview") select', 'armed');
+    // Drawn tile (no face): the armed preview shows the ARM sublabel.
+    await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
     // With a custom face the sublabel needs a Sublabel layer; the editor offers to add it.
     await page.click('#inspector button:has-text("Design a custom face")');
     await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
@@ -217,6 +220,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.waitForFunction(s => !/aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
     await page.click('#inspector button:has-text("Add it to the face")');
     await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
+    // Typing a sublabel adds the layer to a face that lacks it.
+    await page.evaluate(s => { const f = S.profile.pages[S.page].keys[s].face; f.layers = f.layers.filter(L => L.kind !== 'sublabel'); renderInspector(); renderGrid(); }, emptyAux);
+    await page.fill('#inspector .field:has-text("When armed") input', 'ARMD');
+    await page.waitForFunction(s => /aria-label="ARMD"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
+    await page.fill('#inspector .field:has-text("When armed") input', 'ARM');
     await page.waitForFunction(s => /ffffff/i.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
     // The ⓘ pins its explanation open on click.
     await page.click('#inspector .info[data-help="armable"]');

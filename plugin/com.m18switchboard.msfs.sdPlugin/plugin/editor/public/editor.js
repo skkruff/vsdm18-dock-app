@@ -773,15 +773,15 @@ function renderInspector() {
     for (const [step, name] of [['active', 'When active'], ['armed', 'When armed'], ['otherwise', 'Otherwise']]) {
       box.append(field(name, input(key.sublabels && key.sublabels[step], v => {
         key.sublabels = key.sublabels || {};
-        if (v) key.sublabels[step] = v; else delete key.sublabels[step];
+        if (v) { key.sublabels[step] = v; ensureSublabelLayer(key); } else delete key.sublabels[step];
         changed();
       })));
     }
-  } else box.append(field('Sublabel', input(key.sublabel, v => { if (v) key.sublabel = v; else delete key.sublabel; changed(); }),
+  } else box.append(field('Sublabel', input(key.sublabel, v => { if (v) { key.sublabel = v; ensureSublabelLayer(key); } else delete key.sublabel; changed(); }),
     key.read ? 'shown for any value without its own below' : 'smaller text under the label'));
   if (key.read && key.type !== 'armable') {
     key.sublabels = key.sublabels || {};
-    box.append(mapEditor(key.sublabels, (v, set) => input(v, set), { label: 'sublabel', value: '' }));
+    box.append(mapEditor(key.sublabels, (v, set) => input(v, x => { set(x); if (x) ensureSublabelLayer(key); }), { label: 'sublabel', value: '' }));
   }
   if (key.type === 'readout') {
     box.append(el('h4', {}, 'Value text per value (replaces the number)'));
@@ -1053,24 +1053,29 @@ const SUBLABEL_Y = () => Math.round(((S.look && S.look.style && S.look.style.bar
 const hasSublabel = key => !!(key.sublabel || (key.sublabels && Object.values(key.sublabels).some(Boolean)));
 const facesOf = key => [key.face, ...Object.values(key.valueFaces || {})].filter(Boolean);
 
+// Every new face carries a Sublabel layer, ready to move, placed where drawn tiles put the
+// sublabel (user, 2026-10-29). It draws nothing while the key has no sublabel.
 function defaultFace(key) {
   const label = key.label || '';
-  if ((key.type === 'switch' || key.type === 'armable') && !key.icon && hasSublabel(key)) {
-    return { layers: [{ kind: 'text', text: label, x: 72, y: 32, size: 26 }, { kind: 'sublabel' }, { kind: 'bar' }] };
-  }
+  const sub = y => ({ kind: 'sublabel', ...(y === undefined ? {} : { x: 72, y }) });
   if (key.type === 'readout') {
     return key.icon
-      ? { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: 70 }, { kind: 'value', x: 72, y: 108, size: 42 }] }
-      : { layers: [{ kind: 'text', text: label, x: 72, y: 28, size: 24 }, { kind: 'value', x: 72, y: 96, size: 46 }] };
+      ? { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: 62 }, sub(82), { kind: 'value', x: 72, y: 112, size: 40 }] }
+      : { layers: [{ kind: 'text', text: label, x: 72, y: 28, size: 24 }, sub(54), { kind: 'value', x: 72, y: 100, size: 42 }] };
   }
   if (key.type === 'switch' || key.type === 'armable') {
     return key.icon
-      ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }] }
-      : { layers: [{ kind: 'text', text: label, x: 72, y: 46, size: 30 }, { kind: 'bar' }] };
+      ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }, sub(76)] }
+      : { layers: [hasSublabel(key) ? { kind: 'text', text: label, x: 72, y: 32, size: 26 } : { kind: 'text', text: label, x: 72, y: 45, size: 30 }, sub(), { kind: 'bar' }] };
   }
   return key.icon
-    ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }] }
-    : { layers: [{ kind: 'text', text: label, x: 72, y: 72, size: 34 }] };
+    ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }, sub(122)] }
+    : { layers: [hasSublabel(key) ? { kind: 'text', text: label, x: 72, y: 58, size: 30 } : { kind: 'text', text: label, x: 72, y: 72, size: 34 }, sub(104)] };
+}
+
+// A face made before the key had a sublabel gets the layer when a sublabel is typed.
+function ensureSublabelLayer(key) {
+  for (const f of facesOf(key)) if (!(f.layers || []).some(L => L.kind === 'sublabel')) f.layers.push(NEW_LAYER.sublabel());
 }
 
 const NEW_LAYER = {
@@ -1148,7 +1153,9 @@ function faceDesigner(key, slot) {
   const refresh = async () => {
     const mine = ++seq;
     const value = editingValue !== null ? editingValue : previewValueFor(key, slot);
-    const { images } = await api('POST', '/api/render', { keys: { 0: key }, values: { 0: value }, sources: previewSources() });
+    // Without a sublabel yet, the designer shows a placeholder so the Sublabel layer can be placed.
+    const shown = hasSublabel(key) ? key : { ...key, sublabel: 'SUBLABEL' };
+    const { images } = await api('POST', '/api/render', { keys: { 0: shown }, values: { 0: value }, sources: previewSources() });
     if (mine === seq) preview.src = images[0];
   };
   const update = () => { changed(); refresh(); };
@@ -1159,7 +1166,7 @@ function faceDesigner(key, slot) {
     const L = face.layers[faceLayer];
     if (!L) return;
     preview.setPointerCapture(e.pointerId);
-    const defaults = L.kind === 'bar' ? S.look.style.bar : { x: 0, y: 0 };
+    const defaults = L.kind === 'bar' ? S.look.style.bar : L.kind === 'sublabel' ? { x: 72, y: SUBLABEL_Y() } : { x: 0, y: 0 };
     drag = { x: e.clientX, y: e.clientY, lx: Number(L.x ?? defaults.x) || 0, ly: Number(L.y ?? defaults.y) || 0, L };
   });
   preview.addEventListener('pointermove', e => {

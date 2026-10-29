@@ -195,6 +195,7 @@ const tiles = {
   //   { kind: 'value', x, y, size, color, w, read?, decimals?, pad?, text? }
   //                                                                a live value (the key's own, or
   //                                                                the layer's own source)
+  //   { kind: 'sublabel', x, y, size, color, w }                  the key's sublabel for its value
   //   { kind: 'bar', x, y, w, h, r }                               red / green / outline by state
   //   { kind: 'rect', x, y, w, h, r, color }
   // ctx: { iconFor(name) -> { uri, box } | null, valueFor(layer) -> string, state }
@@ -210,6 +211,10 @@ const tiles = {
       } else if (L.kind === 'text' || L.kind === 'value') {
         const text = L.kind === 'value' ? ctx.valueFor(L) : (L.text || '');
         body += lines(text, y, { size: num(L.size, 26), color: L.color || (L.kind === 'value' ? style.readout : style.label), x, width: num(L.w, 136) });
+      } else if (L.kind === 'sublabel') {
+        // The key's sublabel for what it shows now (per value or per armable step).
+        const sx = num(L.x, 72), sy = num(L.y, Math.round(style.bar.y * 0.78));
+        if (ctx.sublabel) body += lines(ctx.sublabel, sy, { size: num(L.size, SUBLABEL_SIZE), color: L.color || style.dim, x: sx, width: num(L.w, 136) });
       } else if (L.kind === 'bar') {
         body += bar(ctx.state, { x, y, w, h, r: num(L.r, style.bar.r) });
       } else if (L.kind === 'rect') {

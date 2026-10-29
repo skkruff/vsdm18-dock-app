@@ -209,6 +209,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.fill('#inspector .field:has-text("When armed") input', 'ARM');
     await page.fill('#inspector .field:has-text("Acts on") input', 'LIGHTING_TAXI_1');
     await page.selectOption('#inspector .field:has-text("Preview") select', 'armed');
+    // With a custom face the sublabel needs a Sublabel layer; the editor offers to add it.
+    await page.click('#inspector button:has-text("Design a custom face")');
+    await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
+    // A face made before the sublabel existed has no Sublabel layer: as if so, then the fix.
+    await page.evaluate(s => { const f = S.profile.pages[S.page].keys[s].face; f.layers = f.layers.filter(L => L.kind !== 'sublabel'); renderInspector(); renderGrid(); }, emptyAux);
+    await page.waitForFunction(s => !/aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
+    await page.click('#inspector button:has-text("Add it to the face")');
+    await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
     await page.waitForFunction(s => /ffffff/i.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
     // The ⓘ pins its explanation open on click.
     await page.click('#inspector .info[data-help="armable"]');

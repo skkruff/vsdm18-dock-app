@@ -357,7 +357,7 @@ class ProfileEngine {
       const valueFor = L => (L.read
         ? formatValue(L, valueOf(L.read))
         : formatValue({ ...key, ...pick(L, ['decimals', 'pad', 'format']) }, value));
-      return tiles.face(face, { iconFor, valueFor, state });
+      return tiles.face(face, { iconFor, valueFor, state, sublabel: sublabelFor(key, value) });
     }
     if (key.type === 'readout') {
       const icon = this.renderer.icon(key.icon, key.iconState || null);
@@ -385,7 +385,7 @@ class ProfileEngine {
         return uri ? { uri, box: this.renderer.iconBox(n, st) } : null;
       };
       const valueFor = L => formatValue(L.read ? L : { ...key, ...pick(L, ['decimals', 'pad', 'format']) }, L.read ? valueOf(L.read) : value);
-      return tiles.face(face, { iconFor, valueFor, state });
+      return tiles.face(face, { iconFor, valueFor, state, sublabel });
     }
     if (state === 'armed') {
       const clear = this.renderer.icon(key.icon, 'clear');

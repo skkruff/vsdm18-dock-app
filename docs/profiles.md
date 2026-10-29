@@ -83,6 +83,8 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
     live value. Without `read`, the key's own value (formatted as the key says unless the layer
     sets decimals/pad/format); with `read` (`{ "input" }` or `{ "var", "unit" }`), its own source,
     so one key can show several values.
+  - `{ "kind": "sublabel", "x", "y", "size", "color", "w" }`: the key's sublabel for its current
+    value (or armable step); defaults to where drawn tiles put it.
   - `{ "kind": "bar", "x", "y", "w", "h", "r" }`: green / red / outline by state; missing fields use
     the standard bar (x 21.4, y 93.4, w 101.3, h 34.9, corner 9.5).
   - `{ "kind": "rect", "x", "y", "w", "h", "r", "color" }`: a filled box.

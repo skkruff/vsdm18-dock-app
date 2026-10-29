@@ -761,6 +761,13 @@ function renderInspector() {
   // (user, 2026-10-28). Switches used `text` for this before; it moves over here.
   if (key.type === 'switch' && key.text && !key.sublabels) { key.sublabels = key.text; delete key.text; }
   box.append(el('h4', {}, 'Sublabel'));
+  // A custom face replaces the automatic look, sublabel included, unless it has a Sublabel layer
+  // (user report 2026-10-29: ARM did not show on a key with a custom face).
+  const missing = facesOf(key).filter(f => !(f.layers || []).some(L => L.kind === 'sublabel'));
+  if (missing.length) {
+    box.append(el('p', { class: 'warn' }, 'This key has a custom face, which shows the sublabel only where it has a Sublabel layer. ',
+      el('button', { on: { click: () => { for (const f of missing) f.layers.push(NEW_LAYER.sublabel()); changed(); renderInspector(); } } }, 'Add it to the face')));
+  }
   if (key.type === 'armable') {
     // One per step of the ladder, e.g. LOC when active, ARM when armed.
     for (const [step, name] of [['active', 'When active'], ['armed', 'When armed'], ['otherwise', 'Otherwise']]) {
@@ -1042,8 +1049,15 @@ async function browse(what, onPick) {
 const COLORS = () => ({ label: lookValue('label', '#ffffff'), value: lookValue('readout', '#4fc3f7') });
 
 // A starting face that looks like the key's automatic look, ready to adjust.
+const SUBLABEL_Y = () => Math.round(((S.look && S.look.style && S.look.style.bar) || { y: 93.4 }).y * 0.78);
+const hasSublabel = key => !!(key.sublabel || (key.sublabels && Object.values(key.sublabels).some(Boolean)));
+const facesOf = key => [key.face, ...Object.values(key.valueFaces || {})].filter(Boolean);
+
 function defaultFace(key) {
   const label = key.label || '';
+  if ((key.type === 'switch' || key.type === 'armable') && !key.icon && hasSublabel(key)) {
+    return { layers: [{ kind: 'text', text: label, x: 72, y: 32, size: 26 }, { kind: 'sublabel' }, { kind: 'bar' }] };
+  }
   if (key.type === 'readout') {
     return key.icon
       ? { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: 70 }, { kind: 'value', x: 72, y: 108, size: 42 }] }
@@ -1063,10 +1077,11 @@ const NEW_LAYER = {
   icon: () => ({ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: 70 }),
   text: () => ({ kind: 'text', text: 'TEXT', x: 72, y: 36, size: 26 }),
   value: () => ({ kind: 'value', x: 72, y: 104, size: 40 }),
+  sublabel: () => ({ kind: 'sublabel' }),
   bar: () => ({ kind: 'bar' }),
   rect: () => ({ kind: 'rect', x: 0, y: 0, w: 144, h: 40, color: '#1e2a3a' }),
 };
-const LAYER_NAMES = { icon: 'Icon', text: 'Text', value: 'Live value', bar: 'State bar', rect: 'Box' };
+const LAYER_NAMES = { icon: 'Icon', text: 'Text', value: 'Live value', sublabel: 'Sublabel', bar: 'State bar', rect: 'Box' };
 
 let faceLayer = 0; // which layer dragging on the preview moves
 let faceTarget = 'default'; // which face is being edited: 'default' or a sim value
@@ -1194,6 +1209,9 @@ function faceDesigner(key, slot) {
         el('label', { class: 'row' }, el('input', { type: 'radio', name: `vsrc${i}`, checked: own ? true : null, on: { change: () => { L.read = { var: '', unit: 'number' }; changed(); renderInspector(); } } }), ' its own source'));
       if (own) srcBox.append(sourceEditor(L.read, r => { L.read = r; if (r && r.hint) { for (const k of ['decimals', 'pad', 'format']) if (r.hint[k] !== undefined && L[k] === undefined) L[k] = r.hint[k]; delete r.hint; } }));
       fields.push(srcBox);
+    } else if (L.kind === 'sublabel') {
+      fields.push(n('x', 'x', { placeholder: 72 }), n('y', 'y', { placeholder: SUBLABEL_Y() }), n('size', 'size', { placeholder: 19 }), n('w', 'max width'), color('color', lookValue('dim', '#9aa0a8')),
+        el('span', { class: 'muted' }, 'Shows the key\'s sublabel for what it shows now (set under Sublabel below).'));
     } else if (L.kind === 'bar') {
       fields.push(n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'), n('r', 'corner'),
         el('span', { class: 'muted' }, 'Empty fields use the bar measured from your icons.'));
@@ -1214,7 +1232,7 @@ function faceDesigner(key, slot) {
     el('div', { class: 'layer-head' },
       el('input', { type: 'radio', name: 'faceLayer', checked: i === faceLayer ? true : null, title: 'Drag moves this layer', on: { change: () => { faceLayer = i; renderInspector(); } } }),
       el('strong', {}, LAYER_NAMES[L.kind] || L.kind),
-      el('span', { class: 'muted' }, L.kind === 'bar' ? ' green / red / outline by state' : L.kind === 'value' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' the key\'s value') : ''),
+      el('span', { class: 'muted' }, L.kind === 'bar' ? ' green / red / outline by state' : L.kind === 'sublabel' ? ' per value / step' : L.kind === 'value' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' the key\'s value') : ''),
       el('span', { class: 'spacer' }),
       el('button', { title: 'Draw earlier (behind)', on: { click: () => move(-1) } }, '↑'),
       el('button', { title: 'Draw later (in front)', on: { click: () => move(1) } }, '↓'),

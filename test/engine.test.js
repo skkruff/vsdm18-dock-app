@@ -233,6 +233,14 @@ const text = uri => decodeURIComponent(uri);
     assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'armable', read: ak.read } } }] }, 'x'), /armed source/);
     validate({ id: 'x', match: {}, pages: [{ keys: { 0: ak } }] }, 'x');
 
+    // A custom face shows the sublabel for the current step through a Sublabel layer.
+    const facedSub = { ...ak, face: { layers: [{ kind: 'text', text: 'APR' }, { kind: 'sublabel' }, { kind: 'bar' }] } };
+    assert.match(text(engine.keyImage(facedSub, 0, null, () => 1)), /aria-label="ARM"/, 'face sublabel when armed');
+    assert.match(text(engine.keyImage(facedSub, 1, null, () => 0)), /aria-label="LOC"/, 'face sublabel when active');
+    assert.doesNotMatch(text(engine.keyImage(facedSub, 0, null, () => 0)), /aria-label="(ARM|LOC)"/, 'none otherwise');
+    const swFace = { type: 'switch', read: { input: 'X' }, states: { 0: 'off', 1: 'on' }, sublabels: { 0: 'OFF', 1: 'ARM' }, face: { layers: [{ kind: 'sublabel' }] } };
+    assert.match(text(engine.keyImage(swFace, 1)), /aria-label="ARM"/, 'face sublabel per value on a switch');
+
     // "or": ILS capture or GPS approach active; APR selected as armed.
     const both = {
       type: 'armable', label: 'APR', read: { var: 'AUTOPILOT APPROACH CAPTURED', unit: 'bool' },

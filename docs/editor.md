@@ -60,7 +60,8 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   - **Face (optional)**: design the key's look yourself from layers drawn in order: a library
     icon (cropped to its content or whole, fitted into a box you place), your own text, live
     values (the key's own, or each from its own source), a state bar (green / red / outline) and
-    coloured boxes. "+ face for a value" adds a separate face shown for one sim value (e.g. per
+    coloured boxes, and the sublabel (a Sublabel layer shows the key's sublabel for its current
+    value or step; if a face lacks one, the Sublabel section offers to add it). "+ face for a value" adds a separate face shown for one sim value (e.g. per
     switch position). Drag on the big preview to move
     the selected layer, or type positions (key units 0-144). Use it to put a PNG above a readout,
     or make a clean text-only key when the library has no suitable PNG. "Remove custom face" goes

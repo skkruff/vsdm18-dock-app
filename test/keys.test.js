@@ -33,7 +33,7 @@ const fakeSpawn = (cmd, args) => {
   const p = new EventEmitter();
   p.stdout = new EventEmitter(); p.stderr = new EventEmitter();
   p.written = [];
-  p.stdin = { write: s => p.written.push(s), end() {} };
+  p.stdin = Object.assign(new EventEmitter(), { write: s => p.written.push(s), end() {} });
   p.kill = () => {};
   spawned.push({ cmd, args, p });
   return p;
@@ -52,6 +52,7 @@ ks.down('Shift+F2');
 ks.up('Shift+F2');
 assert.deepStrictEqual(spawned[0].p.written.join('').split('\r\n').filter(Boolean),
   ['f', 'k 42 0 0', 's 15', 'k 60 0 0', 'k 60 0 1', 's 15', 'k 42 0 1'], 'while held: down, later up');
+spawned[0].p.stdin.emit('error', new Error('EPIPE')); // a dead helper's input: logged, not thrown
 spawned[0].p.emit('exit', 1);
 ks.tap('L');
 assert.strictEqual(spawned.length, 2, 'restarted after the helper ended');

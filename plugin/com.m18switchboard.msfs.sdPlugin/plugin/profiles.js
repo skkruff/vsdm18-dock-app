@@ -13,6 +13,14 @@ function validate(p, file) {
   if (!p.id) errors.push('missing id');
   if (!p.fallback && !p.match) errors.push('missing match');
   if (!Array.isArray(p.pages) || !p.pages.length) errors.push('missing pages');
+  // Match patterns are regular expressions: one that does not compile would stop aircraft
+  // matching for every profile (review 2026-10-30).
+  for (const [field, patterns] of Object.entries(p.match || {})) {
+    if (!Array.isArray(patterns)) { errors.push(`match.${field} must be a list`); continue; }
+    for (const re of patterns) {
+      try { new RegExp(re, 'i'); } catch (e) { errors.push(`match.${field}: "${re}" is not a valid pattern (${e.message})`); }
+    }
+  }
   for (const [i, page] of (p.pages || []).entries()) {
     for (const [slot, key] of Object.entries(page.keys || {})) {
       const where = `page ${i + 1} slot ${slot}`;

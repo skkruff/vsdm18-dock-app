@@ -46,6 +46,16 @@ ship([{ id: 'c', name: 'C', shipped: true, keys: [] }]);
 store.seed(shipped);
 assert.deepStrictEqual(store.readLibrary().items.map(i => i.name), ['Old preset', 'Mine', 'C'], 'no longer shipped: removed');
 
+// An unreadable library is kept aside, not overwritten (review 2026-10-30).
+fs.writeFileSync(store.libraryFile, '{"items": [ half a fi');
+const logged = [];
+store.log = (...a) => logged.push(a);
+assert.deepStrictEqual(store.readLibrary().items.length, 1, 'treated as missing (old presets only)');
+const aside = fs.readdirSync(base).filter(f => f.startsWith('library.json.') && f.endsWith('.unreadable'));
+assert.strictEqual(aside.length, 1, 'the unreadable file is kept');
+assert.match(fs.readFileSync(path.join(base, aside[0]), 'utf8'), /half a fi/);
+assert.ok(logged.length, 'and reported');
+
 // The real shipped library parses and every key in it validates inside a profile.
 const { validate } = require('../plugin/com.m18switchboard.msfs.sdPlugin/plugin/profiles');
 const real = JSON.parse(fs.readFileSync(path.join(plugin, 'library.json'), 'utf8')).items;

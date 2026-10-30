@@ -8,6 +8,27 @@ const { loadProfiles, validate } = require('./profiles');
 
 const FILE_RE = /^[A-Za-z0-9_.-]+\.json$/;
 
+// Writes JSON whole: a temporary file, then a rename, so a crash or power cut never leaves half a
+// file behind (review 2026-10-30: library, settings and keypad were written in place).
+function writeJson(file, data) {
+  const tmp = `${file}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2) + '\n');
+  fs.renameSync(tmp, file);
+}
+
+// Reads a JSON file; a file that exists but does not parse is moved aside (kept, not lost) and
+// reported, then treated as missing.
+function readJson(file, log) {
+  let text;
+  try { text = fs.readFileSync(file, 'utf8'); } catch { return undefined; }
+  try { return JSON.parse(text); } catch (e) {
+    const aside = `${file}.${Date.now()}.unreadable`;
+    try { fs.renameSync(file, aside); } catch { /* leave it */ }
+    log('file could not be read, kept as', { file: aside, error: e.message });
+    return undefined;
+  }
+}
+
 class ProfileStore {
   constructor({ dir, bundledDir, log = () => {} }) {
     this.dir = dir;
@@ -83,10 +104,7 @@ class ProfileStore {
   // Validates, then writes atomically (temp file + rename) so a half-written file is never loaded.
   write(file, profile) {
     validate(profile, file);
-    const target = this._path(file);
-    const tmp = `${target}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(profile, null, 2) + '\n');
-    fs.renameSync(tmp, target);
+    writeJson(this._path(file), profile);
   }
 
   // Deleting keeps a .bak copy beside the folder's files (not loaded, since it is not .json).
@@ -98,54 +116,46 @@ class ProfileStore {
   // { items: [{ id, name, category, notes, shipped, keys: [{ dr, dc, key }] }], hiddenShipped: [id] }
   // hiddenShipped remembers shipped items the user deleted, so they are not added back.
   readLibrary() {
-    try {
-      const lib = JSON.parse(fs.readFileSync(this.libraryFile, 'utf8'));
-      return { items: lib.items || [], hiddenShipped: lib.hiddenShipped || [] };
-    } catch {
-      // Presets saved before the library existed become library items.
-      let old = [];
-      try { old = JSON.parse(fs.readFileSync(this.oldPresetsFile, 'utf8')); } catch { old = []; }
-      return {
-        items: old.map((p, i) => ({ id: `user.preset${i}`, category: 'My keys', ...p })),
-        hiddenShipped: [],
-      };
-    }
+    const lib = readJson(this.libraryFile, this.log);
+    if (lib) return { items: lib.items || [], hiddenShipped: lib.hiddenShipped || [] };
+    // Presets saved before the library existed become library items.
+    let old = [];
+    try { old = JSON.parse(fs.readFileSync(this.oldPresetsFile, 'utf8')); } catch { old = []; }
+    return {
+      items: old.map((p, i) => ({ id: `user.preset${i}`, category: 'My keys', ...p })),
+      hiddenShipped: [],
+    };
   }
 
   writeLibrary(lib) {
-    const tmp = `${this.libraryFile}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(lib, null, 2) + '\n');
-    fs.renameSync(tmp, this.libraryFile);
+    writeJson(this.libraryFile, lib);
   }
 
   // Look settings chosen in the editor: { font, readout, label, ... } overriding the measured style.
   readSettings() {
-    try { return JSON.parse(fs.readFileSync(this.settingsFile, 'utf8')); } catch { return {}; }
+    return readJson(this.settingsFile, this.log) || {};
   }
 
   writeSettings(s) {
-    fs.writeFileSync(this.settingsFile, JSON.stringify(s, null, 2) + '\n');
+    writeJson(this.settingsFile, s);
   }
 
   // The keypad layout: { keys }, or {} for the built-in one.
   readKeypad() {
-    try { return JSON.parse(fs.readFileSync(this.keypadFile, 'utf8')); } catch { return {}; }
+    return readJson(this.keypadFile, this.log) || {};
   }
 
   writeKeypad(layout) {
     if (!layout) { try { fs.unlinkSync(this.keypadFile); } catch { /* already the built-in one */ } return; }
-    fs.writeFileSync(this.keypadFile, JSON.stringify(layout, null, 2) + '\n');
+    writeJson(this.keypadFile, layout);
   }
 
   readDockState() {
-    try { return JSON.parse(fs.readFileSync(this.dockStateFile, 'utf8')); } catch { return {}; }
+    return readJson(this.dockStateFile, this.log) || {};
   }
 
-  // Written whole each time; a temporary file then a rename, so a crash never leaves half a file.
   writeDockState(s) {
-    const tmp = `${this.dockStateFile}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(s, null, 2) + '\n');
-    fs.renameSync(tmp, this.dockStateFile);
+    writeJson(this.dockStateFile, s);
   }
 
   // Calls onChange (debounced) whenever a profile file changes, from the editor or by hand.

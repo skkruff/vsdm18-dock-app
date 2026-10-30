@@ -130,6 +130,8 @@ class KeySender {
     this.proc = p;
     p.stdout.on('data', d => String(d).split(/\r?\n/).filter(Boolean).forEach(l => this.log('keys', l)));
     p.stderr.on('data', d => this.log('keys error', String(d).trim()));
+    // Writing to a helper that has just died fails on the stream, not in _send (review 2026-10-30).
+    p.stdin.on('error', e => this.log('keys helper input failed', e.message));
     p.on('exit', code => { this.log('keys helper ended', code); if (this.proc === p) this.proc = null; });
     p.on('error', e => { this.log('keys helper failed', e.message); if (this.proc === p) this.proc = null; });
   }

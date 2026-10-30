@@ -217,6 +217,9 @@ const text = uri => decodeURIComponent(uri);
     assert.match(text(engine.keyImage(d)), /aria-label="LIGHTS".*aria-label="INTERIOR"/s);
     assert.match(text(engine.keyImage({ ...d, face: { layers: [{ kind: 'text', text: 'ART' }, { kind: 'sublabel' }] } })), /aria-label="ART".*aria-label="INTERIOR"/s);
     assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { ...d, press: { event: 'X' } } } }] }, 'x'), /decorative/);
+    // A match pattern that is not a valid regular expression is refused, not left to break
+    // aircraft matching for every profile (review 2026-10-30).
+    assert.throws(() => validate({ id: 'x', match: { title: ['C17[2'] }, pages: [{ keys: {} }] }, 'x'), /not a valid pattern/);
   }
 
   // A bar layer can show a fixed look instead of the key's state (user, 2026-10-30): a readout

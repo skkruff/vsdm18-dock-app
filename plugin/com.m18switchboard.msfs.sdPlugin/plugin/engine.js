@@ -95,6 +95,17 @@ function keypadKeyImage(engine, key, k) {
   return tiles.keypadKey(label, { role: role === 'digit' ? 'digit' : role, dim: !enabled, sublabel });
 }
 
+// How a press behaves on the dock, decided once per press (review 2026-10-30): the cases that
+// need key up as well as key down, and everything else (cycle, step, hold, set, event, stopwatch
+// actions), which _press handles.
+function pressKind(p) {
+  if (p.keypad) return 'keypad';
+  if (p.keys) return 'keys';
+  if (p.timer !== undefined && p.holdReset) return 'timerHold';
+  if (p.step !== undefined && p.rampMs) return 'ramp';
+  return 'simple';
+}
+
 // What cycle / step / hold / set change: press.var (a simvar, user 2026-10-30), press.input, or
 // the key's own input event. A simvar is never written unless named in press.var.
 function pressTarget(key) {
@@ -185,9 +196,9 @@ class ProfileEngine {
     this.slide = 0; // sideways offset of panel-wide text, animated (see _slide)
     this.slideTimer = null;
     this.holdTimers = new Map(); // slot -> interval re-sending a held position
-    this.ramps = new Map(); // slot -> { ramping } while a step key with a ramp is held
-    this.heldKeys = new Map(); // slot -> shortcut held down while the dock key is
-    this.timerHolds = new Map(); // slot -> { reset } while a hold-to-reset stopwatch key is down
+    // slot -> what a press still in progress is doing, for its key up: { kind: 'ramp', ramping },
+    // { kind: 'keys', keys } (a shortcut held down), { kind: 'timerHold', reset }.
+    this.pressing = new Map();
     this.swallowed = new Set(); // slots whose key down only dismissed an announcement
     this.status = 'offline'; // offline | loading | ready
     this.profile = null;
@@ -523,11 +534,11 @@ class ProfileEngine {
   }
 
   _stopHolds() {
-    this.ramps.clear();
-    this.timerHolds.clear();
     // Never leave a shortcut held down when the page or aircraft changes.
-    for (const keys of this.heldKeys.values()) { try { this.keyboard.up(keys); } catch (e) { /* helper gone */ } }
-    this.heldKeys.clear();
+    for (const p of this.pressing.values()) {
+      if (p.kind === 'keys') { try { this.keyboard.up(p.keys); } catch (e) { /* helper gone */ } }
+    }
+    this.pressing.clear();
     for (const t of this.holdTimers.values()) clearInterval(t);
     this.holdTimers.clear();
   }
@@ -542,57 +553,71 @@ class ProfileEngine {
     if (this.scene) { this.swallowed.add(slot); this._clearScene(); return this.redrawAll(); }
     const key = this.status === 'ready' ? this.page.keys?.[slot] : null;
     if (!key || !key.press) return;
-    // Stopwatch with hold to reset (user, 2026-10-30): a tap starts / stops (on release), holding
-    // for holdMs (default 1 s) stops it and sets it to 0:00, so one key does it all.
-    if (key.press.timer !== undefined && key.press.holdReset) {
-      this._stopHold(slot);
-      const r = { reset: false };
-      this.timerHolds.set(slot, r);
-      this.holdTimers.set(slot, setTimeout(() => {
-        r.reset = true;
-        this.dockVars.press(key.press.timer, 'stop');
-        this.dockVars.press(key.press.timer, 'reset');
-        this.log('press', { timer: key.press.timer, action: 'hold reset' });
-      }, key.press.holdMs ?? 1000));
-      return;
-    }
-    if (key.press.keypad) {
-      try { this._openKeypad(key); this.swallowed.add(slot); } catch (e) { this.log('press failed', { slot, error: e.message }); this.display.alert(slot); }
-      return;
-    }
-    // A keyboard shortcut (user, 2026-10-30): tapped, or held down for as long as the key is.
-    if (key.press.keys) {
-      try {
-        if (!this.keyboard) throw new Error('no keyboard');
-        if (key.press.whileHeld) { this.keyboard.down(key.press.keys, { focus: key.press.focus !== false }); this.heldKeys.set(slot, key.press.keys); }
-        else this.keyboard.tap(key.press.keys, { focus: key.press.focus !== false });
-        this.log('press', { keys: key.press.keys });
-      } catch (e) {
-        this.log('press failed', { slot, error: e.message });
-        this.display.alert(slot);
-      }
-      return;
-    }
-    // Step with ramp (user, 2026-10-30): a tap steps (on release), holding past rampDelayMs ramps.
-    if (key.press.step !== undefined && key.press.rampMs) {
-      this._stopHold(slot);
-      const r = { ramping: false };
-      this.ramps.set(slot, r);
-      this.holdTimers.set(slot, setTimeout(() => this._ramp(slot, key, r), key.press.rampDelayMs ?? 400));
-      return;
-    }
+    const p = key.press;
     try {
-      this._press(key, 'down');
-      // Some aircraft drop spring-loaded positions (e.g. START) after a moment unless the input
-      // keeps arriving, like a "repeat input" binding. Re-send while the key is held.
-      if (key.press.hold !== undefined && key.press.repeatMs) {
-        clearInterval(this.holdTimers.get(slot));
-        this.holdTimers.set(slot, setInterval(() => {
-          try { this._apply(pressTarget(key), key.press.hold); } catch (e) { this._stopHold(slot); }
-        }, key.press.repeatMs));
+      switch (pressKind(p)) {
+        case 'keypad':
+          this._openKeypad(key);
+          this.swallowed.add(slot);
+          return;
+        case 'keys': // a keyboard shortcut: tapped, or held down for as long as the key is
+          if (!this.keyboard) throw new Error('no keyboard');
+          if (p.whileHeld) {
+            this.keyboard.down(p.keys, { focus: p.focus !== false });
+            this.pressing.set(slot, { kind: 'keys', keys: p.keys });
+          } else this.keyboard.tap(p.keys, { focus: p.focus !== false });
+          this.log('press', { keys: p.keys });
+          return;
+        case 'timerHold': { // stopwatch: a tap starts / stops (on release), holding resets
+          this._stopHold(slot);
+          const r = { kind: 'timerHold', reset: false };
+          this.pressing.set(slot, r);
+          this.holdTimers.set(slot, setTimeout(() => {
+            r.reset = true;
+            this.dockVars.press(p.timer, 'stop');
+            this.dockVars.press(p.timer, 'reset');
+            this.log('press', { timer: p.timer, action: 'hold reset' });
+          }, p.holdMs ?? 1000));
+          return;
+        }
+        case 'ramp': { // a step: a tap steps (on release), holding past rampDelayMs ramps
+          this._stopHold(slot);
+          const r = { kind: 'ramp', ramping: false };
+          this.pressing.set(slot, r);
+          this.holdTimers.set(slot, setTimeout(() => this._ramp(slot, key, r), p.rampDelayMs ?? 400));
+          return;
+        }
+        default:
+          this._press(key, 'down');
+          // Some aircraft drop spring-loaded positions (e.g. START) after a moment unless the input
+          // keeps arriving, like a "repeat input" binding. Re-send while the key is held.
+          if (p.hold !== undefined && p.repeatMs) {
+            this._stopHold(slot);
+            this.holdTimers.set(slot, setInterval(() => {
+              try { this._apply(pressTarget(key), p.hold); } catch (e) { this._stopHold(slot); }
+            }, p.repeatMs));
+          }
       }
     } catch (e) {
       this.log('press failed', { slot, error: e.message });
+      this.display.alert(slot);
+    }
+  }
+
+  keyUp(slot) {
+    this._stopHold(slot);
+    if (this.swallowed.delete(slot)) return; // its key down did nothing, so neither does key up
+    const key = this.status === 'ready' ? this.page?.keys?.[slot] : null;
+    const pressing = this.pressing.get(slot);
+    this.pressing.delete(slot);
+    try {
+      if (pressing && pressing.kind === 'keys') return this.keyboard.up(pressing.keys);
+      if (!key || !key.press) return;
+      if (pressing && pressing.kind === 'timerHold') return pressing.reset ? undefined : this._press(key, 'down');
+      if (pressing && pressing.kind === 'ramp') return pressing.ramping ? undefined : this._press(key, 'down');
+      if (key.press.release !== undefined) this._press(key, 'up');
+    } catch (e) {
+      this.log('release failed', { slot, error: e.message });
       this.display.alert(slot);
     }
   }
@@ -693,35 +718,6 @@ class ProfileEngine {
   _stopHold(slot) {
     clearInterval(this.holdTimers.get(slot));
     this.holdTimers.delete(slot);
-  }
-
-  keyUp(slot) {
-    this._stopHold(slot);
-    if (this.swallowed.delete(slot)) return; // its key down did nothing, so neither does key up
-    const key = this.status === 'ready' ? this.page?.keys?.[slot] : null;
-    const th = this.timerHolds.get(slot);
-    if (th) {
-      this.timerHolds.delete(slot);
-      if (!th.reset && key) {
-        try { this._press(key, 'down'); } catch (e) { this.log('press failed', { slot, error: e.message }); this.display.alert(slot); } // a tap: start / stop
-      }
-      return;
-    }
-    const held = this.heldKeys.get(slot);
-    if (held) {
-      this.heldKeys.delete(slot);
-      try { this.keyboard.up(held); } catch (e) { this.log('release failed', { slot, error: e.message }); }
-      return;
-    }
-    const ramp = this.ramps.get(slot);
-    this.ramps.delete(slot);
-    if (ramp && key) {
-      if (ramp.ramping) return; // the hold ramped; letting go just stops it
-      try { this._press(key, 'down'); } catch (e) { this.log('press failed', { slot, error: e.message }); this.display.alert(slot); }
-      return;
-    }
-    if (!key || !key.press || key.press.release === undefined) return;
-    try { this._press(key, 'up'); } catch (e) { this.log('release failed', { slot, error: e.message }); }
   }
 
   _nav(dir) {

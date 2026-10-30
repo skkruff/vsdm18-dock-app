@@ -29,7 +29,11 @@ async function startHarness({ iconDir = '', port = 0, profilesDir } = {}) {
   sim.aircraft = { title: 'C172SP G1000 Passengers', atcModel: 'ATCCOM.AC_MODEL C172.0.text',
     path: 'd:\\mfs2024\\official2024\\onestore\\asobo-aircraft-c172sp-as1000\\simobjects\\airplanes\\asobo_c172sp_g1000\\presets\\asobo\\c172sp_avionics_passengers\\config\\aircraft.cfg' };
   const display = { image() {}, title() {}, alert() {} };
-  const engine = new ProfileEngine({ sim, display, profiles: store.load().profiles, renderer: new Renderer(icons), announceMs: 1, announceAircraftMs: 1 });
+  // Keyboard shortcuts are recorded, not sent (the real sender is Windows-only).
+  const typed = [];
+  const { parseShortcut } = require(path.join(pluginDir, 'keys'));
+  const keyboard = { typed, tap: (k, o = {}) => { typed.push([k, o.focus !== false]); return parseShortcut(k); }, down() {}, up() {} };
+  const engine = new ProfileEngine({ sim, display, profiles: store.load().profiles, renderer: new Renderer(icons), keyboard, announceMs: 1, announceAircraftMs: 1 });
   engine.start();
   sim.emit('connected');
   sim.emit('aircraft', sim.aircraft);
@@ -41,9 +45,9 @@ async function startHarness({ iconDir = '', port = 0, profilesDir } = {}) {
   const look = { measured: colours };
   const applyLook = s => { setStyle({ ...DEFAULT_STYLE, ...look.measured, ...s }); engine.redrawAll(); };
   applyLook(store.readSettings());
-  const server = createEditorServer({ store, engine, sim, icons, config: { theme: 'RGB', iconDir }, look, applyLook });
+  const server = createEditorServer({ store, engine, sim, icons, config: { theme: 'RGB', iconDir }, look, applyLook, keyboard });
   const actualPort = await server.listen(port);
-  return { port: actualPort, dir, sim, engine, store, close: () => { clearInterval(timer); server.close(); if (store.watcher) store.watcher.close(); } };
+  return { port: actualPort, dir, sim, engine, store, keyboard, close: () => { clearInterval(timer); server.close(); if (store.watcher) store.watcher.close(); } };
 }
 
 if (require.main === module) {

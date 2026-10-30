@@ -61,6 +61,10 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     **Separator** line under the label (or a Separator layer in a custom face).
   - Step actions: **Wrap at the ends**, and **Hold to ramp** (tap steps once, hold keeps
     stepping by "Ramp step"): one key can run a dimmer.
+  - **Press a keyboard shortcut**: type it ("Ctrl+Shift+L") or click **Record** and press it;
+    "While held" keeps the keys down while the dock key is held; "Bring MSFS to the front" (on by
+    default) makes sure the keys go to the sim. **Send now** tries it. Shortcuts the browser keeps
+    (Ctrl+W, Ctrl+T, Ctrl+N) can't be recorded: type them.
   - When pressed: toggle/cycle, step (with min/max), hold (with release value and repeat for
     spring-loaded positions), set, or a sim event. **Acts on** chooses what toggle / step / hold /
     set change: an input event (a cockpit control), or a **simvar written directly** (Browse,

@@ -322,6 +322,22 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.deepStrictEqual(dim.press, { step: 25, min: 0, max: 100, wrap: true, rampMs: 100, rampStep: 5 });
     await page.click('#inspector button:has-text("Design a custom face")');
     assert.ok(await page.isVisible('#inspector .layer:has-text("Separator")'), 'the custom face starts with the separator');
+    // Keyboard shortcut (user, 2026-10-30): recorded from the keyboard, combinations included.
+    await page.click(slot(1));
+    await page.click('#inspector button:has-text("Add key")');
+    await page.selectOption('#inspector .field:has-text("Action") select', 'keys');
+    await page.click('#inspector button:has-text("Record")');
+    await page.keyboard.press('Control+Shift+KeyL');
+    await page.waitForSelector('#inspector .test-out:has-text("= Ctrl+Shift+L")');
+    await page.click('#inspector button:has-text("Send now")');
+    await page.waitForSelector('#inspector .test-out:has-text("sent Ctrl+Shift+L")');
+    assert.deepStrictEqual(h.keyboard.typed.pop(), ['Ctrl+Shift+L', true], 'sent, MSFS to the front');
+    await page.fill('#inspector input[placeholder^="e.g. Ctrl+Shift+L"]', 'Alt+Banana');
+    await page.waitForSelector('#inspector .test-out.bad:has-text("unknown key")');
+    await page.fill('#inspector input[placeholder^="e.g. Ctrl+Shift+L"]', 'alt+f1');
+    await page.check('#inspector .field:has-text("While held") input');
+    await save();
+    assert.deepStrictEqual(file().pages[file().pages.length - 1].keys['1'].press, { keys: 'alt+f1', whileHeld: true });
     await page.click('.tab:nth-child(2)');
 
     // A save that fails validation is refused with a message, and the file is untouched.

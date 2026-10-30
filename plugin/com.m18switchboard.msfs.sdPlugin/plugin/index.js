@@ -13,6 +13,7 @@ const { IconLibrary } = require('./icons');
 const { Renderer, setStyle, DEFAULT_STYLE } = require('./render');
 const { measure } = require('./theme');
 const { ProfileEngine } = require('./engine');
+const { KeySender } = require('./keys');
 const { ProfileStore } = require('./store');
 const { createEditorServer } = require('./editor/server');
 
@@ -108,10 +109,14 @@ const display = {
   },
 };
 
+// Keyboard shortcuts: the helper starts now so the first press is not delayed by its start-up.
+const keyboard = new KeySender({ log: (...a) => log.info(...a) });
+keyboard.start();
+
 const engine = new ProfileEngine({
   sim, display, profiles, renderer: new Renderer(icons),
   announcePages: config.announcePages, announceMs: config.announceMs, announceAircraftMs: config.announceAircraftMs,
-  animateScenes: config.animateScenes, sceneFps: config.sceneFps,
+  animateScenes: config.animateScenes, sceneFps: config.sceneFps, keyboard,
   log: (...a) => log.info(...a),
 });
 
@@ -120,7 +125,7 @@ store.watch(() => engine.setProfiles(loadAll()));
 
 const editorUrl = `http://localhost:${config.editorPort}/`;
 createEditorServer({
-  store, engine, sim, icons, config, look,
+  store, engine, sim, icons, config, look, keyboard,
   applyLook: s => { applyLook(s); engine.redrawAll(); },
   log: (...a) => log.warn(...a),
 })

@@ -124,6 +124,7 @@ The key never changes on press; it changes when the sim reports the new value.
 | `{ "set": 2 }` | sets a fixed value |
 | `{ "event": "PITOT_HEAT_TOGGLE" }` | sends a classic event, `value` optional |
 | `{ "event": "AVIONICS_MASTER_SET", "toggleValue": true }` | sends 1 if the read value is 0, else 0 |
+| `{ "keys": "Ctrl+Shift+L" }` | presses a keyboard shortcut (Windows), for things MSFS only has key bindings for (flashlight, views). Modifiers go down first (Ctrl, Shift, Alt, Win; RCtrl etc. for right-hand ones) and up last. `"whileHeld": true` keeps the keys down while the dock key is held. MSFS is brought to the front first unless `"focus": false`. Key names: letters, digits, F1-F24, Up/Down/Left/Right, Home, End, PgUp, PgDn, Insert, Delete, Esc, Enter, Tab, Space, Numpad0-9, NumpadAdd/Subtract/Multiply/Divide/Decimal/Enter, punctuation, or browser key codes (KeyL) |
 
 cycle/step/hold/set act on `press.var` (a simvar written directly, e.g.
 `{ "var": "TRANSPONDER STATE:1", "unit": "number" }`), else `press.input`, else the key's

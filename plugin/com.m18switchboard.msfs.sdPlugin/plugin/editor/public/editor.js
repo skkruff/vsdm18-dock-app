@@ -599,6 +599,11 @@ function field(label, control, note, help) {
 // ⓘ next to a label: the help text on hover, or pinned open by a click (user, 2026-10-29). Texts
 // live in HELP so they are easy to find and correct.
 const HELP = {
+  keys: 'Presses keys on your PC as if typed, for things MSFS only offers as key bindings (the pilot\'s flashlight, '
+    + 'camera views, toolbar panels). Use the shortcut set in MSFS\'s controls options. Combinations work: modifiers '
+    + '(Ctrl, Shift, Alt, Win; RCtrl etc. for the right-hand ones) go down first and up last. Some combinations '
+    + 'the browser keeps for itself (Ctrl+W, Ctrl+T, Ctrl+N) cannot be recorded: type them. The key has no on/off look, '
+    + 'since the sim does not report these states.',
   units: 'Text before or after the value, e.g. QNH before, or %, RPM, FPM, KT after. A unit starting with a letter '
     + 'or digit gets a space ("2400 RPM"); a symbol does not ("75%"). Not added to words from "Value text per value".',
   wrap: 'Step keys stop at min / max. With wrap, a tap at the stop goes round to the other end, so one key can cycle '
@@ -838,13 +843,13 @@ function renderInspector() {
   // Press
   box.append(el('h4', {}, 'When pressed', key.type === 'armable' ? info('armablePress') : null));
   const p = key.press || {};
-  const pkind = !key.press ? 'none' : p.event !== undefined ? 'event' : p.cycle ? 'cycle' : p.step !== undefined ? 'step' : p.hold !== undefined ? 'hold' : p.set !== undefined ? 'set' : 'none';
-  box.append(field('Action', select_([['none', 'Nothing'], ['cycle', 'Toggle / cycle values'], ['step', 'Step up or down'], ['hold', 'Hold (spring-loaded)'], ['set', 'Set a value'], ['event', 'Send a sim event']], pkind, v => {
+  const pkind = !key.press ? 'none' : p.keys !== undefined ? 'keys' : p.event !== undefined ? 'event' : p.cycle ? 'cycle' : p.step !== undefined ? 'step' : p.hold !== undefined ? 'hold' : p.set !== undefined ? 'set' : 'none';
+  box.append(field('Action', select_([['none', 'Nothing'], ['cycle', 'Toggle / cycle values'], ['step', 'Step up or down'], ['hold', 'Hold (spring-loaded)'], ['set', 'Set a value'], ['event', 'Send a sim event'], ['keys', 'Press a keyboard shortcut']], pkind, v => {
     const target = p.input;
     const targetVar = p.var;
-    key.press = { cycle: { cycle: [0, 1] }, step: { step: 1 }, hold: { hold: 1, release: 0 }, set: { set: 1 }, event: { event: '' } }[v];
+    key.press = { cycle: { cycle: [0, 1] }, step: { step: 1 }, hold: { hold: 1, release: 0 }, set: { set: 1 }, event: { event: '' }, keys: { keys: '' } }[v];
     if (!key.press) delete key.press;
-    else if (v !== 'event') { if (target) key.press.input = target; if (targetVar) key.press.var = targetVar; }
+    else if (v !== 'event' && v !== 'keys') { if (target) key.press.input = target; if (targetVar) key.press.var = targetVar; }
     redraw();
   })));
   const num = v => (v === '' ? undefined : Number(v));
@@ -874,6 +879,7 @@ function renderInspector() {
     box.append(field('Repeat every ms', input(p.repeatMs, v => setP('repeatMs', num(v)), { type: 'number', min: 0 }), 'Re-sends while held, for positions the aircraft drops. Empty = once. G1000 softkeys need 130 ms or less to stay held; the C172 START works at 250.'));
   }
   if (pkind === 'set') box.append(field('Value', input(p.set, v => setP('set', num(v)), { type: 'number' })));
+  if (pkind === 'keys') box.append(...shortcutEditor(key));
   if (pkind === 'event') {
     const evInput = input(p.event, v => { key.press.event = v; changed(); }, { placeholder: 'e.g. BAROMETRIC' });
     box.append(field('Event', el('div', { class: 'inline' }, evInput,
@@ -931,6 +937,64 @@ function renderInspector() {
     'Try values to see each look. Empty = live value (when this page is on the dock) or a default.'));
 
   inspectorTail(box, key, slot);
+}
+
+// Keyboard shortcut press (user, 2026-10-30): type it, or click Record and press the keys.
+const BROWSER_KEY_NAMES = { ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right', PageUp: 'PgUp', PageDown: 'PgDn' };
+const MODIFIER_CODES = ['ControlLeft', 'ControlRight', 'ShiftLeft', 'ShiftRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight'];
+function shortcutFromEvent(e) {
+  const parts = [];
+  if (e.ctrlKey) parts.push(e.code === 'ControlRight' ? 'RCtrl' : 'Ctrl');
+  if (e.shiftKey) parts.push(e.code === 'ShiftRight' ? 'RShift' : 'Shift');
+  if (e.altKey) parts.push(e.code === 'AltRight' ? 'RAlt' : 'Alt');
+  if (e.metaKey) parts.push('Win');
+  if (!MODIFIER_CODES.includes(e.code)) parts.push(BROWSER_KEY_NAMES[e.code] || e.code.replace(/^Key/, '').replace(/^Digit/, ''));
+  return { text: parts.join('+'), complete: !MODIFIER_CODES.includes(e.code) };
+}
+
+function shortcutEditor(key) {
+  const p = key.press;
+  const note = el('span', { class: 'test-out' });
+  const check = async () => {
+    if (!p.keys) { note.textContent = ''; return; }
+    try { const r = await api('POST', '/api/parse-keys', { keys: p.keys }); note.textContent = `= ${r.keys}`; note.className = 'test-out'; } catch (err) { note.textContent = err.message; note.className = 'test-out bad'; }
+  };
+  const box = input(p.keys, v => { p.keys = v; changed(); check(); }, { placeholder: 'e.g. Ctrl+Shift+L, Alt+F1, NumpadAdd' });
+  let recording = false;
+  const rec = el('button', { title: 'Click, then press the shortcut on your keyboard', on: { click: e => {
+    e.preventDefault();
+    recording = !recording;
+    rec.textContent = recording ? 'Press the keys…' : 'Record';
+    rec.classList.toggle('primary', recording);
+    if (recording) box.focus();
+  } } }, 'Record');
+  box.addEventListener('keydown', e => {
+    if (!recording) return;
+    e.preventDefault();
+    const s = shortcutFromEvent(e);
+    box.value = s.text;
+    if (s.complete) {
+      p.keys = s.text;
+      recording = false;
+      rec.textContent = 'Record';
+      rec.classList.remove('primary');
+      changed(); check();
+    }
+  });
+  const sendOut = el('span', { class: 'test-out' });
+  check();
+  return [
+    field('Shortcut', el('div', { class: 'inline' }, box, rec), null, 'keys'),
+    field('', note),
+    field('While held', el('input', { type: 'checkbox', checked: p.whileHeld ? true : null, on: { change: e => { if (e.target.checked) p.whileHeld = true; else delete p.whileHeld; changed(); } } }),
+      'Keys stay down while the dock key is held (e.g. push to talk); otherwise one press and release'),
+    field('Bring MSFS to the front', el('input', { type: 'checkbox', checked: p.focus === false ? null : true, on: { change: e => { if (e.target.checked) delete p.focus; else p.focus = false; changed(); } } }),
+      'So the keys go to the sim, not to whatever window has focus'),
+    field('Try it', el('div', { class: 'inline' }, el('button', { title: 'Brings MSFS to the front and presses the shortcut there', on: { click: async e => {
+      e.preventDefault();
+      try { const r = await api('POST', '/api/send-keys', { keys: p.keys, focus: p.focus !== false }); sendOut.textContent = `sent ${r.sent}`; sendOut.className = 'test-out'; } catch (err) { sendOut.textContent = err.message; sendOut.className = 'test-out bad'; }
+    } } }, 'Send now'), sendOut)),
+  ];
 }
 
 // Raw JSON, Save to library, Delete: the end of every key's inspector.

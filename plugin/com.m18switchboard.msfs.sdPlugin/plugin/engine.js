@@ -137,14 +137,15 @@ function withUnits(key, s) {
 
 class ProfileEngine {
   constructor({ sim, display, renderer, profiles, announcePages = true, announceMs = 800,
-    announceAircraftMs = 2500, logoIcon = 'fs_logo_icon', animateScenes = true, sceneFps = 10, log = () => {} }) {
-    Object.assign(this, { sim, display, renderer, profiles, announcePages, announceMs, announceAircraftMs, logoIcon, animateScenes, sceneFps, log });
+    announceAircraftMs = 2500, logoIcon = 'fs_logo_icon', animateScenes = true, sceneFps = 10, keyboard = null, log = () => {} }) {
+    Object.assign(this, { sim, display, renderer, profiles, announcePages, announceMs, announceAircraftMs, logoIcon, animateScenes, sceneFps, keyboard, log });
     this.scene = null; // panel-wide picture shown instead of the keys (aircraft or page name)
     this.sceneTimer = null;
     this.slide = 0; // sideways offset of panel-wide text, animated (see _slide)
     this.slideTimer = null;
     this.holdTimers = new Map(); // slot -> interval re-sending a held position
     this.ramps = new Map(); // slot -> { ramping } while a step key with a ramp is held
+    this.heldKeys = new Map(); // slot -> shortcut held down while the dock key is
     this.swallowed = new Set(); // slots whose key down only dismissed an announcement
     this.status = 'offline'; // offline | loading | ready
     this.profile = null;
@@ -444,6 +445,9 @@ class ProfileEngine {
 
   _stopHolds() {
     this.ramps.clear();
+    // Never leave a shortcut held down when the page or aircraft changes.
+    for (const keys of this.heldKeys.values()) { try { this.keyboard.up(keys); } catch (e) { /* helper gone */ } }
+    this.heldKeys.clear();
     for (const t of this.holdTimers.values()) clearInterval(t);
     this.holdTimers.clear();
   }
@@ -454,6 +458,19 @@ class ProfileEngine {
     if (this.scene) { this.swallowed.add(slot); this._clearScene(); return this.redrawAll(); }
     const key = this.status === 'ready' ? this.page.keys?.[slot] : null;
     if (!key || !key.press) return;
+    // A keyboard shortcut (user, 2026-10-30): tapped, or held down for as long as the key is.
+    if (key.press.keys) {
+      try {
+        if (!this.keyboard) throw new Error('no keyboard');
+        if (key.press.whileHeld) { this.keyboard.down(key.press.keys, { focus: key.press.focus !== false }); this.heldKeys.set(slot, key.press.keys); }
+        else this.keyboard.tap(key.press.keys, { focus: key.press.focus !== false });
+        this.log('press', { keys: key.press.keys });
+      } catch (e) {
+        this.log('press failed', { slot, error: e.message });
+        this.display.alert(slot);
+      }
+      return;
+    }
     // Step with ramp (user, 2026-10-30): a tap steps (on release), holding past rampDelayMs ramps.
     if (key.press.step !== undefined && key.press.rampMs) {
       this._stopHold(slot);
@@ -511,6 +528,12 @@ class ProfileEngine {
     this._stopHold(slot);
     if (this.swallowed.delete(slot)) return; // its key down did nothing, so neither does key up
     const key = this.status === 'ready' ? this.page?.keys?.[slot] : null;
+    const held = this.heldKeys.get(slot);
+    if (held) {
+      this.heldKeys.delete(slot);
+      try { this.keyboard.up(held); } catch (e) { this.log('release failed', { slot, error: e.message }); }
+      return;
+    }
     const ramp = this.ramps.get(slot);
     this.ramps.delete(slot);
     if (ramp && key) {

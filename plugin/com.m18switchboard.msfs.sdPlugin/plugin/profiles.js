@@ -1,6 +1,7 @@
 // Aircraft profiles: one JSON file per aircraft in ../profiles. See docs/profiles.md for the format.
 const fs = require('fs');
 const path = require('path');
+const { parseShortcut } = require('./keys');
 
 const KEY_TYPES = ['switch', 'armable', 'button', 'readout', 'decor'];
 const LCD_SLOTS = 15;
@@ -31,6 +32,9 @@ function validate(p, file) {
         }
       }
       const press = key.press;
+      if (press && press.keys !== undefined) {
+        try { parseShortcut(press.keys); } catch (e) { errors.push(`${where}: keyboard shortcut "${press.keys}": ${e.message}`); }
+      }
       if (press && press.event !== undefined && !press.event) errors.push(`${where}: "Send a sim event" needs the event's name`);
       if (press && (press.cycle || press.step !== undefined || press.hold !== undefined || press.set !== undefined)
         && !(press.input || key.read?.input || press.var?.var)) {

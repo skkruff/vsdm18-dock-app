@@ -35,3 +35,7 @@ stay in Groups; new ones also go in a category you choose.
 14. XPDR mode: on the XPDR key, When pressed "Toggle / cycle values" 3, 4; Acts on "Simvar",
     `TRANSPONDER STATE:1`, unit `number`. Use **Set** with 4 and 3 first: "kept" means the sim
     took it. Then check the G1000's XPDR mode follows, and whether it stays.
+15. Keyboard shortcut: a key with "Press a keyboard shortcut", Record your flashlight binding,
+    **Send now**: MSFS should come to the front and the flashlight toggle. Check the plugin log for
+    "keys ready". Then try a combination (e.g. Ctrl+Shift+something you have bound) and
+    "While held" with something you can see (e.g. a view pan key).

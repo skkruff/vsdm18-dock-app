@@ -47,6 +47,10 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-10-30, unit + browser tests only: keyboard shortcut presses (`keys.js`, PowerShell helper
+  `keys-helper.ps1` sending scancodes with SendInput, MSFS brought to the front first). The helper
+  could not be run here (no PowerShell): untested on Windows, both that it starts and that MSFS
+  takes scancode input from SendInput. The plugin log shows "keys ready" when the helper started.
 - 2026-10-30, unit + browser tests only: value units, separator, step wrap and hold-to-ramp, and
   cycle from an unlisted value going to the next value above (was: back to the first).
 - 2026-10-30, unit + browser tests only: Decorative key type.

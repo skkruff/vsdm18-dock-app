@@ -375,6 +375,33 @@ const text = uri => decodeURIComponent(uri);
     assert.strictEqual(sim4.sets.length, count, 'stops when released');
   }
 
+  // Keyboard shortcuts: a tap, or held for as long as the dock key; released on page change.
+  {
+    const sim5 = new FakeSim({});
+    const typed = [];
+    const keyboard = { tap: (k, o) => typed.push(['tap', k, o.focus]), down: (k, o) => typed.push(['down', k, o.focus]), up: k => typed.push(['up', k]) };
+    const prof = { id: 'k', fallback: true, pages: [{ name: 'P', keys: {
+      0: { type: 'button', label: 'TORCH', press: { keys: 'Alt+L' } },
+      1: { type: 'button', label: 'PTT', press: { keys: 'Ctrl+T', whileHeld: true, focus: false } },
+    } }, { name: 'Q', keys: {} }] };
+    const e5 = new ProfileEngine({ sim: sim5, display: { image() {}, title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), keyboard, announceMs: 1, announceAircraftMs: 1 });
+    e5.start();
+    sim5.emit('connected');
+    sim5.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
+    await new Promise(r => setTimeout(r, 30));
+    e5.keyDown(0); e5.keyUp(0);
+    assert.deepStrictEqual(typed, [['tap', 'Alt+L', true]], 'tap, MSFS brought to the front');
+    e5.keyDown(1);
+    assert.deepStrictEqual(typed.pop(), ['down', 'Ctrl+T', false]);
+    e5.keyUp(1);
+    assert.deepStrictEqual(typed.pop(), ['up', 'Ctrl+T'], 'released with the key');
+    e5.keyDown(1);
+    await e5.setPage(1);
+    assert.deepStrictEqual(typed.pop(), ['up', 'Ctrl+T'], 'never left held on a page change');
+    const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
+    assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'button', press: { keys: 'Ctrl+Nope' } } } }] }, 'x'), /unknown key "Nope"/);
+  }
+
   // Units around values, and the separator.
   assert.strictEqual(formatValue({ suffix: '%' }, 75), '75%');
   assert.strictEqual(formatValue({ suffix: 'RPM' }, 2400), '2400 RPM');

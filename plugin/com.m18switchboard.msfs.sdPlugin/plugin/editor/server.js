@@ -7,6 +7,7 @@ const path = require('path');
 const { parseName } = require('../icons');
 const { sourceKey, keySources } = require('../engine');
 const { FONTS, style } = require('../render');
+const { parseShortcut, formatShortcut } = require('../keys');
 
 const PUBLIC = path.join(__dirname, 'public');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
@@ -34,7 +35,7 @@ function readBody(req, limit = 4 * 1024 * 1024) {
   });
 }
 
-function createEditorServer({ store, engine, sim, icons, config, look = {}, applyLook = () => {}, log = () => {} }) {
+function createEditorServer({ store, engine, sim, icons, config, look = {}, applyLook = () => {}, keyboard = null, log = () => {} }) {
   // Every icon name in the library for the configured theme, without the theme suffix:
   // { name: 'magneto_off', base: 'magneto', state: 'off' }
   function iconList() {
@@ -155,6 +156,17 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
       let after;
       try { after = await sim.read({ name, unit, type: 'number' }); } catch (e) { after = null; }
       return { value: after, kept: after !== null && Number(after) === Number(value) };
+    }],
+    // Sends a keyboard shortcut to the sim now (MSFS brought to the front first, unless not wanted).
+    ['POST', /^\/api\/send-keys$/, async (m, req) => {
+      const { keys, focus = true } = await readBody(req);
+      if (!keyboard) throw new Error('keyboard shortcuts are not available');
+      const codes = keyboard.tap(keys, { focus });
+      return { ok: true, sent: formatShortcut(codes) };
+    }],
+    ['POST', /^\/api\/parse-keys$/, async (m, req) => {
+      const { keys } = await readBody(req);
+      return { keys: formatShortcut(parseShortcut(keys)) };
     }],
     ['POST', /^\/api\/send-event$/, async (m, req) => {
       const { event, value = 0 } = await readBody(req);

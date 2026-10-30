@@ -404,6 +404,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const kpFile = JSON.parse(fs.readFileSync(path.join(path.dirname(h.dir), 'keypad.json'), 'utf8'));
     assert.deepStrictEqual(kpFile.keys['0'], { type: 'keypad', role: 'clr', label: 'CLEAR' });
     assert.strictEqual(h.engine.keypadLayout['0'].role, 'clr', 'the dock uses it');
+    // Keypad keys stay in the keypad: pasting one into a page is refused.
+    await page.click(slot(0));
+    await page.keyboard.press('Control+c');
+    await page.click('.tab:nth-child(2)');
+    await page.click(slot(0));
+    await page.keyboard.press('Control+v');
+    await page.waitForSelector('.status.bad:has-text("belong in the Keypad tab")');
+    await page.click('.tab.tab-keypad');
     page.prompts = [];
     await page.click('#keypadNote button:has-text("Reset to built-in")');
     await page.waitForFunction(() => /aria-label="CANCEL"/.test(decodeURIComponent(document.querySelector('.slot[data-slot="0"] img').src)));

@@ -15,18 +15,26 @@ function selectionGroup() {
 }
 
 // Places a group with its top-left at the anchor slot. Keys that would fall off the panel are dropped.
+// Keys that can sit where they are going: keypad keys only in the keypad layout, which takes
+// keypad and decorative keys only (review 2026-10-30: a keypad key pasted into a page stopped the
+// profile saving; a switch in the keypad would do nothing).
+const fitsHere = key => (S.page === KP ? key.type === 'keypad' || key.type === 'decor' : key.type !== 'keypad');
+
 function placeGroup(group, anchor, renameFrom, renameTo) {
   const [r0, c0] = rc(anchor);
   let placed = 0;
+  let unfit = 0;
   for (const g of group) {
     const slot = slotOf(r0 + g.dr, c0 + g.dc);
     if (slot === null) continue;
+    if (!fitsHere(g.key)) { unfit++; continue; }
     let key = clone(g.key);
     if (renameFrom) key = renameSource(key, renameFrom, renameTo);
     keys()[slot] = key;
     placed++;
   }
-  if (placed < group.length) status(`${group.length - placed} key(s) did not fit and were left out`, 'bad');
+  if (unfit) status(S.page === KP ? `${unfit} key(s) left out: the keypad takes keypad and decorative keys only` : `${unfit} keypad key(s) left out: they belong in the Keypad tab`, 'bad');
+  else if (placed < group.length) status(`${group.length - placed} key(s) did not fit and were left out`, 'bad');
   changed();
 }
 

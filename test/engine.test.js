@@ -402,6 +402,86 @@ const text = uri => decodeURIComponent(uri);
     assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'button', press: { keys: 'Ctrl+Nope' } } } }] }, 'x'), /unknown key "Nope"/);
   }
 
+  // Dock variables (user, 2026-10-30): a stopwatch on sim time, kept across restarts; keypads.
+  {
+    const { DockVars } = require(path.join(pluginDir, 'plugin', 'dockvars'));
+    const sim6 = new FakeSim({});
+    sim6.simvars = { 'TRANSPONDER CODE:1': 1200 };
+    let saved = null;
+    const dv = new DockVars({ save: s => { saved = JSON.parse(JSON.stringify(s)); }, saveEveryMs: 0 });
+    const imgs = new Map();
+    const prof = { id: 'dv', fallback: true, pages: [{ name: 'P', keys: {
+      0: { type: 'readout', label: 'TIMER', read: { timer: 'T1' }, format: 'duration' },
+      1: { type: 'button', label: 'START', press: { timer: 'T1' } },
+      2: { type: 'button', label: 'RESET', press: { timer: 'T1', action: 'reset' } },
+      3: { type: 'switch', label: 'RUN', read: { timer: 'T1', part: 'running' }, states: { 1: 'on' } },
+      4: { type: 'readout', label: 'XPDR', read: { var: 'TRANSPONDER CODE:1', unit: 'number' }, pad: 4, press: { keypad: 'xpdr' } },
+      5: { type: 'button', label: 'COM1', press: { keypad: { preset: 'com1' } } },
+    } }] };
+    const e6 = new ProfileEngine({ sim: sim6, display: { image: (s, u) => imgs.set(s, u), title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), dockVars: dv, announceMs: 1, announceAircraftMs: 1 });
+    e6.start();
+    sim6.emit('connected');
+    sim6.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
+    await new Promise(r => setTimeout(r, 30));
+    sim6.simvar('TRANSPONDER CODE:1', 1200);
+    const simTime = s => sim6.simvar('SIMULATION TIME', s);
+    simTime(100);
+    assert.match(text(imgs.get(0)), /aria-label="0:00"/);
+    e6.keyDown(1); e6.keyUp(1);
+    assert.match(text(imgs.get(3)), /#b8f01c/, 'running shows on a switch');
+    simTime(101.5); simTime(140); simTime(165);
+    assert.match(text(imgs.get(0)), /aria-label="1:05"/, 'counts sim time');
+    simTime(165); // paused: sim time stands still
+    simTime(9000); // a jump (new flight, time change) is not counted
+    simTime(9010);
+    assert.match(text(imgs.get(0)), /aria-label="1:15"/);
+    assert.deepStrictEqual(saved, { timers: { T1: { running: true, elapsed: 75 } } }, 'saved');
+    // A restart: a new DockVars from the saved state carries on.
+    const dv2 = new DockVars({ load: () => saved });
+    assert.strictEqual(dv2.value({ timer: 'T1' }), 75);
+    assert.strictEqual(dv2.value({ timer: 'T1', part: 'running' }), 1);
+    dv2.simTime(5); dv2.simTime(3605);
+    assert.strictEqual(dv2.value({ timer: 'T1' }), 75, 'a 3600 s step is a jump, not counted');
+    dv2.simTime(3610);
+    assert.strictEqual(formatValue({ format: 'duration' }, dv2.value({ timer: 'T1' }) + 3600), '1:01:20', 'H:MM:SS from an hour');
+    e6.keyDown(1); e6.keyUp(1);
+    simTime(9020);
+    assert.match(text(imgs.get(0)), /aria-label="1:15"/, 'stopped');
+    e6.keyDown(2); e6.keyUp(2);
+    assert.match(text(imgs.get(0)), /aria-label="0:00"/, 'reset');
+
+    // Keypad: XPDR, octal, sent as soon as 4 digits are in (BCD), then the page is back.
+    e6.keyDown(4); e6.keyUp(4);
+    assert.match(text(imgs.get(1)), /aria-label="XPDR".*aria-label="now 1200"/s, 'title with the value now');
+    assert.match(text(imgs.get(2)), /aria-label="____"/);
+    const digit = d => { const s = { 1: 5, 2: 6, 3: 7, 4: 8, 5: 9, 6: 10, 7: 11, 8: 12, 9: 13, 0: 14 }[d]; e6.keyDown(s); e6.keyUp(s); };
+    digit(7); digit(8); digit(7);
+    assert.match(text(imgs.get(2)), /aria-label="77__"/, '8 is not an octal digit');
+    assert.match(text(imgs.get(12)), /#3a3f47/, '8 dimmed');
+    digit(0); digit(0);
+    assert.deepStrictEqual(sim6.sent.pop(), { event: 'XPNDR_SET', value: 0x7700 }, 'BCD');
+    assert.match(text(imgs.get(4)), /aria-label="XPDR"/, 'page back');
+    // COM: typed partly, ENT fills the rest with zeros; DEL removes the last digit.
+    e6.keyDown(5); e6.keyUp(5);
+    digit(1); digit(2); digit(4); digit(9);
+    e6.keyDown(3); e6.keyUp(3); // DEL
+    digit(8);
+    assert.match(text(imgs.get(2)), /aria-label="124\.8__"/);
+    e6.keyDown(4); e6.keyUp(4); // ENT
+    assert.deepStrictEqual(sim6.sent.pop(), { event: 'COM_STBY_RADIO_SET_HZ', value: 124800000 });
+    // CANCEL and the round buttons close without sending.
+    const sentBefore = sim6.sent.length;
+    e6.keyDown(5); digit(1); e6.keyDown(0); e6.keyUp(0);
+    e6.keyDown(5); e6.keyUp(5); e6.keyDown(16); e6.keyUp(16);
+    assert.strictEqual(sim6.sent.length, sentBefore, 'nothing sent');
+    assert.match(text(imgs.get(5)), /aria-label="COM1"/, 'page back');
+    assert.strictEqual(e6.keypadImages('xpdr').length, 15);
+    const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
+    assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'button', press: { keypad: { digits: 3 } } } } }] }, 'x'), /somewhere to set/);
+    assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'button', press: { timer: 'T1', action: 'lap' } } } }] }, 'x'), /stopwatch action/);
+    validate({ id: 'x', match: {}, pages: [prof.pages[0]] }, 'x');
+  }
+
   // Units around values, and the separator.
   assert.strictEqual(formatValue({ suffix: '%' }, 75), '75%');
   assert.strictEqual(formatValue({ suffix: 'RPM' }, 2400), '2400 RPM');

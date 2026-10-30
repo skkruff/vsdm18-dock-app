@@ -74,5 +74,29 @@ items.unshift({
   keys: [5, 6, 7, 8, 9].map((s, i) => ({ dr: 0, dc: i, key: c172[s] })),
 });
 
+// Dock-held values (user, 2026-10-30): a stopwatch, and radio keys that open a keypad.
+items.push({
+  id: 'dock.stopwatch',
+  name: 'Stopwatch (time, start/stop, reset)',
+  category: 'Chrono',
+  notes: 'A dock stopwatch named T1, counting sim time; kept across restarts. Rename T1 on all three keys for a second one.',
+  shipped: true,
+  keys: [
+    { dr: 0, dc: 0, key: { type: 'readout', label: 'TIMER', read: { timer: 'T1' }, format: 'duration', separator: true } },
+    { dr: 0, dc: 1, key: { type: 'switch', label: 'START\nSTOP', read: { timer: 'T1', part: 'running' }, states: { 1: 'on' }, press: { timer: 'T1', action: 'toggle' } } },
+    { dr: 0, dc: 2, key: { type: 'button', label: 'RESET', press: { timer: 'T1', action: 'reset' } } },
+  ],
+});
+const keypadKey = (id, name, label, read, fmt, preset) => items.push({
+  id, name, category: 'Radios', shipped: true,
+  notes: `Shows ${read.var}; pressing it opens a keypad to type a new value.`,
+  keys: [{ dr: 0, dc: 0, key: { type: 'readout', label, read, ...fmt, press: { keypad: preset } } }],
+});
+keypadKey('dock.keypad.xpdr', 'XPDR code, keypad entry (any aircraft)', 'XPDR', { var: 'TRANSPONDER CODE:1', unit: 'number' }, { pad: 4 }, 'xpdr');
+keypadKey('dock.keypad.com1', 'COM1 standby, keypad entry (any aircraft)', 'COM1 STBY', { var: 'COM STANDBY FREQUENCY:1', unit: 'MHz' }, { decimals: 3 }, 'com1');
+keypadKey('dock.keypad.com2', 'COM2 standby, keypad entry (any aircraft)', 'COM2 STBY', { var: 'COM STANDBY FREQUENCY:2', unit: 'MHz' }, { decimals: 3 }, 'com2');
+keypadKey('dock.keypad.nav1', 'NAV1 standby, keypad entry (any aircraft)', 'NAV1 STBY', { var: 'NAV STANDBY FREQUENCY:1', unit: 'MHz' }, { decimals: 2 }, 'nav1');
+keypadKey('dock.keypad.nav2', 'NAV2 standby, keypad entry (any aircraft)', 'NAV2 STBY', { var: 'NAV STANDBY FREQUENCY:2', unit: 'MHz' }, { decimals: 2 }, 'nav2');
+
 fs.writeFileSync(path.join(root, 'library.json'), JSON.stringify({ items }, null, 2) + '\n');
 console.log(`${items.length} library items`);

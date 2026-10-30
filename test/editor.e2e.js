@@ -338,6 +338,37 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.check('#inspector .field:has-text("While held") input');
     await save();
     assert.deepStrictEqual(file().pages[file().pages.length - 1].keys['1'].press, { keys: 'alt+f1', whileHeld: true });
+
+    // Stopwatch (user, 2026-10-30): a readout of it, and a key that starts / stops it.
+    await page.click(slot(2));
+    await page.click('#inspector button:has-text("Add key")');
+    await page.selectOption('#inspector select >> nth=0', 'readout');
+    await page.selectOption('#inspector .field:has-text("Source") select', 'timer');
+    await page.waitForFunction(() => /aria-label="0:00"/.test(decodeURIComponent(document.querySelector('.slot[data-slot="2"] img').src)), null, { timeout: 5000 });
+    await page.click(slot(3));
+    await page.click('#inspector button:has-text("Add key")');
+    await page.selectOption('#inspector .field:has-text("Action") select', 'timer');
+    // Keypad: on a transponder readout the XPDR preset is the guess; Preview shows it on the dock picture.
+    await page.click(slot(4));
+    await page.click('#inspector button:has-text("Add key")');
+    await page.selectOption('#inspector select >> nth=0', 'readout');
+    await page.selectOption('#inspector .field:has-text("Source") select', 'var');
+    await page.fill('#inspector input[placeholder="e.g. NAV ACTIVE FREQUENCY:1"]', 'TRANSPONDER CODE:1');
+    await page.selectOption('#inspector .field:has-text("Action") select', 'keypad');
+    assert.strictEqual(await page.inputValue('#inspector .field:has-text("Keypad for") select'), 'xpdr');
+    await page.click('#inspector button:has-text("Show the keypad on the dock picture")');
+    await page.waitForFunction(() => /aria-label="CANCEL"/.test(decodeURIComponent(document.querySelector('.slot[data-slot="0"] img').src)));
+    // Your own keypad: e.g. an autopilot altitude, 5 digits, sent with AP_ALT_VAR_SET_ENGLISH.
+    await page.selectOption('#inspector .field:has-text("Keypad for") select', '');
+    await page.fill('#inspector .field:has(> span:text-is("Digits")) input', '5');
+    await page.fill('#inspector .field:has(> span:text-is("Event")) input', 'AP_ALT_VAR_SET_ENGLISH');
+    await page.fill('#inspector .field:has(> span:text-is("Title")) input', 'ALT SEL');
+    await save();
+    const dv = file().pages[file().pages.length - 1].keys;
+    assert.deepStrictEqual(dv['2'].read, { timer: 'T1' });
+    assert.strictEqual(dv['2'].format, 'duration', 'a stopwatch readout shows M:SS');
+    assert.deepStrictEqual(dv['3'].press, { timer: 'T1', action: 'toggle' });
+    assert.deepStrictEqual(dv['4'].press, { keypad: { title: 'ALT SEL', digits: 5, decimals: 0, apply: { event: 'AP_ALT_VAR_SET_ENGLISH' } } });
     await page.click('.tab:nth-child(2)');
 
     // A save that fails validation is refused with a message, and the file is untouched.

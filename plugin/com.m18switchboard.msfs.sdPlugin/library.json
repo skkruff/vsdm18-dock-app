@@ -1247,6 +1247,184 @@
           }
         }
       ]
+    },
+    {
+      "id": "dock.stopwatch",
+      "name": "Stopwatch (time, start/stop, reset)",
+      "category": "Chrono",
+      "notes": "A dock stopwatch named T1, counting sim time; kept across restarts. Rename T1 on all three keys for a second one.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "TIMER",
+            "read": {
+              "timer": "T1"
+            },
+            "format": "duration",
+            "separator": true
+          }
+        },
+        {
+          "dr": 0,
+          "dc": 1,
+          "key": {
+            "type": "switch",
+            "label": "START\nSTOP",
+            "read": {
+              "timer": "T1",
+              "part": "running"
+            },
+            "states": {
+              "1": "on"
+            },
+            "press": {
+              "timer": "T1",
+              "action": "toggle"
+            }
+          }
+        },
+        {
+          "dr": 0,
+          "dc": 2,
+          "key": {
+            "type": "button",
+            "label": "RESET",
+            "press": {
+              "timer": "T1",
+              "action": "reset"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dock.keypad.xpdr",
+      "name": "XPDR code, keypad entry (any aircraft)",
+      "category": "Radios",
+      "shipped": true,
+      "notes": "Shows TRANSPONDER CODE:1; pressing it opens a keypad to type a new value.",
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "XPDR",
+            "read": {
+              "var": "TRANSPONDER CODE:1",
+              "unit": "number"
+            },
+            "pad": 4,
+            "press": {
+              "keypad": "xpdr"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dock.keypad.com1",
+      "name": "COM1 standby, keypad entry (any aircraft)",
+      "category": "Radios",
+      "shipped": true,
+      "notes": "Shows COM STANDBY FREQUENCY:1; pressing it opens a keypad to type a new value.",
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "COM1 STBY",
+            "read": {
+              "var": "COM STANDBY FREQUENCY:1",
+              "unit": "MHz"
+            },
+            "decimals": 3,
+            "press": {
+              "keypad": "com1"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dock.keypad.com2",
+      "name": "COM2 standby, keypad entry (any aircraft)",
+      "category": "Radios",
+      "shipped": true,
+      "notes": "Shows COM STANDBY FREQUENCY:2; pressing it opens a keypad to type a new value.",
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "COM2 STBY",
+            "read": {
+              "var": "COM STANDBY FREQUENCY:2",
+              "unit": "MHz"
+            },
+            "decimals": 3,
+            "press": {
+              "keypad": "com2"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dock.keypad.nav1",
+      "name": "NAV1 standby, keypad entry (any aircraft)",
+      "category": "Radios",
+      "shipped": true,
+      "notes": "Shows NAV STANDBY FREQUENCY:1; pressing it opens a keypad to type a new value.",
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "NAV1 STBY",
+            "read": {
+              "var": "NAV STANDBY FREQUENCY:1",
+              "unit": "MHz"
+            },
+            "decimals": 2,
+            "press": {
+              "keypad": "nav1"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dock.keypad.nav2",
+      "name": "NAV2 standby, keypad entry (any aircraft)",
+      "category": "Radios",
+      "shipped": true,
+      "notes": "Shows NAV STANDBY FREQUENCY:2; pressing it opens a keypad to type a new value.",
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "NAV2 STBY",
+            "read": {
+              "var": "NAV STANDBY FREQUENCY:2",
+              "unit": "MHz"
+            },
+            "decimals": 2,
+            "press": {
+              "keypad": "nav2"
+            }
+          }
+        }
+      ]
     }
   ]
 }

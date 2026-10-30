@@ -14,6 +14,7 @@ const { Renderer, setStyle, DEFAULT_STYLE } = require('./render');
 const { measure } = require('./theme');
 const { ProfileEngine } = require('./engine');
 const { KeySender } = require('./keys');
+const { DockVars } = require('./dockvars');
 const { ProfileStore } = require('./store');
 const { createEditorServer } = require('./editor/server');
 
@@ -113,10 +114,13 @@ const display = {
 const keyboard = new KeySender({ log: (...a) => log.info(...a) });
 keyboard.start();
 
+// Stopwatches and other values the dock keeps itself, saved so they survive a restart.
+const dockVars = new DockVars({ load: () => store.readDockState(), save: s => store.writeDockState(s), log: (...a) => log.warn(...a) });
+
 const engine = new ProfileEngine({
   sim, display, profiles, renderer: new Renderer(icons),
   announcePages: config.announcePages, announceMs: config.announceMs, announceAircraftMs: config.announceAircraftMs,
-  animateScenes: config.animateScenes, sceneFps: config.sceneFps, keyboard,
+  animateScenes: config.animateScenes, sceneFps: config.sceneFps, keyboard, dockVars,
   log: (...a) => log.info(...a),
 });
 

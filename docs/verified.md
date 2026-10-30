@@ -47,6 +47,12 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-10-30, user (dock + sim): keyboard shortcuts work; armable annunciators, dimmers (step,
+  wrap, ramp) and the customisation features work in flight with no blockers.
+- 2026-10-30, unit + browser tests only: dock stopwatches (`dockvars.js`, sim-time counting,
+  saved in dock-state.json) and keypads (`keypad.js`: presets XPDR / COM / NAV standby, custom).
+  Unverified in the sim: that SIMULATION TIME stops while paused; that XPNDR_SET (BCD),
+  COM_STBY_RADIO_SET_HZ, COM2_STBY_RADIO_SET_HZ and NAV1/2_STBY_SET_HZ set the C172's G1000.
 - 2026-10-30, unit + browser tests only: keyboard shortcut presses (`keys.js`, PowerShell helper
   `keys-helper.ps1` sending scancodes with SendInput, MSFS brought to the front first). The helper
   could not be run here (no PowerShell): untested on Windows, both that it starts and that MSFS

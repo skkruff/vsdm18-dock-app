@@ -599,6 +599,12 @@ function field(label, control, note, help) {
 // ⓘ next to a label: the help text on hover, or pinned open by a click (user, 2026-10-29). Texts
 // live in HELP so they are easy to find and correct.
 const HELP = {
+  stopwatch: 'A stopwatch the dock keeps itself, counting sim time: it stops while the sim is paused and follows sim '
+    + 'rate. It keeps its time across restarts of the plugin or VSD Craft. Keys with the same name share one stopwatch: '
+    + 'a readout showing it (Show as: Stopwatch M:SS), and keys with the "Stopwatch control" press to start, stop or reset it.',
+  keypad: 'Pressing the key covers the dock with a keypad: CANCEL, the title and value now, the digits typed, DEL, ENT, '
+    + 'and 1-9, 0. The value is set as soon as all digits are typed (or on ENT; missing digits count as zeros), then '
+    + 'the page comes back. CANCEL or a round button closes it without setting anything.',
   keys: 'Presses keys on your PC as if typed, for things MSFS only offers as key bindings (the pilot\'s flashlight, '
     + 'camera views, toolbar panels). Use the shortcut set in MSFS\'s controls options. Combinations work: modifiers '
     + '(Ctrl, Shift, Alt, Win; RCtrl etc. for the right-hand ones) go down first and up last. Some combinations '
@@ -829,7 +835,7 @@ function renderInspector() {
   if (key.type === 'readout') {
     box.append(field('Decimals', input(key.decimals, v => { if (v === '') delete key.decimals; else key.decimals = Number(v); changed(); }, { type: 'number', min: 0, max: 6 })));
     box.append(field('Pad to digits', input(key.pad, v => { if (v === '') delete key.pad; else key.pad = Number(v); changed(); }, { type: 'number', min: 0, max: 8 }), 'e.g. 4 shows 7 as 0007'));
-    box.append(field('Show as', select_([['', 'Number'], ['time', 'Time HH:MM (from seconds)']], key.format || '', v => { if (v) key.format = v; else delete key.format; changed(); })));
+    box.append(field('Show as', select_([['', 'Number'], ['time', 'Time HH:MM (from seconds)'], ['duration', 'Stopwatch M:SS (from seconds)']], key.format || '', v => { if (v) key.format = v; else delete key.format; changed(); })));
   }
   if (key.type === 'readout') {
     box.append(field('Unit before', input(key.prefix, v => { if (v) key.prefix = v; else delete key.prefix; changed(); }, { placeholder: 'e.g. QNH' }), null, 'units'));
@@ -843,13 +849,14 @@ function renderInspector() {
   // Press
   box.append(el('h4', {}, 'When pressed', key.type === 'armable' ? info('armablePress') : null));
   const p = key.press || {};
-  const pkind = !key.press ? 'none' : p.keys !== undefined ? 'keys' : p.event !== undefined ? 'event' : p.cycle ? 'cycle' : p.step !== undefined ? 'step' : p.hold !== undefined ? 'hold' : p.set !== undefined ? 'set' : 'none';
-  box.append(field('Action', select_([['none', 'Nothing'], ['cycle', 'Toggle / cycle values'], ['step', 'Step up or down'], ['hold', 'Hold (spring-loaded)'], ['set', 'Set a value'], ['event', 'Send a sim event'], ['keys', 'Press a keyboard shortcut']], pkind, v => {
+  const pkind = !key.press ? 'none' : p.keypad !== undefined ? 'keypad' : p.timer !== undefined ? 'timer' : p.keys !== undefined ? 'keys' : p.event !== undefined ? 'event' : p.cycle ? 'cycle' : p.step !== undefined ? 'step' : p.hold !== undefined ? 'hold' : p.set !== undefined ? 'set' : 'none';
+  box.append(field('Action', select_([['none', 'Nothing'], ['cycle', 'Toggle / cycle values'], ['step', 'Step up or down'], ['hold', 'Hold (spring-loaded)'], ['set', 'Set a value'], ['event', 'Send a sim event'], ['keys', 'Press a keyboard shortcut'], ['keypad', 'Open a keypad'], ['timer', 'Stopwatch control']], pkind, v => {
     const target = p.input;
     const targetVar = p.var;
-    key.press = { cycle: { cycle: [0, 1] }, step: { step: 1 }, hold: { hold: 1, release: 0 }, set: { set: 1 }, event: { event: '' }, keys: { keys: '' } }[v];
+    key.press = { cycle: { cycle: [0, 1] }, step: { step: 1 }, hold: { hold: 1, release: 0 }, set: { set: 1 }, event: { event: '' }, keys: { keys: '' },
+      keypad: { keypad: { preset: guessKeypad(key) } }, timer: { timer: (key.read && key.read.timer) || 'T1', action: 'toggle' } }[v];
     if (!key.press) delete key.press;
-    else if (v !== 'event' && v !== 'keys') { if (target) key.press.input = target; if (targetVar) key.press.var = targetVar; }
+    else if (['cycle', 'step', 'hold', 'set'].includes(v)) { if (target) key.press.input = target; if (targetVar) key.press.var = targetVar; }
     redraw();
   })));
   const num = v => (v === '' ? undefined : Number(v));
@@ -880,6 +887,11 @@ function renderInspector() {
   }
   if (pkind === 'set') box.append(field('Value', input(p.set, v => setP('set', num(v)), { type: 'number' })));
   if (pkind === 'keys') box.append(...shortcutEditor(key));
+  if (pkind === 'keypad') box.append(...keypadEditor(key));
+  if (pkind === 'timer') {
+    box.append(field('Stopwatch', input(p.timer, v => { key.press.timer = v; changed(); }, { placeholder: 'T1' }), 'The same name as on the key showing its time'));
+    box.append(field('Does', select_([['toggle', 'Start / stop'], ['reset', 'Reset to 0:00'], ['start', 'Start'], ['stop', 'Stop']], p.action || 'toggle', v => { key.press.action = v; changed(); })));
+  }
   if (pkind === 'event') {
     const evInput = input(p.event, v => { key.press.event = v; changed(); }, { placeholder: 'e.g. BAROMETRIC' });
     box.append(field('Event', el('div', { class: 'inline' }, evInput,
@@ -937,6 +949,64 @@ function renderInspector() {
     'Try values to see each look. Empty = live value (when this page is on the dock) or a default.'));
 
   inspectorTail(box, key, slot);
+}
+
+// Keypad (user, 2026-10-30): a preset (XPDR, COM / NAV standby) or your own.
+const KEYPAD_PRESETS = {
+  xpdr: 'Transponder code (4 digits, 0-7)', com1: 'COM1 standby (e.g. 124.850)', com2: 'COM2 standby',
+  nav1: 'NAV1 standby (e.g. 110.50)', nav2: 'NAV2 standby',
+};
+function guessKeypad(key) {
+  const v = (key.read && (key.read.var || key.read.input)) || '';
+  if (/TRANSPONDER|XPNDR/i.test(v)) return 'xpdr';
+  if (/NAV.*:2/i.test(v)) return 'nav2';
+  if (/NAV/i.test(v)) return 'nav1';
+  if (/COM.*:2/i.test(v)) return 'com2';
+  return /COM/i.test(v) ? 'com1' : 'xpdr';
+}
+
+function keypadEditor(key) {
+  const k = key.press.keypad;
+  const custom = !k.preset;
+  const rows = [
+    field('Keypad for', select_([...Object.entries(KEYPAD_PRESETS), ['', 'Your own (digits, where it goes)']], k.preset || '', v => {
+      if (v) key.press.keypad = { preset: v, ...(k.title ? { title: k.title } : {}) };
+      else key.press.keypad = { title: k.title || 'ENTER', digits: 4, decimals: 0, apply: { event: '' } };
+      changed(); renderInspector();
+    }), null, 'keypad'),
+    field('Title', input(k.title, v => { if (v) k.title = v; else delete k.title; changed(); }, { placeholder: custom ? 'ENTER' : 'as the preset' }), 'Shown on the keypad, with the key\'s value now'),
+  ];
+  if (custom) {
+    const a = k.apply = k.apply || { event: '' };
+    const num = (o, f) => v => { if (v === '') delete o[f]; else o[f] = Number(v); changed(); };
+    const target = a.var !== undefined ? 'var' : a.input !== undefined ? 'input' : 'event';
+    rows.push(
+      field('Digits', input(k.digits, num(k, 'digits'), { type: 'number', min: 1, max: 10 })),
+      field('After the decimal point', input(k.decimals, num(k, 'decimals'), { type: 'number', min: 0, max: 9 })),
+      field('Digits 0-7 only', el('input', { type: 'checkbox', checked: k.octal ? true : null, on: { change: e => { if (e.target.checked) k.octal = true; else delete k.octal; changed(); } } })),
+      field('Set when all digits are in', el('input', { type: 'checkbox', checked: k.autoEnter === false ? null : true, on: { change: e => { if (e.target.checked) delete k.autoEnter; else k.autoEnter = false; changed(); } } }), 'Otherwise only on ENT'),
+      field('Sets', select_([['event', 'A sim event, with the value'], ['var', 'A simvar'], ['input', 'An input event']], target, v => {
+        for (const f of ['event', 'var', 'unit', 'input']) delete a[f];
+        if (v === 'var') { a.var = ''; a.unit = 'number'; } else a[v] = '';
+        changed(); renderInspector();
+      })));
+    const what = target === 'var' ? 'var' : target;
+    rows.push(field(target === 'event' ? 'Event' : target === 'var' ? 'Simvar' : 'Input event', el('div', { class: 'inline' },
+      input(a[what], v => { a[what] = v; changed(); }, target === 'input' ? { list: 'inputList' } : {}),
+      el('button', { on: { click: () => browse(target === 'event' ? 'events' : target === 'var' ? 'simvars' : 'inputs', c => { a[what] = c.name; if (target === 'var' && c.unit) a.unit = c.unit; changed(); renderInspector(); }) } }, 'Browse…'))));
+    if (target === 'var') rows.push(field('Unit', input(a.unit, v => { a.unit = v || 'number'; changed(); }, { list: 'unitList' })));
+    rows.push(field('Value sent', select_([['number', 'The number'], ['bcd16', 'BCD (digits as hex, e.g. XPNDR_SET)']], a.encode || 'number', v => { if (v === 'number') delete a.encode; else a.encode = v; changed(); renderInspector(); })));
+    if ((a.encode || 'number') === 'number') rows.push(field('Multiplied by', input(a.scale, num(a, 'scale'), { type: 'number', placeholder: '1' }), 'e.g. 1000000 to send MHz as Hz'));
+  }
+  rows.push(field('Preview', el('button', { on: { click: async e => {
+    e.preventDefault();
+    try {
+      const { images } = await api('POST', '/api/render-keypad', { keypad: key.press.keypad });
+      showImages(images);
+      setTimeout(renderGrid, 4000);
+    } catch (err) { status(err.message, 'bad'); }
+  } } }, 'Show the keypad on the dock picture')));
+  return rows;
 }
 
 // Keyboard shortcut press (user, 2026-10-30): type it, or click Record and press the keys.
@@ -1083,12 +1153,20 @@ function orSources(key, k) {
 
 function sourceEditor(read, onChange, { allowNone = false, unit = 'number' } = {}) {
   const box = el('div', { class: 'source' });
-  const kind = !read ? 'none' : read.input !== undefined ? 'input' : 'var';
+  const kind = !read ? 'none' : read.timer !== undefined ? 'timer' : read.input !== undefined ? 'input' : 'var';
   const set = r => { onChange(r); changed(); renderInspector(); };
-  const kinds = [['input', 'Input event (cockpit control)'], ['var', 'Simvar (sim value)']];
+  const kinds = [['input', 'Input event (cockpit control)'], ['var', 'Simvar (sim value)'], ['timer', 'Dock stopwatch']];
   box.append(field('Source', select_(allowNone ? [['none', 'Nothing'], ...kinds] : kinds, kind, v => {
-    set(v === 'none' ? null : v === 'input' ? { input: '' } : { var: '', unit });
-  })));
+    // A stopwatch's elapsed time shows as M:SS on a readout.
+    set(v === 'none' ? null : v === 'input' ? { input: '' } : v === 'timer' ? { timer: 'T1', hint: { format: 'duration' } } : { var: '', unit });
+  }), null, kind === 'timer' ? 'stopwatch' : null));
+  if (kind === 'timer') {
+    box.append(field('Stopwatch', input(read.timer, v => { read.timer = v; changed(); }, { placeholder: 'T1' }), 'Its name: keys using the same name share one stopwatch'));
+    box.append(field('Shows', select_([['', 'Elapsed time (seconds)'], ['running', 'Running (1) or stopped (0)']], read.part || '', v => {
+      if (v) read.part = v; else delete read.part;
+      changed(); renderInspector();
+    })));
+  }
   if (kind === 'input') {
     const inp = input(read.input, v => { read.input = v; changed(); }, { list: 'inputList', placeholder: 'e.g. ELECTRICAL_BATTERY_1' });
     box.append(field('Input event', el('div', { class: 'inline' }, inp,

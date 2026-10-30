@@ -53,7 +53,7 @@ Dimmer knobs are not flight critical: put them on their own page.
   (user has this on the comma key). Done for the C172 with the BAROMETRIC event (unverified).
 - **Keypad entry**: pressing the transponder or COM standby readout switches the dock to a keypad
   (digits, display of what's typed, ENT, back/CLR); ENT sets the value and returns to the page you
-  came from. Planned; needs the set-value events checked in the sim.
+  came from. Built 2026-10-30 (`keypad.js`); the set-value events still to be checked in the sim.
 - **Library icon + live value on one key**: top of the icon (its printed name) above the value.
   Done as `icon` on readouts; QNH uses `set_altimeter`. Depends on VSD Craft drawing an image
   embedded in an SVG: to check on the device.
@@ -119,7 +119,7 @@ The ⓘ mechanism is built (texts in `HELP` in `editor.js`); so far only on the 
 "Acts on". Polishing step: write help for the remaining key setup intricacies (hold repeat timings,
 cycle vs set, sources vs Acts on, faces per value, crop auto/full).
 
-## Stopwatch: build in the keypad phase (user, 2026-10-30)
+## Stopwatch: build in the keypad phase (user, 2026-10-30) — built 2026-10-30
 
 Agreed: a dock stopwatch, not the G1000's own timer (that would need PFD softkey sequences and
 probably state hidden in the NXi's JavaScript, not L:vars). Build it in the keypad phase on the

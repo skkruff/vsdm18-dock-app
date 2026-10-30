@@ -193,6 +193,10 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
       const parse = v => (v === '' || v === undefined || v === null ? undefined : (isNaN(Number(v)) ? v : Number(v)));
       // Value layers with their own source: live from the dock if watched, else read once.
       const extra = {};
+      // Stopwatches are the dock's own: their value is always at hand.
+      for (const key of Object.values(keys)) {
+        for (const src of keySources(key)) if (src.timer !== undefined) extra[sourceKey(src)] = engine.dockVars.value(src);
+      }
       if (sim.connected) {
         for (const key of Object.values(keys)) {
           for (const src of keySources(key).slice(key.read ? 1 : 0)) {
@@ -204,9 +208,14 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
       const valueOf = src => parse(sources[sourceKey(src)] ?? extra[sourceKey(src)]);
       const images = {};
       for (const [slot, key] of Object.entries(keys)) {
-        images[slot] = engine.keyImage(key, parse(values[slot]), null, valueOf);
+        const own = key.read && key.read.timer !== undefined && parse(values[slot]) === undefined ? engine.dockVars.value(key.read) : parse(values[slot]);
+        images[slot] = engine.keyImage(key, own, null, valueOf);
       }
       return { images };
+    }],
+    ['POST', /^\/api\/render-keypad$/, async (m, req) => {
+      const { keypad, typed = '', now = '' } = await readBody(req);
+      return { images: engine.keypadImages(keypad, typed, now) };
     }],
     ['POST', /^\/api\/render-announcement$/, async (m, req) => ({ images: engine.aircraftSceneImages(await readBody(req)) })],
     // Live values of the page currently on the dock.

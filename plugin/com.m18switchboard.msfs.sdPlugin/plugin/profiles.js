@@ -2,6 +2,8 @@
 const fs = require('fs');
 const path = require('path');
 const { parseShortcut } = require('./keys');
+const { keypadSpec } = require('./keypad');
+const { TIMER_ACTIONS } = require('./dockvars');
 
 const KEY_TYPES = ['switch', 'armable', 'button', 'readout', 'decor'];
 const LCD_SLOTS = 15;
@@ -28,10 +30,18 @@ function validate(p, file) {
         for (const L of face.layers) {
           if (!['icon', 'text', 'value', 'sublabel', 'separator', 'bar', 'rect'].includes(L.kind)) errors.push(`${where}: ${name}: unknown layer ${L.kind}`);
           if (L.kind === 'bar' && L.look !== undefined && !['on', 'armed', 'off', 'clear'].includes(L.look)) errors.push(`${where}: ${name}: bar look must be on, armed, off or clear`);
-          if ((L.kind === 'value' || L.kind === 'sublabel') && L.read && !L.read.input && !L.read.var) errors.push(`${where}: ${name}: ${L.kind} layer source needs an input event or simvar`);
+          if ((L.kind === 'value' || L.kind === 'sublabel') && L.read && !L.read.input && !L.read.var && !L.read.timer) errors.push(`${where}: ${name}: ${L.kind} layer source needs an input event or simvar`);
         }
       }
       const press = key.press;
+      if (press && press.keypad !== undefined) {
+        try { keypadSpec(press.keypad); } catch (e) { errors.push(`${where}: keypad: ${e.message}`); }
+      }
+      if (press && press.timer !== undefined) {
+        if (!press.timer) errors.push(`${where}: stopwatch press needs the stopwatch's name`);
+        if (press.action !== undefined && !TIMER_ACTIONS.includes(press.action)) errors.push(`${where}: stopwatch action must be one of ${TIMER_ACTIONS.join(', ')}`);
+      }
+      if (key.read && key.read.timer === '') errors.push(`${where}: stopwatch source needs a name`);
       if (press && press.keys !== undefined) {
         try { parseShortcut(press.keys); } catch (e) { errors.push(`${where}: keyboard shortcut "${press.keys}": ${e.message}`); }
       }

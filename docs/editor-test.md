@@ -39,3 +39,13 @@ stay in Groups; new ones also go in a category you choose.
     **Send now**: MSFS should come to the front and the flashlight toggle. Check the plugin log for
     "keys ready". Then try a combination (e.g. Ctrl+Shift+something you have bound) and
     "While held" with something you can see (e.g. a view pan key).
+
+## Dock variables, 2026-10-30
+
+16. Stopwatch: insert "Stopwatch (time, start/stop, reset)" from the library (Chrono). Start it;
+    it should count, stop while the sim is paused (Esc / active pause), and run faster at a
+    higher sim rate. Restart VSD Craft while it runs: it should carry on from where it was.
+17. Keypad: insert "XPDR code, keypad entry" and "COM1 standby, keypad entry" (Radios), or set
+    "Open a keypad" on your own XPDR / COM STBY readouts. Press: the keypad covers the dock; type
+    a code (8 and 9 are dimmed for XPDR; it is set after the 4th digit) and check the G1000. For
+    COM, type e.g. 1 2 2 8 and ENT -> 122.800. CANCEL and the round buttons close it.

@@ -15,6 +15,7 @@ class ProfileStore {
     this.libraryFile = path.join(path.dirname(dir), 'library.json');
     this.oldPresetsFile = path.join(path.dirname(dir), 'presets.json'); // before the library
     this.settingsFile = path.join(path.dirname(dir), 'settings.json'); // look: font, colours
+    this.dockStateFile = path.join(path.dirname(dir), 'dock-state.json'); // stopwatches, kept across restarts
     this.log = log;
     this.watcher = null;
   }
@@ -113,6 +114,17 @@ class ProfileStore {
 
   writeSettings(s) {
     fs.writeFileSync(this.settingsFile, JSON.stringify(s, null, 2) + '\n');
+  }
+
+  readDockState() {
+    try { return JSON.parse(fs.readFileSync(this.dockStateFile, 'utf8')); } catch { return {}; }
+  }
+
+  // Written whole each time; a temporary file then a rename, so a crash never leaves half a file.
+  writeDockState(s) {
+    const tmp = `${this.dockStateFile}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(s, null, 2) + '\n');
+    fs.renameSync(tmp, this.dockStateFile);
   }
 
   // Calls onChange (debounced) whenever a profile file changes, from the editor or by hand.

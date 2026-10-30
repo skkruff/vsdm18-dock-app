@@ -199,6 +199,20 @@ const tiles = {
     return svgUri(body + lines(value, (y + 140) / 2, { size: sublabel ? 40 : 44, color: style.readout, width: 132 }));
   },
   // A library icon's content scaled into the top of the key, with a live value below.
+  // Keypad keys (keypad.js): a big digit or word, dimmed when not available; colour by role.
+  keypadKey(text, { role = 'digit', dim = false } = {}) {
+    const color = dim ? '#3a3f47' : role === 'ent' ? style.on : role === 'cancel' ? style.off : style.label;
+    const size = role === 'digit' ? 64 : 34;
+    return svgUri(`<rect x="6" y="6" width="132" height="132" rx="14" fill="none" stroke="${dim ? '#22262c' : '#3a4250'}" stroke-width="3"/>` +
+      lines(text, 72, { size, color, width: 112 }));
+  },
+  // The keypad's title (what is being set, and its value now) and the digits typed so far.
+  keypadTitle(title, now) {
+    return svgUri(lines(title, now ? 46 : 72, { size: 28, width: 130 }) + (now ? lines(now, 98, { size: 30, color: style.dim, width: 130 }) : ''));
+  },
+  keypadTyped(text) {
+    return svgUri(lines(text, 72, { size: 56, color: style.readout, width: 136 }));
+  },
   // A library icon has no armed version: its clear version with the bar filled in the armed colour.
   // The bar geometry is the one measured from the user's icons, so the fill lands on their outline.
   armedIcon(clearUri) {

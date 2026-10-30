@@ -78,7 +78,8 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
   of the key, and the value drawn below it.
 - **valueFaces** (any type): sim value to a face (below), e.g. a different look per magneto
   position. Wins over valueIcons and the key's face for that value.
-- **format**: `"time"` shows seconds since midnight (LOCAL TIME, ZULU TIME) as HH:MM.
+- **format**: `"time"` shows seconds since midnight (LOCAL TIME, ZULU TIME) as HH:MM;
+  `"duration"` shows seconds as M:SS, or H:MM:SS from an hour (stopwatches).
 - **face** (any type, optional): a custom look replacing the automatic one (valueIcons still win
   when they match). `{ "background": "#000000", "layers": [...] }`, layers drawn in order, in key
   units (144 x 144):
@@ -107,6 +108,11 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
 
 - `{ "input": "ELECTRICAL_BATTERY_1" }`: an input event (list them with `npm run sim:explore`).
 - `{ "var": "KOHLSMAN SETTING MB:1", "unit": "millibars" }`: a simvar. `unit: "bool"` gives 0/1.
+- `{ "timer": "T1" }`: a dock stopwatch's elapsed whole seconds (show with `"format": "duration"`,
+  M:SS or H:MM:SS); `{ "timer": "T1", "part": "running" }`: 1 while it runs, else 0. Stopwatches
+  are kept by the plugin, count sim time (SIMULATION TIME: stop when paused, follow sim rate,
+  ignore jumps over 60 s such as a new flight) and are saved in `dock-state.json` next to the
+  profiles folder, so they survive restarts. Keys using the same name share one stopwatch.
 
 The engine watches only the sources on the page being shown.
 
@@ -124,6 +130,8 @@ The key never changes on press; it changes when the sim reports the new value.
 | `{ "set": 2 }` | sets a fixed value |
 | `{ "event": "PITOT_HEAT_TOGGLE" }` | sends a classic event, `value` optional |
 | `{ "event": "AVIONICS_MASTER_SET", "toggleValue": true }` | sends 1 if the read value is 0, else 0 |
+| `{ "timer": "T1", "action": "toggle" }` | a dock stopwatch: `toggle` (start / stop), `start`, `stop`, `reset` |
+| `{ "keypad": "xpdr" }` | opens a keypad over the dock; the value typed is set on ENT, or as soon as all digits are in. Presets: `xpdr` (4 digits 0-7, XPNDR_SET as BCD), `com1` / `com2` (6 digits, 3 decimals, COM_STBY_RADIO_SET_HZ / COM2_STBY_RADIO_SET_HZ), `nav1` / `nav2` (5 digits, 2 decimals, NAV1/2_STBY_SET_HZ). Your own: `{ "title", "digits", "decimals", "octal", "autoEnter": true, "apply": { "event" \| "var" + "unit" \| "input", "encode": "number" \| "bcd16", "scale" } }`; a preset can be given with overrides as `{ "preset": "com1", "title": "COM1" }`. Missing digits count as zeros (124.8 -> 124.800). Layout: CANCEL, title with the value now, typed digits, DEL, ENT on the top row; 1-5 and 6-0 below. CANCEL or a round button closes it |
 | `{ "keys": "Ctrl+Shift+L" }` | presses a keyboard shortcut (Windows), for things MSFS only has key bindings for (flashlight, views). Modifiers go down first (Ctrl, Shift, Alt, Win; RCtrl etc. for right-hand ones) and up last. `"whileHeld": true` keeps the keys down while the dock key is held. MSFS is brought to the front first unless `"focus": false`. Key names: letters, digits, F1-F24, Up/Down/Left/Right, Home, End, PgUp, PgDn, Insert, Delete, Esc, Enter, Tab, Space, Numpad0-9, NumpadAdd/Subtract/Multiply/Divide/Decimal/Enter, punctuation, or browser key codes (KeyL) |
 
 cycle/step/hold/set act on `press.var` (a simvar written directly, e.g.

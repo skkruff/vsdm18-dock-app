@@ -61,6 +61,14 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     **Separator** line under the label (or a Separator layer in a custom face).
   - Step actions: **Wrap at the ends**, and **Hold to ramp** (tap steps once, hold keeps
     stepping by "Ramp step"): one key can run a dimmer.
+  - **Dock stopwatch** (a Source choice): name (keys with the same name share one) and what to show
+    (elapsed time, or running 1 / 0). **Stopwatch control** (an action): start / stop, reset,
+    start, stop. The library has a ready group: time, start/stop, reset.
+  - **Open a keypad** (an action): a preset (transponder code, COM1/2 or NAV1/2 standby; guessed
+    from what the key reads) or your own (digits, decimals, 0-7 only, set when all digits are in,
+    and the event, simvar or input event it sets, as a number times a factor or as BCD).
+    "Show the keypad on the dock picture" previews it. The library has XPDR and COM / NAV standby
+    keys with keypads, for any aircraft.
   - **Press a keyboard shortcut**: type it ("Ctrl+Shift+L") or click **Record** and press it;
     "While held" keeps the keys down while the dock key is held; "Bring MSFS to the front" (on by
     default) makes sure the keys go to the sim. **Send now** tries it. Shortcuts the browser keeps

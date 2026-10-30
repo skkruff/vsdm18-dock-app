@@ -7,6 +7,8 @@
 // next). display is { image(slot, uri), title(slot, text), alert(slot) }.
 const { matchProfile } = require('./profiles');
 const { tiles } = require('./render');
+const { DockVars, formatDuration } = require('./dockvars');
+const kp = require('./keypad');
 
 const LCD_SLOTS = 15;
 const NAV = { 15: 'prev', 16: 'main', 17: 'next' };
@@ -15,6 +17,7 @@ const STATUS_COLOR = '#9aa0a8';
 const LOGO_SLOT = 7;
 
 function sourceKey(src) {
+  if (src.timer !== undefined) return `timer:${src.timer}:${src.part || 'elapsed'}`;
   return src.input ? `input:${src.input}` : `var:${src.var}|${src.unit}`;
 }
 
@@ -60,6 +63,19 @@ function armableStep(key, active, armed, valueOf = () => undefined) {
   if (any(armed, key.armedIs, key.armedOr)) return 'armed';
   return 'otherwise';
 }
+// One key of an open keypad.
+function keypadImage(k, slot) {
+  const { spec } = k;
+  if (slot === kp.SLOTS.cancel) return tiles.keypadKey('CANCEL', { role: 'cancel' });
+  if (slot === kp.SLOTS.title) return tiles.keypadTitle(spec.title || 'ENTER', k.now ? `now ${k.now}` : '');
+  if (slot === kp.SLOTS.typed) return tiles.keypadTyped(kp.display(spec, k.typed));
+  if (slot === kp.SLOTS.del) return tiles.keypadKey('DEL', { role: 'del', dim: !k.typed });
+  if (slot === kp.SLOTS.ent) return tiles.keypadKey('ENT', { role: 'ent', dim: !k.typed });
+  const d = kp.SLOT_DIGIT[slot];
+  if (d !== undefined) return tiles.keypadKey(d, { dim: (spec.octal && Number(d) > 7) || k.typed.length >= spec.digits });
+  return tiles.blank();
+}
+
 // What cycle / step / hold / set change: press.var (a simvar, user 2026-10-30), press.input, or
 // the key's own input event. A simvar is never written unless named in press.var.
 function pressTarget(key) {
@@ -117,6 +133,7 @@ function formatValue(key, value) {
 
 function formatNumber(key, value) {
   if (typeof value !== 'number') return String(value);
+  if (key.format === 'duration') return formatDuration(value); // stopwatch: M:SS, H:MM:SS
   if (key.format === 'time') {
     // Seconds since midnight (LOCAL TIME, ZULU TIME) as HH:MM.
     const m = Math.floor(value / 60) % 1440;
@@ -137,8 +154,10 @@ function withUnits(key, s) {
 
 class ProfileEngine {
   constructor({ sim, display, renderer, profiles, announcePages = true, announceMs = 800,
-    announceAircraftMs = 2500, logoIcon = 'fs_logo_icon', animateScenes = true, sceneFps = 10, keyboard = null, log = () => {} }) {
+    announceAircraftMs = 2500, logoIcon = 'fs_logo_icon', animateScenes = true, sceneFps = 10, keyboard = null, dockVars = null, log = () => {} }) {
     Object.assign(this, { sim, display, renderer, profiles, announcePages, announceMs, announceAircraftMs, logoIcon, animateScenes, sceneFps, keyboard, log });
+    this.dockVars = dockVars || new DockVars();
+    this.keypad = null; // { spec, typed, now } while a keypad covers the dock
     this.scene = null; // panel-wide picture shown instead of the keys (aircraft or page name)
     this.sceneTimer = null;
     this.slide = 0; // sideways offset of panel-wide text, animated (see _slide)
@@ -155,8 +174,17 @@ class ProfileEngine {
   }
 
   start() {
+    // Stopwatches count sim time; keys showing one follow it.
+    this.sim.subscribe([{ name: 'SIMULATION TIME', unit: 'seconds', type: 'number' }], (n, v) => this.dockVars.simTime(v));
+    this.dockVars.on('change', name => {
+      for (const [k, w] of this.watches) {
+        if (w.src.timer === name) { w.value = this.dockVars.value(w.src); this._redrawSource(k); }
+      }
+    });
     this.sim.on('connected', () => { this.status = 'loading'; this._sway(); });
     this.sim.on('disconnected', () => {
+      this.dockVars.simGone();
+      this.keypad = null;
       this._unwatchAll();
       this._stopHolds();
       this.profile = null;
@@ -201,6 +229,7 @@ class ProfileEngine {
   // aircraft: a new aircraft was loaded (announce it, not the page). quiet: no announcement.
   async _showPage({ aircraft = false, quiet = false } = {}) {
     const gen = ++this.generation;
+    this.keypad = null;
     this._unwatchAll();
     this._stopHolds();
     if (!this.profile) { this.status = 'loading'; this._clearScene(); this._sway(); return this.redrawAll(); }
@@ -326,7 +355,9 @@ class ProfileEngine {
       this._redrawSource(k);
     };
     try {
-      if (src.input) {
+      if (src.timer !== undefined) {
+        w.value = this.dockVars.value(src); // kept by the plugin; changes arrive through dockVars
+      } else if (src.input) {
         w.unsub = this.sim.subscribeInput([src.input], (n, v) => update(v));
         // Subscriptions report changes only; fetch the current value once.
         this.sim.getInput(src.input).then(update, e => { w.error = e.message; this._redrawSource(k); });
@@ -374,6 +405,7 @@ class ProfileEngine {
     if (this.status === 'offline') return tiles.scene({ ...this._statusScene('offline'), offset: this.slide }, slot);
     if (this.scene) return tiles.scene({ ...this.scene, offset: this.slide }, slot);
     if (this.status === 'loading') return tiles.scene({ ...this._statusScene('loading'), offset: this.slide }, slot);
+    if (this.keypad) return keypadImage(this.keypad, slot);
     const key = this.page.keys?.[slot];
     if (!key) return tiles.blank();
     const w = key.read ? this.watches.get(sourceKey(key.read)) : null;
@@ -453,11 +485,16 @@ class ProfileEngine {
   }
 
   keyDown(slot) {
+    if (this.keypad) { this.swallowed.add(slot); return this._keypadPress(slot); }
     if (NAV[slot]) return this._nav(NAV[slot]);
     // A press while an announcement covers the keys just dismisses it: the keys were not visible.
     if (this.scene) { this.swallowed.add(slot); this._clearScene(); return this.redrawAll(); }
     const key = this.status === 'ready' ? this.page.keys?.[slot] : null;
     if (!key || !key.press) return;
+    if (key.press.keypad) {
+      try { this._openKeypad(key); this.swallowed.add(slot); } catch (e) { this.log('press failed', { slot, error: e.message }); this.display.alert(slot); }
+      return;
+    }
     // A keyboard shortcut (user, 2026-10-30): tapped, or held down for as long as the key is.
     if (key.press.keys) {
       try {
@@ -519,6 +556,56 @@ class ProfileEngine {
     this.holdTimers.set(slot, setInterval(tick, p.rampMs));
   }
 
+  // ---------- keypad ----------
+
+  _openKeypad(key) {
+    const spec = kp.keypadSpec(key.press.keypad);
+    const w = key.read && this.watches.get(sourceKey(key.read));
+    const now = w && w.value !== undefined ? formatValue(key, w.value) : '';
+    this._stopHolds();
+    this.keypad = { spec, typed: '', now };
+    this.log('keypad', { title: spec.title });
+    this.redrawAll();
+  }
+
+  _keypadPress(slot) {
+    const k = this.keypad;
+    if (NAV[slot] || slot === kp.SLOTS.cancel) return this._closeKeypad();
+    if (slot === kp.SLOTS.del) k.typed = k.typed.slice(0, -1);
+    else if (slot === kp.SLOTS.ent) return k.typed ? this._enterKeypad() : this._closeKeypad();
+    else if (kp.SLOT_DIGIT[slot] !== undefined) {
+      k.typed = kp.typeDigit(k.spec, k.typed, kp.SLOT_DIGIT[slot]);
+      if (k.spec.autoEnter && k.typed.length === k.spec.digits) return this._enterKeypad();
+    } else return;
+    this.redrawAll(); // the typed digits, and which keys are dimmed
+  }
+
+  _enterKeypad() {
+    const { spec, typed } = this.keypad;
+    const value = kp.encode(spec, typed);
+    const a = spec.apply;
+    this.log('keypad enter', { title: spec.title, typed, value });
+    try {
+      if (a.event) this.sim.send({ event: a.event, value });
+      else if (a.var) this.sim.setVar({ name: a.var, unit: a.unit || 'number' }, value);
+      else this.sim.setInput(a.input, value);
+    } catch (e) {
+      this.log('keypad failed', { error: e.message });
+    }
+    this._closeKeypad();
+  }
+
+  _closeKeypad() {
+    this.keypad = null;
+    this.redrawAll();
+  }
+
+  // The 15 keypad images, for the editor's preview.
+  keypadImages(keypad, typed = '', now = '') {
+    const k = { spec: kp.keypadSpec(keypad), typed, now };
+    return Array.from({ length: LCD_SLOTS }, (_, s) => keypadImage(k, s));
+  }
+
   _stopHold(slot) {
     clearInterval(this.holdTimers.get(slot));
     this.holdTimers.delete(slot);
@@ -553,6 +640,11 @@ class ProfileEngine {
 
   _press(key, phase) {
     const p = key.press;
+    if (p.timer !== undefined) {
+      if (phase === 'up') return;
+      this.log('press', { timer: p.timer, action: p.action || 'toggle' });
+      return this.dockVars.press(p.timer, p.action || 'toggle');
+    }
     const target = pressTarget(key);
     // The value to cycle or step from: the target's own, when it is watched, else the key's.
     const own = target && this.watches.get(sourceKey(target));

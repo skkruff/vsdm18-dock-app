@@ -26,6 +26,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const save = async () => { await page.click('#saveProfile'); await sleep(400); };
 
   try {
+    // Other websites cannot drive the editor (review 2026-10-30): changes need the editor's
+    // header, and a Host other than localhost (DNS rebinding) is refused.
+    const raw = (method, headers, body) => new Promise((resolve, reject) => {
+      const r = require('http').request({ host: '127.0.0.1', port: h.port, path: '/api/send-keys', method, headers }, res => { res.resume(); resolve(res.statusCode); });
+      r.on('error', reject);
+      r.end(body);
+    });
+    assert.strictEqual(await raw('POST', { 'Content-Type': 'text/plain' }, '{"keys":"Alt+F"}'), 403, 'a cross-site form post');
+    assert.strictEqual(await raw('POST', { Host: 'evil.example:8765', 'X-Switchboard': '1' }, '{"keys":"Alt+F"}'), 403, 'DNS rebinding');
+    assert.strictEqual(h.keyboard.typed.length, 0, 'nothing typed');
     await page.goto(`http://localhost:${h.port}/`);
     await page.waitForSelector(`${slot(0)} img`);
     await page.waitForFunction(() => /MSFS connected/.test(document.querySelector('#simStatus').textContent), null, { timeout: 5000 });

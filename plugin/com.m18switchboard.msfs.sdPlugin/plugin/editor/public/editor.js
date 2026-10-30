@@ -29,7 +29,8 @@ const KP = 'kp'; // S.page while the keypad layout is being edited
 
 async function api(method, url, body) {
   const res = await fetch(url, {
-    method, headers: body ? { 'Content-Type': 'application/json' } : {},
+    // X-Switchboard: the server only takes changes carrying it (blocks other websites).
+    method, headers: { 'X-Switchboard': '1', ...(body ? { 'Content-Type': 'application/json' } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));

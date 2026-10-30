@@ -184,7 +184,11 @@ class SimConnectBackend extends EventEmitter {
     if (!this.handle) return Promise.reject(new Error('not connected'));
     const defId = this.nextId++;
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.oneShots.delete(defId); reject(new Error(`no answer for ${spec.name}`)); }, timeoutMs);
+      const timer = setTimeout(() => {
+        this.oneShots.delete(defId);
+        if (this.handle) this.handle.clearDataDefinition(defId); // no answer: free it (review 2026-10-30)
+        reject(new Error(`no answer for ${spec.name}`));
+      }, timeoutMs);
       this.oneShots.set(defId, { spec, resolve: v => { clearTimeout(timer); resolve(v); } });
       this._define(defId, spec);
       this.handle.requestDataOnSimObject(defId, defId, USER, SimConnectPeriod.ONCE);

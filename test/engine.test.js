@@ -37,7 +37,7 @@ const text = uri => decodeURIComponent(uri);
     image: (s, u) => { images.set(s, u); history.push([s, decodeURIComponent(u)]); },
     title: () => {}, alert: s => alerts.push(s),
   };
-  const engine = new ProfileEngine({ sim, display, profiles, renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
+  const engine = new ProfileEngine({ redrawMs: 0, sim, display, profiles, renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
   // Scenes span the panel: text is centred on the 864-wide canvas (5 keys + 4 gaps).
   // Each key carries only its own row of a panel-wide text, so look across all keys.
   const announced = name => history.some(([, svg]) => svg.includes(`aria-label="${name}"`) && svg.includes('id="scene"'));
@@ -296,7 +296,7 @@ const text = uri => decodeURIComponent(uri);
     const sim2 = new FakeSim({ ...sim.inputValues, LIGHTING_STROBE_0: 0 });
     const frames = new Map(); // slot -> distinct images
     const disp = { image: (s, u) => { if (!frames.has(s)) frames.set(s, new Set()); frames.get(s).add(u); }, title() {}, alert() {} };
-    const e2 = new ProfileEngine({ sim: sim2, display: disp, profiles, renderer: new Renderer(null), announceMs: 400, announceAircraftMs: 1, sceneFps: 20 });
+    const e2 = new ProfileEngine({ redrawMs: 0, sim: sim2, display: disp, profiles, renderer: new Renderer(null), announceMs: 400, announceAircraftMs: 1, sceneFps: 20 });
     e2.start();
     sim2.emit('connected');
     sim2.emit('aircraft', C172);
@@ -321,7 +321,7 @@ const text = uri => decodeURIComponent(uri);
       2: { type: 'button', label: 'HOLD', press: { hold: 1, release: 0, var: { var: 'HELD', unit: 'number' } } },
     } }] };
     const imgs = new Map();
-    const e3 = new ProfileEngine({ sim: sim3, display: { image: (s, u) => imgs.set(s, u), title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
+    const e3 = new ProfileEngine({ redrawMs: 0, sim: sim3, display: { image: (s, u) => imgs.set(s, u), title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
     e3.start();
     sim3.emit('connected');
     sim3.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
@@ -348,7 +348,7 @@ const text = uri => decodeURIComponent(uri);
       1: { type: 'readout', read: { input: 'DIM2' }, press: { step: 25, min: 0, max: 100, wrap: true } },
       2: { type: 'readout', read: { input: 'DIM3' }, press: { step: 25, min: 0, max: 100, wrap: true, rampMs: 15, rampStep: 10, rampDelayMs: 40 } },
     } }] };
-    const e4 = new ProfileEngine({ sim: sim4, display: { image() {}, title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
+    const e4 = new ProfileEngine({ redrawMs: 0, sim: sim4, display: { image() {}, title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
     e4.start();
     sim4.emit('connected');
     sim4.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
@@ -387,7 +387,7 @@ const text = uri => decodeURIComponent(uri);
       0: { type: 'button', label: 'TORCH', press: { keys: 'Alt+L' } },
       1: { type: 'button', label: 'PTT', press: { keys: 'Ctrl+T', whileHeld: true, focus: false } },
     } }, { name: 'Q', keys: {} }] };
-    const e5 = new ProfileEngine({ sim: sim5, display: { image() {}, title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), keyboard, announceMs: 1, announceAircraftMs: 1 });
+    const e5 = new ProfileEngine({ redrawMs: 0, sim: sim5, display: { image() {}, title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), keyboard, announceMs: 1, announceAircraftMs: 1 });
     e5.start();
     sim5.emit('connected');
     sim5.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
@@ -423,7 +423,7 @@ const text = uri => decodeURIComponent(uri);
       6: { type: 'button', label: 'ALL IN ONE', press: { timer: 'T2', action: 'toggle', holdReset: true, holdMs: 40 } },
       7: { type: 'readout', label: 'T2', read: { timer: 'T2' }, format: 'duration' },
     } }] };
-    const e6 = new ProfileEngine({ sim: sim6, display: { image: (s, u) => imgs.set(s, u), title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), dockVars: dv, announceMs: 1, announceAircraftMs: 1 });
+    const e6 = new ProfileEngine({ redrawMs: 0, sim: sim6, display: { image: (s, u) => imgs.set(s, u), title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), dockVars: dv, announceMs: 1, announceAircraftMs: 1 });
     e6.start();
     sim6.emit('connected');
     sim6.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
@@ -555,6 +555,69 @@ const text = uri => decodeURIComponent(uri);
     assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'button', press: { keypad: { digits: 3 } } } } }] }, 'x'), /somewhere to set/);
     assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'button', press: { timer: 'T1', action: 'lap' } } } }] }, 'x'), /stopwatch action/);
     validate({ id: 'x', match: {}, pages: [prof.pages[0]] }, 'x');
+  }
+
+  // Fast-changing simvars (LOCAL TIME, RPM) redraw at most every redrawMs: the first change at
+  // once, the last one never lost (review 2026-10-30).
+  {
+    const sim7 = new FakeSim({});
+    const draws = [];
+    const prof = { id: 'f', fallback: true, pages: [{ name: 'P', keys: { 0: { type: 'readout', label: 'RPM', read: { var: 'RPM', unit: 'rpm' } } } }] };
+    const e7 = new ProfileEngine({ sim: sim7, display: { image: (s, u) => { if (s === 0) draws.push(decodeURIComponent(u)); }, title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), redrawMs: 60, announceMs: 1, announceAircraftMs: 1 });
+    e7.start();
+    sim7.emit('connected');
+    sim7.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
+    await new Promise(r => setTimeout(r, 30));
+    draws.length = 0;
+    for (let i = 1; i <= 20; i++) sim7.simvar('RPM', 2000 + i);
+    assert.strictEqual(draws.length, 1, 'first change drawn at once, the rest held back');
+    assert.match(draws[0], /aria-label="2001"/);
+    await new Promise(r => setTimeout(r, 90));
+    assert.strictEqual(draws.length, 2, 'one more draw after the window');
+    assert.match(draws[1], /aria-label="2020"/, 'with the latest value');
+    sim7.simvar('RPM', 2020);
+    await new Promise(r => setTimeout(r, 90));
+    assert.strictEqual(draws.length, 2, 'an unchanged value is not redrawn');
+  }
+
+  // A ramp held at the end it is already at turns back at once with wrap (review 2026-10-30).
+  {
+    const sim8 = new FakeSim({ DIM: 100 });
+    const prof = { id: 'r', fallback: true, pages: [{ name: 'P', keys: { 0: { type: 'readout', read: { input: 'DIM' }, press: { step: 25, min: 0, max: 100, wrap: true, rampMs: 15, rampStep: 10, rampDelayMs: 20 } } } }] };
+    const e8 = new ProfileEngine({ redrawMs: 0, sim: sim8, display: { image() {}, title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
+    e8.start();
+    sim8.emit('connected');
+    sim8.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
+    await new Promise(r => setTimeout(r, 30));
+    sim8.input('DIM', 100);
+    e8.keyDown(0);
+    await new Promise(r => setTimeout(r, 60));
+    e8.keyUp(0);
+    assert.deepStrictEqual(sim8.sets.map(s => s[1]).slice(0, 2), [90, 80], `from 100 it ramps down (${sim8.sets.map(s => s[1])})`);
+    // Without wrap, a ramp held at its end sends nothing and stops.
+    sim8.sets.length = 0;
+    prof.pages[0].keys[0].press.wrap = false;
+    e8.keyDown(0);
+    await new Promise(r => setTimeout(r, 80));
+    assert.strictEqual(e8.holdTimers.size, 0, 'stopped at the end, not ticking');
+    e8.keyUp(0);
+    assert.deepStrictEqual(sim8.sets, [], 'nothing sent');
+  }
+  // A press that only dismissed an announcement, whose release never came (the dock went away),
+  // does not eat the next press's release: a held START must still be let go (review 2026-10-30).
+  {
+    const sim9 = new FakeSim({ MAG: 3 });
+    const prof = { id: 'h', fallback: true, pages: [{ name: 'P', keys: { 0: { type: 'button', read: { input: 'MAG' }, press: { hold: 4, release: 3 } } } }] };
+    const e9 = new ProfileEngine({ redrawMs: 0, sim: sim9, display: { image() {}, title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
+    e9.start();
+    sim9.emit('connected');
+    sim9.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
+    await new Promise(r => setTimeout(r, 30));
+    e9._showScene({ rows: { 1: 'P' } }, 5000);
+    e9.keyDown(0); // dismisses the announcement; its release is lost
+    e9.keyDown(0);
+    e9.keyUp(0);
+    assert.deepStrictEqual(sim9.sets, [['MAG', 4], ['MAG', 3]], 'held, then released');
   }
 
   // Units around values, and the separator.

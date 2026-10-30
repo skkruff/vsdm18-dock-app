@@ -289,6 +289,13 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
 
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
+    // Only this PC's browser, through the editor page (review 2026-10-30): any website open in the
+    // browser can send requests to localhost. A Host other than localhost is a DNS-rebinding page;
+    // a change without the editor's own header is another site's form or fetch (browsers do not
+    // let other sites add custom headers without the server's consent, which it never gives).
+    const host = String(req.headers.host || '').replace(/:\d+$/, '');
+    if (!['localhost', '127.0.0.1', '[::1]'].includes(host)) return send(res, 403, { error: 'editor is for this PC only' });
+    if (req.method !== 'GET' && req.headers['x-switchboard'] !== '1') return send(res, 403, { error: 'requests must come from the editor page' });
     try {
       if (url.pathname.startsWith('/icons/')) {
         const name = decodeURIComponent(url.pathname.slice(7)).replace(/\.png$/, '');

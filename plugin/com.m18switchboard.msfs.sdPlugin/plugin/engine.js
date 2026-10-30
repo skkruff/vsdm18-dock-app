@@ -173,8 +173,10 @@ function withUnits(key, s) {
 
 class ProfileEngine {
   constructor({ sim, display, renderer, profiles, announcePages = true, announceMs = 800,
-    announceAircraftMs = 2500, logoIcon = 'fs_logo_icon', animateScenes = true, sceneFps = 10, keyboard = null, dockVars = null, log = () => {} }) {
-    Object.assign(this, { sim, display, renderer, profiles, announcePages, announceMs, announceAircraftMs, logoIcon, animateScenes, sceneFps, keyboard, log });
+    announceAircraftMs = 2500, logoIcon = 'fs_logo_icon', animateScenes = true, sceneFps = 10, keyboard = null, dockVars = null,
+    redrawMs = 100, log = () => {} }) {
+    Object.assign(this, { sim, display, renderer, profiles, announcePages, announceMs, announceAircraftMs, logoIcon, animateScenes, sceneFps, keyboard, redrawMs, log });
+    this.redrawTimers = new Map(); // sourceKey -> { timer, pending }: see _redrawSourceSoon
     this.dockVars = dockVars || new DockVars();
     this.keypad = null; // { spec, typed, now } while a keypad covers the dock
     this.keypadLayout = kp.DEFAULT_LAYOUT;
@@ -373,8 +375,10 @@ class ProfileEngine {
     this.watches.set(k, w);
     const update = v => {
       if (gen !== this.generation) return;
-      w.value = normalise(v);
-      this._redrawSource(k);
+      const nv = normalise(v);
+      if (w.value === nv && !w.error) return;
+      w.value = nv;
+      this._redrawSourceSoon(k);
     };
     try {
       if (src.timer !== undefined) {
@@ -396,6 +400,25 @@ class ProfileEngine {
   _unwatchAll() {
     for (const w of this.watches.values()) if (w.unsub) w.unsub();
     this.watches.clear();
+    for (const r of this.redrawTimers.values()) clearTimeout(r.timer);
+    this.redrawTimers.clear();
+  }
+
+  // Simvars that change every sim frame (LOCAL TIME, RPM, altitude) would redraw their keys 30-60
+  // times a second; drawing text as outlines is not free (review 2026-10-30). The first change is
+  // drawn at once, later ones at most every redrawMs, and the last one is never lost.
+  _redrawSourceSoon(k) {
+    if (!this.redrawMs) return this._redrawSource(k);
+    const r = this.redrawTimers.get(k);
+    if (r) { r.pending = true; return; }
+    this._redrawSource(k);
+    const entry = { pending: false };
+    entry.timer = setTimeout(() => {
+      this.redrawTimers.delete(k);
+      if (entry.pending) this._redrawSourceSoon(k);
+    }, this.redrawMs);
+    if (entry.timer.unref) entry.timer.unref();
+    this.redrawTimers.set(k, entry);
   }
 
   _onException(e) {
@@ -510,6 +533,9 @@ class ProfileEngine {
   }
 
   keyDown(slot) {
+    // A swallow left over from a press whose release never came (the dock went away) must not
+    // eat this press's release (review 2026-10-30).
+    this.swallowed.delete(slot);
     if (this.keypad) { this.swallowed.add(slot); return this._keypadPress(slot); }
     if (NAV[slot]) return this._nav(NAV[slot]);
     // A press while an announcement covers the keys just dismisses it: the keys were not visible.
@@ -583,16 +609,22 @@ class ProfileEngine {
     let dir = Math.sign(p.step) || 1;
     const size = Math.abs(p.rampStep ?? p.step) || 1;
     v = Number(v);
+    const clamp = n => {
+      if (p.max !== undefined && n >= p.max) { if (p.wrap) dir = -1; return p.max; }
+      if (p.min !== undefined && n <= p.min) { if (p.wrap) dir = 1; return p.min; }
+      return n;
+    };
     const tick = () => {
-      let next = v + dir * size;
-      if (p.max !== undefined && next >= p.max) { next = p.max; if (p.wrap) dir = -1; }
-      if (p.min !== undefined && next <= p.min) { next = p.min; if (p.wrap) dir = 1; }
+      let next = clamp(v + dir * size);
+      // Held at the end it is already at: with wrap, turn back at once (review 2026-10-30).
+      if (next === v && p.wrap) next = clamp(v + dir * size);
       if (next === v) return this._stopHold(slot); // at a stop, nowhere to go
       v = next;
       try { this._apply(target, v); } catch (e) { this._stopHold(slot); }
     };
-    tick();
+    // The timer first, so a first tick that finds nowhere to go can stop it (review 2026-10-30).
     this.holdTimers.set(slot, setInterval(tick, p.rampMs));
+    tick();
   }
 
   // ---------- keypad ----------
@@ -670,7 +702,9 @@ class ProfileEngine {
     const th = this.timerHolds.get(slot);
     if (th) {
       this.timerHolds.delete(slot);
-      if (!th.reset && key) this._press(key, 'down'); // a tap: start / stop
+      if (!th.reset && key) {
+        try { this._press(key, 'down'); } catch (e) { this.log('press failed', { slot, error: e.message }); this.display.alert(slot); } // a tap: start / stop
+      }
       return;
     }
     const held = this.heldKeys.get(slot);

@@ -25,7 +25,7 @@ function validate(p, file) {
         if (!face) continue;
         if (!Array.isArray(face.layers)) { errors.push(`${where}: ${name} needs a layers list`); continue; }
         for (const L of face.layers) {
-          if (!['icon', 'text', 'value', 'sublabel', 'bar', 'rect'].includes(L.kind)) errors.push(`${where}: ${name}: unknown layer ${L.kind}`);
+          if (!['icon', 'text', 'value', 'sublabel', 'separator', 'bar', 'rect'].includes(L.kind)) errors.push(`${where}: ${name}: unknown layer ${L.kind}`);
           if (L.kind === 'bar' && L.look !== undefined && !['on', 'armed', 'off', 'clear'].includes(L.look)) errors.push(`${where}: ${name}: bar look must be on, armed, off or clear`);
           if ((L.kind === 'value' || L.kind === 'sublabel') && L.read && !L.read.input && !L.read.var) errors.push(`${where}: ${name}: ${L.kind} layer source needs an input event or simvar`);
         }

@@ -599,6 +599,13 @@ function field(label, control, note, help) {
 // ⓘ next to a label: the help text on hover, or pinned open by a click (user, 2026-10-29). Texts
 // live in HELP so they are easy to find and correct.
 const HELP = {
+  units: 'Text before or after the value, e.g. QNH before, or %, RPM, FPM, KT after. A unit starting with a letter '
+    + 'or digit gets a space ("2400 RPM"); a symbol does not ("75%"). Not added to words from "Value text per value".',
+  wrap: 'Step keys stop at min / max. With wrap, a tap at the stop goes round to the other end, so one key can cycle '
+    + 'through a range; a held ramp turns back at the ends instead.',
+  ramp: 'For one-key dimmers: a tap steps once (on release, so a hold is not also a step), holding past the delay '
+    + 'keeps stepping by "Ramp step" every "Ramp every ms" until you let go. The ramp counts from the value it last '
+    + 'sent, so it stays smooth even though the sim reports changes a moment later.',
   decor: 'For looks only: a label, an icon, a sublabel or a custom face, with no sim source and nothing on press. '
     + 'Use it for panel titles, separators or artwork.',
   armable: 'For modes that arm before they engage (APR, GS, NAV/LOC capture, ALT). The key checks its '
@@ -819,6 +826,14 @@ function renderInspector() {
     box.append(field('Pad to digits', input(key.pad, v => { if (v === '') delete key.pad; else key.pad = Number(v); changed(); }, { type: 'number', min: 0, max: 8 }), 'e.g. 4 shows 7 as 0007'));
     box.append(field('Show as', select_([['', 'Number'], ['time', 'Time HH:MM (from seconds)']], key.format || '', v => { if (v) key.format = v; else delete key.format; changed(); })));
   }
+  if (key.type === 'readout') {
+    box.append(field('Unit before', input(key.prefix, v => { if (v) key.prefix = v; else delete key.prefix; changed(); }, { placeholder: 'e.g. QNH' }), null, 'units'));
+    box.append(field('Unit after', input(key.suffix, v => { if (v) key.suffix = v; else delete key.suffix; changed(); }, { placeholder: 'e.g. %, RPM, FPM' })));
+    box.append(field('Separator', el('input', { type: 'checkbox', checked: key.separator ? true : null, on: { change: e => {
+      if (e.target.checked) key.separator = true; else delete key.separator;
+      changed();
+    } } }), 'A line under the label, like SET ALTIMETER. In a custom face, add a Separator layer instead.'));
+  }
 
   // Press
   box.append(el('h4', {}, 'When pressed', key.type === 'armable' ? info('armablePress') : null));
@@ -839,6 +854,19 @@ function renderInspector() {
     box.append(field('Step', input(p.step, v => setP('step', num(v)), { type: 'number' }), '1 = up, -1 = down'));
     box.append(field('Minimum', input(p.min, v => setP('min', num(v)), { type: 'number' })));
     box.append(field('Maximum', input(p.max, v => setP('max', num(v)), { type: 'number' })));
+    box.append(field('Wrap at the ends', el('input', { type: 'checkbox', checked: p.wrap ? true : null, on: { change: e => setP('wrap', e.target.checked || undefined) } }),
+      'At the stop, the next tap goes round to the other end (needs min and max); a hold turns back', 'wrap'));
+    // Hold to ramp (user, 2026-10-30): tap steps, holding keeps stepping, e.g. one dimmer key.
+    const ramping = !!p.rampMs;
+    box.append(field('Hold to ramp', el('input', { type: 'checkbox', checked: ramping ? true : null, on: { change: e => {
+      if (e.target.checked) key.press.rampMs = 100; else { delete key.press.rampMs; delete key.press.rampStep; delete key.press.rampDelayMs; }
+      redraw();
+    } } }), 'A tap steps once (on release); holding keeps stepping until you let go', 'ramp'));
+    if (ramping) {
+      box.append(field('Ramp step', input(p.rampStep, v => setP('rampStep', num(v)), { type: 'number', min: 0, placeholder: String(Math.abs(p.step || 1)) }), 'Size of each step while held (empty = the step above)'));
+      box.append(field('Ramp every ms', input(p.rampMs, v => setP('rampMs', num(v) || 100), { type: 'number', min: 20 })));
+      box.append(field('Hold before ramp, ms', input(p.rampDelayMs, v => setP('rampDelayMs', num(v)), { type: 'number', min: 0, placeholder: '400' })));
+    }
   }
   if (pkind === 'hold') {
     box.append(field('While held', input(p.hold, v => setP('hold', num(v)), { type: 'number' })));
@@ -1122,7 +1150,9 @@ function defaultFace(key) {
   if (key.type === 'readout') {
     return key.icon
       ? { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: 62 }, sub(82), { kind: 'value', x: 72, y: 112, size: 40 }] }
-      : { layers: [{ kind: 'text', text: label, x: 72, y: 28, size: 24 }, sub(54), { kind: 'value', x: 72, y: 100, size: 42 }] };
+      : key.separator
+        ? { layers: [{ kind: 'text', text: label, x: 72, y: 28, size: 24 }, sub(50), { kind: 'separator', x: 72, y: hasSublabel(key) ? 66 : 46 }, { kind: 'value', x: 72, y: hasSublabel(key) ? 104 : 95, size: hasSublabel(key) ? 40 : 44 }] }
+        : { layers: [{ kind: 'text', text: label, x: 72, y: 28, size: 24 }, sub(54), { kind: 'value', x: 72, y: 100, size: 42 }] };
   }
   if (key.type === 'switch' || key.type === 'armable') {
     return key.icon
@@ -1145,9 +1175,10 @@ const NEW_LAYER = {
   value: () => ({ kind: 'value', x: 72, y: 104, size: 40 }),
   sublabel: () => ({ kind: 'sublabel' }),
   bar: () => ({ kind: 'bar' }),
+  separator: () => ({ kind: 'separator', x: 72, y: 56 }),
   rect: () => ({ kind: 'rect', x: 0, y: 0, w: 144, h: 40, color: '#1e2a3a' }),
 };
-const LAYER_NAMES = { icon: 'Icon', text: 'Text', value: 'Live value', sublabel: 'Sublabel', bar: 'State bar', rect: 'Box' };
+const LAYER_NAMES = { icon: 'Icon', text: 'Text', value: 'Live value', sublabel: 'Sublabel', separator: 'Separator', bar: 'State bar', rect: 'Box' };
 
 let faceLayer = 0; // which layer dragging on the preview moves
 let faceTarget = 'default'; // which face is being edited: 'default' or a sim value
@@ -1227,7 +1258,7 @@ function faceDesigner(key, slot) {
     const L = face.layers[faceLayer];
     if (!L) return;
     preview.setPointerCapture(e.pointerId);
-    const defaults = L.kind === 'bar' ? S.look.style.bar : L.kind === 'sublabel' ? { x: 72, y: SUBLABEL_Y() } : { x: 0, y: 0 };
+    const defaults = L.kind === 'bar' ? S.look.style.bar : L.kind === 'sublabel' ? { x: 72, y: SUBLABEL_Y() } : L.kind === 'separator' ? { x: 72, y: 56 } : { x: 0, y: 0 };
     drag = { x: e.clientX, y: e.clientY, lx: Number(L.x ?? defaults.x) || 0, ly: Number(L.y ?? defaults.y) || 0, L };
   });
   preview.addEventListener('pointermove', e => {
@@ -1269,6 +1300,8 @@ function faceDesigner(key, slot) {
     } else if (L.kind === 'value') {
       fields.push(n('x', 'x'), n('y', 'y'), n('size', 'size'), n('w', 'max width'), color('color', COLORS().value),
         n('decimals', 'decimals', { min: 0, max: 6 }), n('pad', 'pad', { min: 0, max: 8 }),
+        ...['prefix', 'suffix'].map(k => el('label', { class: 'mini' }, k === 'prefix' ? 'unit before' : 'unit after',
+          input(L[k], v => { if (v) L[k] = v; else delete L[k]; update(); }, { placeholder: L.read ? '' : key[k] || '', style: 'width:70px' }))),
         el('label', { class: 'mini' }, 'show as', select_([['', 'number'], ['time', 'HH:MM']], L.format || '', v => { if (v) L.format = v; else delete L.format; update(); })));
       // Each value layer can show its own source, so one key can show several live values.
       const own = !!L.read;
@@ -1292,6 +1325,9 @@ function faceDesigner(key, slot) {
           field('Other values', input(L.sublabel, v => { if (v) L.sublabel = v; else delete L.sublabel; update(); }), 'shown for values not listed; empty shows nothing'));
       }
       fields.push(srcBox);
+    } else if (L.kind === 'separator') {
+      fields.push(n('x', 'x', { placeholder: 72 }), n('y', 'y', { placeholder: 56 }), n('w', 'w', { placeholder: 64 }), n('h', 'h', { placeholder: 7 }), n('r', 'corner', { placeholder: 3.5 }),
+        color('color', lookValue('readout', '#4fc3f7')), el('span', { class: 'muted' }, 'Positioned by its centre.'));
     } else if (L.kind === 'bar') {
       fields.push(el('label', { class: 'mini' }, 'shows', select_([['', 'follows the key\'s state'], ['on', 'green'], ['armed', 'white (armed)'], ['off', 'red'], ['clear', 'clear (outline)']],
         L.look || '', v => { if (v) L.look = v; else delete L.look; update(); })),

@@ -69,6 +69,18 @@ function pressTarget(key) {
   return input ? { input } : null;
 }
 
+// The value after current in a cycle list. A value not in the list (e.g. a dimmer set to 37 in
+// the cockpit, list 0/25/50/75/100) goes to the next listed value above it, so the key carries on
+// upward instead of jumping to the start (user, 2026-10-30); above them all, the first.
+function nextInCycle(list, current) {
+  if (current === undefined) return list[0];
+  const now = Math.round(current);
+  const i = list.findIndex(v => v === now);
+  if (i >= 0) return list[(i + 1) % list.length];
+  const above = list.filter(v => v > now);
+  return above.length ? Math.min(...above) : list[0];
+}
+
 function armableOrSources(key) {
   return [...(key.activeOr || []), ...(key.armedOr || [])].map(o => o.read).filter(Boolean);
 }
@@ -100,6 +112,10 @@ function formatValue(key, value) {
   if (value === undefined) return '---';
   const text = lookup(key.text, value);
   if (text !== undefined) return text;
+  return withUnits(key, formatNumber(key, value));
+}
+
+function formatNumber(key, value) {
   if (typeof value !== 'number') return String(value);
   if (key.format === 'time') {
     // Seconds since midnight (LOCAL TIME, ZULU TIME) as HH:MM.
@@ -108,6 +124,15 @@ function formatValue(key, value) {
   }
   const s = value.toFixed(key.decimals ?? 0);
   return key.pad ? s.padStart(key.pad, '0') : s;
+}
+
+// Units around a value (user, 2026-10-30): prefix "QNH" -> "QNH 1013", suffix "%" -> "75%",
+// suffix "RPM" -> "2400 RPM". A unit starting with a letter or digit gets a space; symbols do not.
+function withUnits(key, s) {
+  const word = u => /^[A-Za-z0-9]/.test(u);
+  const pre = key.prefix ? `${key.prefix}${word(key.prefix.slice(-1)) ? ' ' : ''}` : '';
+  const post = key.suffix ? `${word(key.suffix) ? ' ' : ''}${key.suffix}` : '';
+  return `${pre}${s}${post}`;
 }
 
 class ProfileEngine {
@@ -119,6 +144,7 @@ class ProfileEngine {
     this.slide = 0; // sideways offset of panel-wide text, animated (see _slide)
     this.slideTimer = null;
     this.holdTimers = new Map(); // slot -> interval re-sending a held position
+    this.ramps = new Map(); // slot -> { ramping } while a step key with a ramp is held
     this.swallowed = new Set(); // slots whose key down only dismissed an announcement
     this.status = 'offline'; // offline | loading | ready
     this.profile = null;
@@ -377,14 +403,14 @@ class ProfileEngine {
       };
       const valueFor = L => (L.read
         ? formatValue(L, valueOf(L.read))
-        : formatValue({ ...key, ...pick(L, ['decimals', 'pad', 'format']) }, value));
+        : formatValue({ ...key, ...pick(L, ['decimals', 'pad', 'format', 'prefix', 'suffix']) }, value));
       return tiles.face(face, { iconFor, valueFor, state, sublabel: layerSublabel(sublabelFor(key, value), valueOf) });
     }
     if (key.type === 'readout') {
       const icon = this.renderer.icon(key.icon, key.iconState || null);
       return icon
         ? tiles.iconReadout(icon, formatValue(key, value), this.renderer.iconBox(key.icon, key.iconState || null), sublabelFor(key, value))
-        : tiles.readout(key.label || '', formatValue(key, value), sublabelFor(key, value));
+        : tiles.readout(key.label || '', formatValue(key, value), sublabelFor(key, value), key.separator);
     }
     // Decorative keys (user, 2026-10-30) look like a button without a press: icon, or label and sublabel.
     if (key.type === 'button' || key.type === 'decor') return this.renderer.icon(key.icon, null) || tiles.button(key.label || '', sublabelFor(key, value));
@@ -406,7 +432,7 @@ class ProfileEngine {
         const uri = this.renderer.icon(n, st);
         return uri ? { uri, box: this.renderer.iconBox(n, st) } : null;
       };
-      const valueFor = L => formatValue(L.read ? L : { ...key, ...pick(L, ['decimals', 'pad', 'format']) }, L.read ? valueOf(L.read) : value);
+      const valueFor = L => formatValue(L.read ? L : { ...key, ...pick(L, ['decimals', 'pad', 'format', 'prefix', 'suffix']) }, L.read ? valueOf(L.read) : value);
       return tiles.face(face, { iconFor, valueFor, state, sublabel: layerSublabel(sublabel, valueOf) });
     }
     if (state === 'armed') {
@@ -417,6 +443,7 @@ class ProfileEngine {
   }
 
   _stopHolds() {
+    this.ramps.clear();
     for (const t of this.holdTimers.values()) clearInterval(t);
     this.holdTimers.clear();
   }
@@ -427,6 +454,14 @@ class ProfileEngine {
     if (this.scene) { this.swallowed.add(slot); this._clearScene(); return this.redrawAll(); }
     const key = this.status === 'ready' ? this.page.keys?.[slot] : null;
     if (!key || !key.press) return;
+    // Step with ramp (user, 2026-10-30): a tap steps (on release), holding past rampDelayMs ramps.
+    if (key.press.step !== undefined && key.press.rampMs) {
+      this._stopHold(slot);
+      const r = { ramping: false };
+      this.ramps.set(slot, r);
+      this.holdTimers.set(slot, setTimeout(() => this._ramp(slot, key, r), key.press.rampDelayMs ?? 400));
+      return;
+    }
     try {
       this._press(key, 'down');
       // Some aircraft drop spring-loaded positions (e.g. START) after a moment unless the input
@@ -443,6 +478,30 @@ class ProfileEngine {
     }
   }
 
+  // Holding a step key: keep stepping by rampStep (default step) every rampMs, from the value the
+  // ramp itself last sent (the sim's report lags). At min / max it stops, or with wrap turns back.
+  _ramp(slot, key, r) {
+    const p = key.press;
+    const target = pressTarget(key);
+    const own = target && this.watches.get(sourceKey(target));
+    let v = own && own.value !== undefined ? own.value : key.read ? this.watches.get(sourceKey(key.read))?.value : undefined;
+    if (v === undefined || !target) return;
+    r.ramping = true;
+    let dir = Math.sign(p.step) || 1;
+    const size = Math.abs(p.rampStep ?? p.step) || 1;
+    v = Number(v);
+    const tick = () => {
+      let next = v + dir * size;
+      if (p.max !== undefined && next >= p.max) { next = p.max; if (p.wrap) dir = -1; }
+      if (p.min !== undefined && next <= p.min) { next = p.min; if (p.wrap) dir = 1; }
+      if (next === v) return this._stopHold(slot); // at a stop, nowhere to go
+      v = next;
+      try { this._apply(target, v); } catch (e) { this._stopHold(slot); }
+    };
+    tick();
+    this.holdTimers.set(slot, setInterval(tick, p.rampMs));
+  }
+
   _stopHold(slot) {
     clearInterval(this.holdTimers.get(slot));
     this.holdTimers.delete(slot);
@@ -452,6 +511,13 @@ class ProfileEngine {
     this._stopHold(slot);
     if (this.swallowed.delete(slot)) return; // its key down did nothing, so neither does key up
     const key = this.status === 'ready' ? this.page?.keys?.[slot] : null;
+    const ramp = this.ramps.get(slot);
+    this.ramps.delete(slot);
+    if (ramp && key) {
+      if (ramp.ramping) return; // the hold ramped; letting go just stops it
+      try { this._press(key, 'down'); } catch (e) { this.log('press failed', { slot, error: e.message }); this.display.alert(slot); }
+      return;
+    }
     if (!key || !key.press || key.press.release === undefined) return;
     try { this._press(key, 'up'); } catch (e) { this.log('release failed', { slot, error: e.message }); }
   }
@@ -475,14 +541,18 @@ class ProfileEngine {
       this.log('press', { event: p.event, value });
       return this.sim.send({ event: p.event, value });
     } else if (p.cycle) {
-      const i = p.cycle.findIndex(v => v === Math.round(current));
-      value = p.cycle[(i + 1) % p.cycle.length];
+      value = nextInCycle(p.cycle, current);
     } else if (p.step !== undefined) {
       if (current === undefined) throw new Error('no current value to step from');
-      value = Math.round(current) + p.step;
+      const now = Math.round(current);
+      value = now + p.step;
       if (p.min !== undefined) value = Math.max(p.min, value);
       if (p.max !== undefined) value = Math.min(p.max, value);
-      if (value === Math.round(current)) return; // at the stop
+      if (value === now) {
+        // At the stop: with wrap, go round to the other end (min and max both needed).
+        if (!p.wrap || p.min === undefined || p.max === undefined) return;
+        value = p.step > 0 ? p.min : p.max;
+      }
     } else if (p.hold !== undefined) value = p.hold;
     else if (p.set !== undefined) value = p.set;
     else throw new Error('press has no action');

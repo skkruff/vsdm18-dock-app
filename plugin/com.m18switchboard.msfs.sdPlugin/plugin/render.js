@@ -141,6 +141,13 @@ const PANEL = { cols: 5, rows: 3, key: 144, gap: 36 };
 
 const BAR_LOOKS = ['on', 'armed', 'off', 'clear'];
 
+// The separator line: measured from the user's SET ALTIMETER icon (2026-10-30), a rounded line
+// about 64 x 7 key units in the readout colour. Positioned by its centre.
+const SEPARATOR = { x: 72, w: 64, h: 7, r: 3.5 };
+function separatorRect({ x = SEPARATOR.x, y, w = SEPARATOR.w, h = SEPARATOR.h, r = SEPARATOR.r, color } = {}) {
+  return `<rect x="${(x - w / 2).toFixed(1)}" y="${(y - h / 2).toFixed(1)}" width="${w}" height="${h}" rx="${r}" fill="${esc(color || style.readout)}"/>`;
+}
+
 function bar(state, b = style.bar) {
   const fill = style[state === 'on' || state === 'off' || state === 'armed' ? state : null];
   if (fill) return `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.r}" fill="${fill}"/>`;
@@ -175,10 +182,21 @@ const tiles = {
     return svgUri(lines(label, sublabel ? 58 : 72, { size: 34, width: 128 }) +
       (sublabel ? lines(sublabel, 104, { size: SUBLABEL_SIZE, color: style.dim }) : ''));
   },
-  readout(label, value, sublabel) {
-    return svgUri(lines(label, 28, { size: 24, width: 130 }) +
-      (sublabel ? lines(sublabel, 52, { size: SUBLABEL_SIZE, color: style.dim }) : '') +
-      lines(value, sublabel ? 100 : 94, { size: sublabel ? 42 : 46, color: style.readout, width: 132 }));
+  readout(label, value, sublabel, separator) {
+    if (!separator) {
+      return svgUri(lines(label, 28, { size: 24, width: 130 }) +
+        (sublabel ? lines(sublabel, 52, { size: SUBLABEL_SIZE, color: style.dim }) : '') +
+        lines(value, sublabel ? 100 : 94, { size: sublabel ? 42 : 46, color: style.readout, width: 132 }));
+    }
+    // With a separator under the label (and sublabel), like the user's SET ALTIMETER icon: stack
+    // down from the label, the value centred in the space left.
+    const n = String(label).split('\n').length;
+    let y = 28 + (n - 1) * 12 + 9; // bottom of the label
+    let body = lines(label, 28, { size: 24, width: 130 });
+    if (sublabel) { body += lines(sublabel, y + 12, { size: SUBLABEL_SIZE, color: style.dim }); y += 20; }
+    body += separatorRect({ y: y + 9 });
+    y += 13;
+    return svgUri(body + lines(value, (y + 140) / 2, { size: sublabel ? 40 : 44, color: style.readout, width: 132 }));
   },
   // A library icon's content scaled into the top of the key, with a live value below.
   // A library icon has no armed version: its clear version with the bar filled in the armed colour.
@@ -200,6 +218,7 @@ const tiles = {
   //   { kind: 'sublabel', x, y, size, color, w }                  the key's sublabel for its value
   //   { kind: 'bar', x, y, w, h, r, look }                         red / green / outline by state,
   //                                                                or always look (on|armed|off|clear)
+  //   { kind: 'separator', x, y, w, h, r, color }                 a rounded line, centred on (x, y)
   //   { kind: 'rect', x, y, w, h, r, color }
   // ctx: { iconFor(name) -> { uri, box } | null, valueFor(layer) -> string, state }
   face(face, ctx) {
@@ -223,6 +242,8 @@ const tiles = {
         // look: a fixed bar (on / armed / off / clear) instead of following the key's state, e.g.
         // a different bar on each per-value face of a readout (user, 2026-10-30).
         body += bar(BAR_LOOKS.includes(L.look) ? L.look : ctx.state, { x, y, w, h, r: num(L.r, style.bar.r) });
+      } else if (L.kind === 'separator') {
+        body += separatorRect({ x: num(L.x, SEPARATOR.x), y: num(L.y, 56), w: num(L.w, SEPARATOR.w), h: num(L.h, SEPARATOR.h), r: num(L.r, SEPARATOR.r), color: L.color });
       } else if (L.kind === 'rect') {
         body += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${num(L.r, 0)}" fill="${esc(L.color || '#333333')}"/>`;
       }

@@ -298,6 +298,32 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.fill('#inspector .ladder .step >> nth=1 >> input[placeholder^="e.g. NAV"]', 'AUTOPILOT APPROACH ARM');
     await save();
 
+    // Dimmer page (user, 2026-10-30): readout with units and separator; one key steps, wraps and ramps.
+    page.prompts = ['Dimmers'];
+    await page.click('#addPage');
+    await page.click(slot(0));
+    await page.click('#inspector button:has-text("Add key")');
+    await page.selectOption('#inspector select >> nth=0', 'readout');
+    await page.selectOption('#inspector .field:has-text("Source") select', 'input');
+    await page.fill('#inspector input[placeholder="e.g. ELECTRICAL_BATTERY_1"]', 'LIGHTING_TAXI_1');
+    await page.fill('#inspector .field:has-text("Unit after") input', '%');
+    await page.check('#inspector .field:has-text("Separator") input');
+    await page.selectOption('#inspector .field:has-text("Action") select', 'step');
+    await page.fill('#inspector .field:has(> span:text-is("Step")) input', '25');
+    await page.fill('#inspector .field:has-text("Minimum") input', '0');
+    await page.fill('#inspector .field:has-text("Maximum") input', '100');
+    await page.check('#inspector .field:has-text("Wrap at the ends") input');
+    await page.check('#inspector .field:has-text("Hold to ramp") input');
+    await page.fill('#inspector .field:has(> span:text-is("Ramp step")) input', '5');
+    await page.waitForFunction(() => /<rect[^>]*height="7"/.test(decodeURIComponent(document.querySelector('.slot[data-slot="0"] img').src)), null, { timeout: 5000 });
+    await save();
+    const dim = file().pages[file().pages.length - 1].keys['0'];
+    assert.deepStrictEqual([dim.suffix, dim.separator], ['%', true]);
+    assert.deepStrictEqual(dim.press, { step: 25, min: 0, max: 100, wrap: true, rampMs: 100, rampStep: 5 });
+    await page.click('#inspector button:has-text("Design a custom face")');
+    assert.ok(await page.isVisible('#inspector .layer:has-text("Separator")'), 'the custom face starts with the separator');
+    await page.click('.tab:nth-child(2)');
+
     // A save that fails validation is refused with a message, and the file is untouched.
     await page.click(slot(8));
     await page.click('#inspector details summary');

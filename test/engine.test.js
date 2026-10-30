@@ -337,5 +337,59 @@ const text = uri => decodeURIComponent(uri);
     assert.strictEqual(sim3.sets.length, 0, 'no input events touched');
   }
 
+  // Dimmers (user, 2026-10-30): cycle from a value not in the list, step with wrap, tap vs hold-to-ramp.
+  {
+    const sim4 = new FakeSim({ DIM: 37, DIM2: 100, DIM3: 50 });
+    const prof = { id: 'd', fallback: true, pages: [{ name: 'P', keys: {
+      0: { type: 'readout', read: { input: 'DIM' }, press: { cycle: [0, 25, 50, 75, 100] } },
+      1: { type: 'readout', read: { input: 'DIM2' }, press: { step: 25, min: 0, max: 100, wrap: true } },
+      2: { type: 'readout', read: { input: 'DIM3' }, press: { step: 25, min: 0, max: 100, wrap: true, rampMs: 15, rampStep: 10, rampDelayMs: 40 } },
+    } }] };
+    const e4 = new ProfileEngine({ sim: sim4, display: { image() {}, title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
+    e4.start();
+    sim4.emit('connected');
+    sim4.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
+    await new Promise(r => setTimeout(r, 30));
+    for (const n of ['DIM', 'DIM2', 'DIM3']) sim4.input(n, sim4.inputValues[n]);
+    e4.keyDown(0); e4.keyUp(0);
+    assert.deepStrictEqual(sim4.sets.pop(), ['DIM', 50], 'cycle from 37 goes up to 50, not back to 0');
+    sim4.input('DIM', 100);
+    e4.keyDown(0); e4.keyUp(0);
+    assert.deepStrictEqual(sim4.sets.pop(), ['DIM', 0], 'listed values still go round');
+    e4.keyDown(1); e4.keyUp(1);
+    assert.deepStrictEqual(sim4.sets.pop(), ['DIM2', 0], 'step at max wraps to min');
+    // A tap on a ramp key: one step, on release.
+    e4.keyDown(2);
+    assert.strictEqual(sim4.sets.length, 0, 'nothing on key down');
+    e4.keyUp(2);
+    assert.deepStrictEqual(sim4.sets.pop(), ['DIM3', 75], 'tap steps once');
+    // A hold: ramps by rampStep from the current value, turns back at max (wrap), stops on release.
+    sim4.input('DIM3', 80);
+    e4.keyDown(2);
+    await new Promise(r => setTimeout(r, 140));
+    e4.keyUp(2);
+    const ramp = sim4.sets.filter(s => s[0] === 'DIM3').map(s => s[1]);
+    assert.deepStrictEqual(ramp.slice(0, 4), [90, 100, 90, 80], `ramps up, turns back at max (${ramp})`);
+    const count = sim4.sets.length;
+    await new Promise(r => setTimeout(r, 50));
+    assert.strictEqual(sim4.sets.length, count, 'stops when released');
+  }
+
+  // Units around values, and the separator.
+  assert.strictEqual(formatValue({ suffix: '%' }, 75), '75%');
+  assert.strictEqual(formatValue({ suffix: 'RPM' }, 2400), '2400 RPM');
+  assert.strictEqual(formatValue({ prefix: 'QNH', decimals: 0 }, 1013.2), 'QNH 1013');
+  assert.strictEqual(formatValue({ suffix: '%', text: { 0: 'OFF' } }, 0), 'OFF', 'no unit on value words');
+  assert.strictEqual(formatValue({ suffix: '%' }, undefined), '---');
+  {
+    const sep = text(engine.keyImage({ type: 'readout', label: 'SET\nALTIMETER', read: { var: 'X', unit: 'mb' }, separator: true }, 1011));
+    assert.match(sep, /<rect x="40\.0" y="[\d.]+" width="64" height="7" rx="3\.5" fill="#4fc3f7"\/>/, 'separator line');
+    assert.match(sep, /aria-label="1011"/);
+    const layer = text(engine.keyImage({ type: 'button', face: { layers: [{ kind: 'separator', y: 80, w: 100, color: '#ff0000' }] } }));
+    assert.match(layer, /<rect x="22\.0" y="76\.5" width="100" height="7" rx="3\.5" fill="#ff0000"\/>/, 'separator layer');
+    const unitLayer = text(engine.keyImage({ type: 'readout', read: { var: 'X', unit: 'n' }, suffix: '%', face: { layers: [{ kind: 'value' }, { kind: 'value', read: { var: 'Y', unit: 'n' }, suffix: 'RPM' }] } }, 40, null, () => 2400));
+    assert.match(unitLayer, /aria-label="40%".*aria-label="2400 RPM"/s, 'value layers: the key\'s unit, or their own');
+  }
+
   console.log('engine: PASS');
 })().catch(e => { console.error('engine: FAIL', e); process.exitCode = 1; });

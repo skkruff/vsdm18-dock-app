@@ -66,6 +66,12 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
   to a sublabel (e.g. `{ "0": "ARM", "1": "OFF" }`); a value not listed shows `sublabel`. Older
   switch profiles with `text` still work (read as `sublabels`); the editor moves it over.
 - **decimals**, **pad**: readout number format (`decimals: 3` -> 124.655, `pad: 4` -> 0007).
+- **prefix**, **suffix** (readouts and value layers): units around the value, e.g. `"suffix": "%"`
+  -> 75%, `"suffix": "RPM"` -> 2400 RPM, `"prefix": "QNH"` -> QNH 1013. A unit starting with a
+  letter or digit gets a space. Not added to words from `text`. Value layers without their own
+  source use the key's units unless they set their own.
+- **separator** (readout): `true` draws a line under the label, like the user's SET ALTIMETER
+  icon (64 x 7, corner 3.5, readout colour).
 - **valueIcons** (any type): sim value to a library icon name shown as the whole key, e.g.
   `{ "3": "magneto_both" }`. Values not listed fall back to the normal look.
 - **icon on a readout**: the icon's visible content is found automatically, scaled into the top
@@ -91,6 +97,8 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
   - `{ "kind": "bar", "x", "y", "w", "h", "r", "look" }`: green / red / outline by state, or
     always `look` (`on` green, `armed` white, `off` red, `clear` outline); missing fields use
     the standard bar (x 21.4, y 93.4, w 101.3, h 34.9, corner 9.5).
+  - `{ "kind": "separator", "x", "y", "w", "h", "r", "color" }`: the separator line, centred on
+    x, y (defaults 72, 56, 64 x 7, corner 3.5, readout colour).
   - `{ "kind": "rect", "x", "y", "w", "h", "r", "color" }`: a filled box.
   Layers without a `color` follow the global look (editor Look panel). A text-only key with no
   sim source is a `button` with a face.
@@ -108,8 +116,10 @@ The key never changes on press; it changes when the sim reports the new value.
 
 | press | Does |
 |---|---|
-| `{ "cycle": [0, 1] }` | sets the input event to the value after the current one in the list (a toggle) |
+| `{ "cycle": [0, 1] }` | sets the input event to the value after the current one in the list (a toggle); from a value not in the list, the next listed value above it |
 | `{ "step": 1, "max": 3 }` | current value plus step, held within min/max; nothing at the stop |
+| `{ "step": 25, "min": 0, "max": 100, "wrap": true }` | as step; at the stop, goes round to the other end |
+| `{ "step": 25, ..., "rampMs": 100, "rampStep": 5, "rampDelayMs": 400 }` | a tap steps once (on release); holding past rampDelayMs keeps stepping by rampStep every rampMs until released, stopping at min/max (with wrap: turning back) |
 | `{ "hold": 4, "release": 3, "repeatMs": 250 }` | sets 4 on key down and 3 on key up (spring-loaded positions). `repeatMs` re-sends 4 while held, for aircraft that drop the position otherwise |
 | `{ "set": 2 }` | sets a fixed value |
 | `{ "event": "PITOT_HEAT_TOGGLE" }` | sends a classic event, `value` optional |

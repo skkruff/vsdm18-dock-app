@@ -57,7 +57,10 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     (e.g. ARM / OFF on the standby battery). A per-value sublabel wins; the fixed one covers the
     rest.
   - Value text per value (readouts): a word instead of the number (e.g. magneto 3 -> BOTH).
-  - Decimals / padding for readouts.
+  - Decimals / padding for readouts; **Unit before / after** (e.g. QNH, %, RPM) and a
+    **Separator** line under the label (or a Separator layer in a custom face).
+  - Step actions: **Wrap at the ends**, and **Hold to ramp** (tap steps once, hold keeps
+    stepping by "Ramp step"): one key can run a dimmer.
   - When pressed: toggle/cycle, step (with min/max), hold (with release value and repeat for
     spring-loaded positions), set, or a sim event. **Acts on** chooses what toggle / step / hold /
     set change: an input event (a cockpit control), or a **simvar written directly** (Browse,

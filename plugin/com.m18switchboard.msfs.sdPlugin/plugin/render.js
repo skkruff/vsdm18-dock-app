@@ -296,9 +296,6 @@ const tiles = {
     // The empty marker group identifies panel scenes (tests, debugging).
     return svgUri(`<g id="scene"/>${body}`, '#000000', `${x} ${y} ${key} ${key}`);
   },
-  message(text) {
-    return svgUri(lines(text, 72, { size: 24, color: style.dim }));
-  },
   unavailable(label) {
     return svgUri(lines(label, 50, { size: 30 }) + lines('N/A', 104, { size: 24, color: style.off }));
   },

@@ -485,17 +485,7 @@ class ProfileEngine {
     const face = valueFace || key.face;
     if (face) {
       const state = value === undefined ? 'clear' : (lookup(key.states, value) || key.otherwise || 'clear');
-      // An icon layer without a name uses the key's own icon (its on/off/clear version on switches).
-      const iconFor = name => {
-        const n = name || key.icon;
-        const st = !name && key.type === 'switch' ? state : null;
-        const uri = this.renderer.icon(n, st);
-        return uri ? { uri, box: this.renderer.iconBox(n, st) } : null;
-      };
-      const valueFor = L => (L.read
-        ? formatValue(L, valueOf(L.read))
-        : formatValue({ ...key, ...pick(L, ['decimals', 'pad', 'format', 'prefix', 'suffix']) }, value));
-      return tiles.face(face, { iconFor, valueFor, state, sublabel: layerSublabel(sublabelFor(key, value), valueOf) });
+      return this._faceImage(key, face, { value, valueOf, state, sublabel: sublabelFor(key, value), iconState: key.type === 'switch' ? state : null });
     }
     if (key.type === 'readout') {
       const icon = this.renderer.icon(key.icon, key.iconState || null);
@@ -509,6 +499,22 @@ class ProfileEngine {
     return this.renderer.icon(key.icon, state) || tiles.switch(key.label || '', state, sublabelFor(key, value));
   }
 
+  // A custom face. An icon layer without a name uses the key's own icon in iconState (its on / off
+  // / clear version on switches); a value layer shows the key's value (with the key's format unless
+  // the layer has its own) or, with its own source, that source's value.
+  _faceImage(key, face, { value, valueOf, state, sublabel, iconState }) {
+    const iconFor = name => {
+      const n = name || key.icon;
+      const st = name ? null : iconState;
+      const uri = this.renderer.icon(n, st);
+      return uri ? { uri, box: this.renderer.iconBox(n, st) } : null;
+    };
+    const valueFor = L => (L.read
+      ? formatValue(L, valueOf(L.read))
+      : formatValue({ ...key, ...pick(L, ['decimals', 'pad', 'format', 'prefix', 'suffix']) }, value));
+    return tiles.face(face, { iconFor, valueFor, state, sublabel: layerSublabel(sublabel, valueOf) });
+  }
+
   // Armable: faces and sublabels are per step (active / armed / otherwise), not per sim value.
   _armableImage(key, value, valueOf) {
     // The editor previews a step by name; sim values are numbers.
@@ -516,16 +522,7 @@ class ProfileEngine {
     const state = armableState(key, step);
     const face = (step && key.valueFaces && key.valueFaces[step]) || key.face;
     const sublabel = step && key.sublabels && key.sublabels[step] !== undefined ? key.sublabels[step] : key.sublabel;
-    if (face) {
-      const iconFor = name => {
-        const n = name || key.icon;
-        const st = !name ? (state === 'armed' ? 'clear' : state) : null;
-        const uri = this.renderer.icon(n, st);
-        return uri ? { uri, box: this.renderer.iconBox(n, st) } : null;
-      };
-      const valueFor = L => formatValue(L.read ? L : { ...key, ...pick(L, ['decimals', 'pad', 'format', 'prefix', 'suffix']) }, L.read ? valueOf(L.read) : value);
-      return tiles.face(face, { iconFor, valueFor, state, sublabel: layerSublabel(sublabel, valueOf) });
-    }
+    if (face) return this._faceImage(key, face, { value, valueOf, state, sublabel, iconState: state === 'armed' ? 'clear' : state });
     if (state === 'armed') {
       const clear = this.renderer.icon(key.icon, 'clear');
       if (clear) return tiles.armedIcon(clear);

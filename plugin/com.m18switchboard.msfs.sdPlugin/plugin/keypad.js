@@ -28,11 +28,8 @@ const PRESETS = {
   nav1: { title: 'NAV1 STBY', digits: 5, decimals: 2, apply: { event: 'NAV1_STBY_SET_HZ', scale: 1000000 } },
   nav2: { title: 'NAV2 STBY', digits: 5, decimals: 2, apply: { event: 'NAV2_STBY_SET_HZ', scale: 1000000 } },
 };
-const PRESET_NAMES = { xpdr: 'Transponder code', com1: 'COM1 standby', com2: 'COM2 standby', nav1: 'NAV1 standby', nav2: 'NAV2 standby' };
 
 const ROLES = ['digit', 'ent', 'del', 'clr', 'cancel', 'vfr', 'title', 'now', 'typed'];
-const ROLE_NAMES = { digit: 'Digit', ent: 'ENT (set the value)', del: 'DEL (last digit)', clr: 'CLR (all digits)',
-  cancel: 'CANCEL (close)', vfr: 'VFR (sets the VFR code)', title: 'Title, with the value now', now: 'Value now', typed: 'Digits typed' };
 const ROLE_TEXT = { ent: 'ENT', del: 'DEL', clr: 'CLR', cancel: 'CANCEL', vfr: 'VFR' };
 
 // A key that sets the VFR code: a VFR key, or the 9 on a keypad with a VFR code (a transponder,
@@ -110,4 +107,4 @@ function typeDigit(spec, typed, d) {
   return typed + d;
 }
 
-module.exports = { PRESETS, PRESET_NAMES, ROLES, ROLE_NAMES, ROLE_TEXT, DEFAULT_LAYOUT, isVfrKey, layoutProblems, keypadSpec, display, encode, typeDigit };
+module.exports = { PRESETS, ROLES, ROLE_TEXT, DEFAULT_LAYOUT, isVfrKey, layoutProblems, keypadSpec, display, encode, typeDigit };

@@ -132,6 +132,18 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await sleep(300);
     assert.ok(h.engine.watches.has('var:NAV ACTIVE FREQUENCY:1|MHz') || h.engine.page.name !== 'Auxiliary', 'engine watches the layer source when that page shows');
 
+    // A Sublabel layer with its own source (user, 2026-10-30): text per that source's value.
+    await page.click('#inspector .layer:has-text("Sublabel") input[type="radio"] >> nth=0');
+    await page.click('#inspector .layer.active label:has-text("its own source") input');
+    await page.fill('#inspector .layer.active input[placeholder^="e.g. NAV"]', 'GPS DRIVES NAV1');
+    await page.click('#inspector .layer.active button:has-text("+ value")');
+    await page.fill('#inspector .layer.active .map-table input >> nth=0', '1');
+    await page.fill('#inspector .layer.active .map-table input >> nth=1', 'GPS');
+    await page.waitForFunction(() => /aria-label="GPS"/.test(decodeURIComponent(document.querySelector('.slot[data-slot="3"] img').src)), null, { timeout: 5000 });
+    await save();
+    const subL = file().pages[1].keys['3'].face.layers.find(l => l.kind === 'sublabel');
+    assert.deepStrictEqual([subL.read.var, subL.sublabels], ['GPS DRIVES NAV1', { 1: 'GPS' }]);
+
     // A face for one value: the BAT switch dragged in earlier gets its own look when on.
     await page.click(slot(14));
     page.prompts = ['1'];

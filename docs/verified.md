@@ -47,6 +47,7 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-10-30, unit + browser tests only: Sublabel face layers with their own source.
 - 2026-10-30, dock + sim (user test, C172 G1000): writing TRANSPONDER STATE:1 from a press works
   and the sim (and G1000) keeps the mode, although the 2024 SDK lists it as not settable. Bar
   layers with fixed looks and per-value readout faces work as intended. User note: this sets the

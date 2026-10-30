@@ -253,6 +253,12 @@ const text = uri => decodeURIComponent(uri);
     assert.doesNotMatch(text(engine.keyImage(facedSub, 0, null, () => 0)), /aria-label="(ARM|LOC)"/, 'none otherwise');
     const swFace = { type: 'switch', read: { input: 'X' }, states: { 0: 'off', 1: 'on' }, sublabels: { 0: 'OFF', 1: 'ARM' }, face: { layers: [{ kind: 'sublabel' }] } };
     assert.match(text(engine.keyImage(swFace, 1)), /aria-label="ARM"/, 'face sublabel per value on a switch');
+    // A Sublabel layer with its own source: text per that source's value, else its fallback.
+    const own = { type: 'readout', read: { var: 'A', unit: 'number' }, face: { layers: [
+      { kind: 'sublabel', read: { var: 'GPS DRIVES NAV1', unit: 'number' }, sublabels: { 1: 'GPS' }, sublabel: 'VLOC' }] } };
+    assert.deepStrictEqual(keySources(own).map(s => s.var), ['A', 'GPS DRIVES NAV1'], 'its source is watched');
+    assert.match(text(engine.keyImage(own, 5, null, s => (s.var === 'GPS DRIVES NAV1' ? 1 : undefined))), /aria-label="GPS"/);
+    assert.match(text(engine.keyImage(own, 5, null, s => (s.var === 'GPS DRIVES NAV1' ? 0 : undefined))), /aria-label="VLOC"/, 'other values');
 
     // "or": ILS capture or GPS approach active; APR selected as armed.
     const both = {

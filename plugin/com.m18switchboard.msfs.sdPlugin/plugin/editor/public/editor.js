@@ -109,6 +109,9 @@ function clean(p) {
         if (key[m] && !Object.keys(key[m]).length) delete key[m];
       }
       if (key.valueFaces && !Object.keys(key.valueFaces).length) delete key.valueFaces;
+      for (const f of [key.face, ...Object.values(key.valueFaces || {})].filter(Boolean)) {
+        for (const L of f.layers || []) if (L.sublabels) for (const [k, v] of Object.entries(L.sublabels)) if (v === '') delete L.sublabels[k];
+      }
     }
   }
 }
@@ -1253,8 +1256,20 @@ function faceDesigner(key, slot) {
       if (own) srcBox.append(sourceEditor(L.read, r => { L.read = r; if (r && r.hint) { for (const k of ['decimals', 'pad', 'format']) if (r.hint[k] !== undefined && L[k] === undefined) L[k] = r.hint[k]; delete r.hint; } }));
       fields.push(srcBox);
     } else if (L.kind === 'sublabel') {
-      fields.push(n('x', 'x', { placeholder: 72 }), n('y', 'y', { placeholder: SUBLABEL_Y() }), n('size', 'size', { placeholder: 19 }), n('w', 'max width'), color('color', lookValue('dim', '#9aa0a8')),
-        el('span', { class: 'muted' }, 'Shows the key\'s sublabel for what it shows now (set under Sublabel below).'));
+      fields.push(n('x', 'x', { placeholder: 72 }), n('y', 'y', { placeholder: SUBLABEL_Y() }), n('size', 'size', { placeholder: 19 }), n('w', 'max width'), color('color', lookValue('dim', '#9aa0a8')));
+      // Like a live value: the key's sublabel, or text chosen by its own source's value (user,
+      // 2026-10-30), e.g. a second line saying which mode another simvar is in.
+      const own = !!L.read;
+      const srcBox = el('div', { class: 'layer-source' },
+        el('label', { class: 'row' }, el('input', { type: 'radio', name: `ssrc${i}`, checked: own ? null : true, on: { change: () => { delete L.read; delete L.sublabels; delete L.sublabel; changed(); renderInspector(); } } }), ' the key\'s sublabel (set under Sublabel below)'),
+        el('label', { class: 'row' }, el('input', { type: 'radio', name: `ssrc${i}`, checked: own ? true : null, on: { change: () => { L.read = { var: '', unit: 'number' }; L.sublabels = {}; changed(); renderInspector(); } } }), ' its own source'));
+      if (own) {
+        srcBox.append(sourceEditor(L.read, r => { L.read = r || { var: '', unit: 'number' }; if (r) delete r.hint; }),
+          el('div', { class: 'muted' }, 'Text per value of this source:'),
+          mapEditor(L.sublabels = L.sublabels || {}, (v, set) => input(v, x => { set(x); update(); }), { label: 'text', value: '' }),
+          field('Other values', input(L.sublabel, v => { if (v) L.sublabel = v; else delete L.sublabel; update(); }), 'shown for values not listed; empty shows nothing'));
+      }
+      fields.push(srcBox);
     } else if (L.kind === 'bar') {
       fields.push(el('label', { class: 'mini' }, 'shows', select_([['', 'follows the key\'s state'], ['on', 'green'], ['armed', 'white (armed)'], ['off', 'red'], ['clear', 'clear (outline)']],
         L.look || '', v => { if (v) L.look = v; else delete L.look; update(); })),
@@ -1277,7 +1292,7 @@ function faceDesigner(key, slot) {
     el('div', { class: 'layer-head' },
       el('input', { type: 'radio', name: 'faceLayer', checked: i === faceLayer ? true : null, title: 'Drag moves this layer', on: { change: () => { faceLayer = i; renderInspector(); } } }),
       el('strong', {}, LAYER_NAMES[L.kind] || L.kind),
-      el('span', { class: 'muted' }, L.kind === 'bar' ? (L.look ? ` always ${{ on: 'green', armed: 'white', off: 'red', clear: 'clear' }[L.look]}` : ' green / red / outline by state') : L.kind === 'sublabel' ? ' per value / step' : L.kind === 'value' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' the key\'s value') : ''),
+      el('span', { class: 'muted' }, L.kind === 'bar' ? (L.look ? ` always ${{ on: 'green', armed: 'white', off: 'red', clear: 'clear' }[L.look]}` : ' green / red / outline by state') : L.kind === 'sublabel' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' per value / step') : L.kind === 'value' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' the key\'s value') : ''),
       el('span', { class: 'spacer' }),
       el('button', { title: 'Draw earlier (behind)', on: { click: () => move(-1) } }, '↑'),
       el('button', { title: 'Draw later (in front)', on: { click: () => move(1) } }, '↓'),

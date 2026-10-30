@@ -84,7 +84,9 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
     sets decimals/pad/format); with `read` (`{ "input" }` or `{ "var", "unit" }`), its own source,
     so one key can show several values.
   - `{ "kind": "sublabel", "x", "y", "size", "color", "w" }`: the key's sublabel for its current
-    value (or armable step); defaults to where drawn tiles put it.
+    value (or armable step); defaults to where drawn tiles put it. With `read` (its own source),
+    `sublabels` (`{ value: text }`) and an optional fallback `sublabel`, it shows the text for
+    that source's value instead, e.g. GPS / VLOC from `GPS DRIVES NAV1`.
   - `{ "kind": "bar", "x", "y", "w", "h", "r", "look" }`: green / red / outline by state, or
     always `look` (`on` green, `armed` white, `off` red, `clear` outline); missing fields use
     the standard bar (x 21.4, y 93.4, w 101.3, h 34.9, corner 9.5).

@@ -64,7 +64,8 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     icon (cropped to its content or whole, fitted into a box you place), your own text, live
     values (the key's own, or each from its own source), a state bar (green / red / outline) and
     coloured boxes, and the sublabel (a Sublabel layer shows the key's sublabel for its current
-    value or step). A State bar layer either follows the key's state or always shows green, white,
+    value or step). A Sublabel layer can also have its own source, like a live value: text per value of that
+    source, plus text for other values. A State bar layer either follows the key's state or always shows green, white,
     red or clear ("shows"), e.g. a different bar on each per-value face of a readout. Every new face includes one, placed where drawn tiles put it; the designer
     shows "SUBLABEL" there until the key has one, so it can be moved. Typing a sublabel adds the
     layer to an older face that lacks it. "+ face for a value" adds a separate face shown for one sim value (e.g. per

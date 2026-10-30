@@ -42,7 +42,7 @@ function keySources(key) {
   // A press that writes a simvar watches it too, so cycle and step know its current value.
   if (key.press && key.press.var && key.press.var.var) out.push(key.press.var);
   const faces = [key.face, ...Object.values(key.valueFaces || {})].filter(Boolean);
-  for (const f of faces) for (const L of f.layers || []) if (L.kind === 'value' && L.read) out.push(L.read);
+  for (const f of faces) for (const L of f.layers || []) if ((L.kind === 'value' || L.kind === 'sublabel') && L.read) out.push(L.read);
   return out;
 }
 
@@ -84,6 +84,16 @@ function armableState(key, step) {
 function sublabelFor(key, value) {
   const perValue = lookup(key.sublabels || (key.type === 'switch' ? key.text : null), value);
   return perValue !== undefined ? perValue : key.sublabel;
+}
+
+// A face's Sublabel layer shows the key's sublabel, or with its own source (L.read) the text for
+// that source's value: L.sublabels { value: text }, else L.sublabel (user, 2026-10-30).
+function layerSublabel(keySublabel, valueOf) {
+  return L => {
+    if (!L || !L.read) return keySublabel;
+    const own = lookup(L.sublabels, valueOf(L.read));
+    return own !== undefined ? own : L.sublabel;
+  };
 }
 
 function formatValue(key, value) {
@@ -368,7 +378,7 @@ class ProfileEngine {
       const valueFor = L => (L.read
         ? formatValue(L, valueOf(L.read))
         : formatValue({ ...key, ...pick(L, ['decimals', 'pad', 'format']) }, value));
-      return tiles.face(face, { iconFor, valueFor, state, sublabel: sublabelFor(key, value) });
+      return tiles.face(face, { iconFor, valueFor, state, sublabel: layerSublabel(sublabelFor(key, value), valueOf) });
     }
     if (key.type === 'readout') {
       const icon = this.renderer.icon(key.icon, key.iconState || null);
@@ -396,7 +406,7 @@ class ProfileEngine {
         return uri ? { uri, box: this.renderer.iconBox(n, st) } : null;
       };
       const valueFor = L => formatValue(L.read ? L : { ...key, ...pick(L, ['decimals', 'pad', 'format']) }, L.read ? valueOf(L.read) : value);
-      return tiles.face(face, { iconFor, valueFor, state, sublabel });
+      return tiles.face(face, { iconFor, valueFor, state, sublabel: layerSublabel(sublabel, valueOf) });
     }
     if (state === 'armed') {
       const clear = this.renderer.icon(key.icon, 'clear');

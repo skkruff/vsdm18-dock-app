@@ -217,7 +217,8 @@ const tiles = {
       } else if (L.kind === 'sublabel') {
         // The key's sublabel for what it shows now (per value or per armable step).
         const sx = num(L.x, 72), sy = num(L.y, Math.round(style.bar.y * 0.78));
-        if (ctx.sublabel) body += lines(ctx.sublabel, sy, { size: num(L.size, SUBLABEL_SIZE), color: L.color || style.dim, x: sx, width: num(L.w, 136) });
+        const text = typeof ctx.sublabel === 'function' ? ctx.sublabel(L) : ctx.sublabel;
+        if (text) body += lines(text, sy, { size: num(L.size, SUBLABEL_SIZE), color: L.color || style.dim, x: sx, width: num(L.w, 136) });
       } else if (L.kind === 'bar') {
         // look: a fixed bar (on / armed / off / clear) instead of following the key's state, e.g.
         // a different bar on each per-value face of a readout (user, 2026-10-30).

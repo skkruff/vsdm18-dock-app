@@ -206,6 +206,19 @@ const text = uri => decodeURIComponent(uri);
   assert.match(text(engine.keyImage(fk, 1)), /aria-label="ONE"/, 'face for value 1');
   assert.strictEqual(formatValue({ format: 'time' }, 13 * 3600 + 7 * 60 + 30), '13:07');
 
+  // A bar layer can show a fixed look instead of the key's state (user, 2026-10-30): a readout
+  // with a face per TRANSPONDER STATE value, each with its own bar.
+  {
+    const xk = { type: 'readout', label: 'XPDR', read: { var: 'TRANSPONDER STATE:1', unit: 'number' }, valueFaces: {
+      1: { layers: [{ kind: 'bar', look: 'armed' }] }, 3: { layers: [{ kind: 'bar', look: 'off' }] },
+      4: { layers: [{ kind: 'bar', look: 'on' }] }, 0: { layers: [{ kind: 'bar', look: 'clear' }] } } };
+    assert.match(text(engine.keyImage(xk, 1)), /fill="#ffffff"/, 'white');
+    assert.match(text(engine.keyImage(xk, 3)), /fill="#f0204c"/, 'red');
+    assert.match(text(engine.keyImage(xk, 4)), /fill="#b8f01c"/, 'green');
+    assert.match(text(engine.keyImage(xk, 0)), /fill="none"/, 'clear');
+    assert.match(text(engine.keyImage({ type: 'switch', read: { input: 'X' }, states: { 1: 'on' }, face: { layers: [{ kind: 'bar' }] } }, 1)), /fill="#b8f01c"/, 'no look: follows the state');
+  }
+
   // Switch (armable): active, else armed, else otherwise; both sources watched.
   {
     const ak = {

@@ -139,6 +139,8 @@ function fallbackLines(ls, y, size, color, x, width) {
 // a key wide on the M18), so text crossing a gap keeps its shape and only loses the hidden part.
 const PANEL = { cols: 5, rows: 3, key: 144, gap: 36 };
 
+const BAR_LOOKS = ['on', 'armed', 'off', 'clear'];
+
 function bar(state, b = style.bar) {
   const fill = style[state === 'on' || state === 'off' || state === 'armed' ? state : null];
   if (fill) return `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.r}" fill="${fill}"/>`;
@@ -196,7 +198,8 @@ const tiles = {
   //                                                                a live value (the key's own, or
   //                                                                the layer's own source)
   //   { kind: 'sublabel', x, y, size, color, w }                  the key's sublabel for its value
-  //   { kind: 'bar', x, y, w, h, r }                               red / green / outline by state
+  //   { kind: 'bar', x, y, w, h, r, look }                         red / green / outline by state,
+  //                                                                or always look (on|armed|off|clear)
   //   { kind: 'rect', x, y, w, h, r, color }
   // ctx: { iconFor(name) -> { uri, box } | null, valueFor(layer) -> string, state }
   face(face, ctx) {
@@ -216,7 +219,9 @@ const tiles = {
         const sx = num(L.x, 72), sy = num(L.y, Math.round(style.bar.y * 0.78));
         if (ctx.sublabel) body += lines(ctx.sublabel, sy, { size: num(L.size, SUBLABEL_SIZE), color: L.color || style.dim, x: sx, width: num(L.w, 136) });
       } else if (L.kind === 'bar') {
-        body += bar(ctx.state, { x, y, w, h, r: num(L.r, style.bar.r) });
+        // look: a fixed bar (on / armed / off / clear) instead of following the key's state, e.g.
+        // a different bar on each per-value face of a readout (user, 2026-10-30).
+        body += bar(BAR_LOOKS.includes(L.look) ? L.look : ctx.state, { x, y, w, h, r: num(L.r, style.bar.r) });
       } else if (L.kind === 'rect') {
         body += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${num(L.r, 0)}" fill="${esc(L.color || '#333333')}"/>`;
       }

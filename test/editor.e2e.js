@@ -138,7 +138,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('#inspector button:has-text("+ face for a value")');
     await page.click('#inspector button:has-text("+ Text")');
     await page.fill('#inspector .layer.active textarea', 'BATT ON');
+    // Its bar layer set to always show white.
+    await page.click('#inspector button:has-text("+ State bar")');
+    await page.selectOption('#inspector .layer.active label:has-text("shows") select', 'armed');
     await save();
+    assert.ok(file().pages[1].keys['14'].valueFaces['1'].layers.some(l => l.kind === 'bar' && l.look === 'armed'), 'bar look stored');
     const bat = file().pages[1].keys['14'];
     assert.ok(bat.valueFaces && bat.valueFaces['1'].layers.some(l => l.text === 'BATT ON'), 'face stored for value 1');
     assert.ok(!bat.face, 'default stays automatic');

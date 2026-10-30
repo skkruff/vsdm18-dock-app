@@ -1256,7 +1256,9 @@ function faceDesigner(key, slot) {
       fields.push(n('x', 'x', { placeholder: 72 }), n('y', 'y', { placeholder: SUBLABEL_Y() }), n('size', 'size', { placeholder: 19 }), n('w', 'max width'), color('color', lookValue('dim', '#9aa0a8')),
         el('span', { class: 'muted' }, 'Shows the key\'s sublabel for what it shows now (set under Sublabel below).'));
     } else if (L.kind === 'bar') {
-      fields.push(n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'), n('r', 'corner'),
+      fields.push(el('label', { class: 'mini' }, 'shows', select_([['', 'follows the key\'s state'], ['on', 'green'], ['armed', 'white (armed)'], ['off', 'red'], ['clear', 'clear (outline)']],
+        L.look || '', v => { if (v) L.look = v; else delete L.look; update(); })),
+      n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'), n('r', 'corner'),
         el('span', { class: 'muted' }, 'Empty fields use the bar measured from your icons.'));
     } else if (L.kind === 'rect') {
       fields.push(n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'), n('r', 'corner'), color('color', '#1e2a3a'));
@@ -1275,7 +1277,7 @@ function faceDesigner(key, slot) {
     el('div', { class: 'layer-head' },
       el('input', { type: 'radio', name: 'faceLayer', checked: i === faceLayer ? true : null, title: 'Drag moves this layer', on: { change: () => { faceLayer = i; renderInspector(); } } }),
       el('strong', {}, LAYER_NAMES[L.kind] || L.kind),
-      el('span', { class: 'muted' }, L.kind === 'bar' ? ' green / red / outline by state' : L.kind === 'sublabel' ? ' per value / step' : L.kind === 'value' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' the key\'s value') : ''),
+      el('span', { class: 'muted' }, L.kind === 'bar' ? (L.look ? ` always ${{ on: 'green', armed: 'white', off: 'red', clear: 'clear' }[L.look]}` : ' green / red / outline by state') : L.kind === 'sublabel' ? ' per value / step' : L.kind === 'value' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' the key\'s value') : ''),
       el('span', { class: 'spacer' }),
       el('button', { title: 'Draw earlier (behind)', on: { click: () => move(-1) } }, '↑'),
       el('button', { title: 'Draw later (in front)', on: { click: () => move(1) } }, '↓'),

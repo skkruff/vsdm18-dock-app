@@ -85,7 +85,8 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
     so one key can show several values.
   - `{ "kind": "sublabel", "x", "y", "size", "color", "w" }`: the key's sublabel for its current
     value (or armable step); defaults to where drawn tiles put it.
-  - `{ "kind": "bar", "x", "y", "w", "h", "r" }`: green / red / outline by state; missing fields use
+  - `{ "kind": "bar", "x", "y", "w", "h", "r", "look" }`: green / red / outline by state, or
+    always `look` (`on` green, `armed` white, `off` red, `clear` outline); missing fields use
     the standard bar (x 21.4, y 93.4, w 101.3, h 34.9, corner 9.5).
   - `{ "kind": "rect", "x", "y", "w", "h", "r", "color" }`: a filled box.
   Layers without a `color` follow the global look (editor Look panel). A text-only key with no

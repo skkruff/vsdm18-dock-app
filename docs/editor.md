@@ -73,7 +73,9 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     "Back to the preset's pathway"; **Try it** sends some digits now, as ENT would.
 - **Keypad (all keypads)** tab, after the page tabs: the one keypad layout every keypad uses, laid
   out on the dock picture like a page. Each key is a **Keypad key** with a role (digit, ENT, DEL,
-  CLR, CANCEL, title, value now, digits typed) and the usual label, sublabel, icon and face.
+  CLR, CANCEL, VFR, title, value now, digits typed) and the usual label, sublabel, icon and face.
+  On a transponder keypad the 9 key is VFR (sets the VFR code, 1200 unless the keypad key says
+  e.g. 7000); untick "VFR on transponders" on the 9 to keep it a plain 9.
   Save stores it for all profiles (`keypad.json`); "Reset to built-in" goes back. Missing digits
   or ENT are listed as warnings.
   - **Press a keyboard shortcut**: type it ("Ctrl+Shift+L") or click **Record** and press it;

@@ -138,3 +138,16 @@ saved in keypad.json). Once the user has settled on a layout, it can become the 
 the layout editing be locked away again. The functional configuration stays exposed: per keypad
 key, the preset, title and especially the send pathway (event / simvar / input event, encoding,
 scale), since the right pathway may differ per aircraft.
+
+## Editor polish backlog (Phase 4b, user 2026-10-30)
+
+Collected for the editor visual and quality-of-life pass after Phase 4. Add to it as friction
+shows up.
+- ⓘ help for the remaining key setup intricacies (see "Editor help" above).
+- Editing library items in place ("Update the original" when re-saving keys inserted from it).
+- Keypad layout: once settled, make it the built-in one and lock layout editing again; keep the
+  functional settings (preset, title, send pathway) exposed (see "Keypad layout" above).
+- A long inspector: group sections (look, source, press, preview) so they can be folded.
+- Dimmers: a level bar on the key (width follows the value).
+- "Press these in order" actions (G1000 softkey sequences, e.g. XPDR then ALT).
+- Visual consistency: spacing, control sizes, dialogs, the dock picture's selection and drop marks.

@@ -125,6 +125,12 @@ When something is verified, note it in `docs/verified.md` with the date and how 
 
 **Phase 4: Second aircraft.** Add a different default aircraft with a different light setup (for example one with separate left/right landing lights). Goal: prove that a new aircraft needs only a profile file. Fix any engine assumptions this exposes.
 
+**Phase 4b: Editor visual and quality-of-life polish** (added 2026-10-30 at the user's request,
+after the editor was approved). Placed after Phase 4 so that building a second aircraft in the
+editor shows where it is slow or unclear, and before Phase 5, which leans on the editor most. A
+pass over the editor's look (layout, spacing, consistency of controls, the inspector's length) and
+its friction points; the backlog is kept in `docs/design-notes.md` ("Editor polish backlog").
+
 **Phase 5: Third-party aircraft.** Evaluate per aircraft (the user flies study-level aircraft such as the Black Square Baron and the A2A Comanche). These typically use their own L:vars and custom events rather than standard variables. Decide per aircraft whether to use input events, the MobiFlight WASM module, or the AAO WebAPI as an alternative `SimBackend`. This phase is where most of the effort will go.
 
 **Phase 6: Hardening.** Reconnection handling, logging, config file for icon path and profile folder, brief README, simple way to reload profiles without restarting.

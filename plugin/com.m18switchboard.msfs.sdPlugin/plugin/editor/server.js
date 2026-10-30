@@ -8,6 +8,7 @@ const { parseName } = require('../icons');
 const { sourceKey, keySources } = require('../engine');
 const { FONTS, style } = require('../render');
 const { parseShortcut, formatShortcut } = require('../keys');
+const { DEFAULT_LAYOUT, PRESETS, layoutProblems, keypadSpec } = require('../keypad');
 
 const PUBLIC = path.join(__dirname, 'public');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
@@ -212,6 +213,25 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
         images[slot] = engine.keyImage(key, own, null, valueOf);
       }
       return { images };
+    }],
+    // The keypad layout, used by every keypad: the saved one, or the built-in one.
+    ['GET', /^\/api\/keypad$/, () => {
+      const saved = store.readKeypad();
+      const keys = saved.keys && Object.keys(saved.keys).length ? saved.keys : DEFAULT_LAYOUT;
+      return { keys, builtIn: keys === DEFAULT_LAYOUT, problems: layoutProblems(keys), presets: PRESETS };
+    }],
+    ['PUT', /^\/api\/keypad$/, async (m, req) => {
+      const { keys, reset } = await readBody(req);
+      if (reset) store.writeKeypad(null); else store.writeKeypad({ keys });
+      engine.setKeypadLayout(reset ? null : keys);
+      return { ok: true, problems: reset ? [] : layoutProblems(keys) };
+    }],
+    // Tries a keypad's send pathway with typed digits, as ENT would.
+    ['POST', /^\/api\/keypad-test$/, async (m, req) => {
+      const { keypad, typed } = await readBody(req);
+      if (!sim.connected) throw new Error('MSFS is not connected');
+      const spec = keypadSpec(keypad);
+      return { value: engine.applyKeypad(spec, String(typed || '').replace(/\D/g, '').slice(0, spec.digits)), apply: spec.apply };
     }],
     ['POST', /^\/api\/render-keypad$/, async (m, req) => {
       const { keypad, typed = '', now = '' } = await readBody(req);

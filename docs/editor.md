@@ -68,7 +68,14 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     from what the key reads) or your own (digits, decimals, 0-7 only, set when all digits are in,
     and the event, simvar or input event it sets, as a number times a factor or as BCD).
     "Show the keypad on the dock picture" previews it. The library has XPDR and COM / NAV standby
-    keys with keypads, for any aircraft.
+    keys with keypads, for any aircraft. **Sends the value**: the event, simvar or input event it
+    sets and how (number times a factor, or BCD), shown for presets too and changeable, with
+    "Back to the preset's pathway"; **Try it** sends some digits now, as ENT would.
+- **Keypad (all keypads)** tab, after the page tabs: the one keypad layout every keypad uses, laid
+  out on the dock picture like a page. Each key is a **Keypad key** with a role (digit, ENT, DEL,
+  CLR, CANCEL, title, value now, digits typed) and the usual label, sublabel, icon and face.
+  Save stores it for all profiles (`keypad.json`); "Reset to built-in" goes back. Missing digits
+  or ENT are listed as warnings.
   - **Press a keyboard shortcut**: type it ("Ctrl+Shift+L") or click **Record** and press it;
     "While held" keeps the keys down while the dock key is held; "Bring MSFS to the front" (on by
     default) makes sure the keys go to the sim. **Send now** tries it. Shortcuts the browser keeps

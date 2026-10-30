@@ -476,6 +476,39 @@ const text = uri => decodeURIComponent(uri);
     assert.strictEqual(sim6.sent.length, sentBefore, 'nothing sent');
     assert.match(text(imgs.get(5)), /aria-label="COM1"/, 'page back');
     assert.strictEqual(e6.keypadImages('xpdr').length, 15);
+    // A layout of your own (user, 2026-10-30): one for every keypad. Phone-style digits, CLR,
+    // a label on ENT, a face on CANCEL; keys without a role do nothing.
+    const kpm = require(path.join(pluginDir, 'plugin', 'keypad'));
+    const layout = {
+      0: { type: 'keypad', role: 'typed' }, 1: { type: 'keypad', role: 'title' }, 2: { type: 'keypad', role: 'clr' },
+      3: { type: 'keypad', role: 'cancel', face: { layers: [{ kind: 'value', size: 30 }] } }, 4: { type: 'keypad', role: 'ent', label: 'SET' },
+      5: { type: 'keypad', role: 'digit', digit: '1' }, 6: { type: 'keypad', role: 'digit', digit: '2' }, 7: { type: 'keypad', role: 'digit', digit: '3' },
+      8: { type: 'keypad', role: 'digit', digit: '0' }, 9: { type: 'decor', label: 'ART' },
+      10: { type: 'keypad', role: 'digit', digit: '4' }, 11: { type: 'keypad', role: 'digit', digit: '5' }, 12: { type: 'keypad', role: 'digit', digit: '6' },
+      13: { type: 'keypad', role: 'digit', digit: '7' }, 14: { type: 'keypad', role: 'digit', digit: '8' },
+    };
+    assert.deepStrictEqual(kpm.layoutProblems(layout), ['no key for digit 9']);
+    e6.setKeypadLayout(layout);
+    e6.keyDown(4); e6.keyUp(4); // the XPDR key opens it
+    assert.match(text(imgs.get(4)), /aria-label="SET"/, 'ENT with its own label');
+    assert.match(text(imgs.get(4)), /#3a3f47/, 'dimmed until a digit is typed');
+    assert.match(text(imgs.get(3)), /aria-label="CANCEL"/, 'a face shows the role\'s text');
+    assert.match(text(imgs.get(9)), /aria-label="ART"/, 'decorative key');
+    const press = s => { e6.keyDown(s); e6.keyUp(s); };
+    press(5); press(8); press(9);
+    assert.match(text(imgs.get(0)), /aria-label="10__"/, 'digits from the layout; the decorative key does nothing');
+    press(2); // CLR
+    assert.match(text(imgs.get(0)), /aria-label="____"/);
+    press(10); press(11); press(12); press(13);
+    assert.deepStrictEqual(sim6.sent.pop(), { event: 'XPNDR_SET', value: 0x4567 });
+    e6.setKeypadLayout(null);
+    assert.strictEqual(e6.keypadLayout, kpm.DEFAULT_LAYOUT, 'back to the built-in layout');
+    // A different pathway on a preset replaces its target; encode and scale come from the preset.
+    const spec = kpm.keypadSpec({ preset: 'com1', apply: { var: 'COM STANDBY FREQUENCY:1', unit: 'MHz', scale: 1 } });
+    assert.deepStrictEqual(spec.apply, { var: 'COM STANDBY FREQUENCY:1', unit: 'MHz', scale: 1 });
+    assert.strictEqual(e6.applyKeypad(spec, '1228'), 122.8);
+    assert.deepStrictEqual(sim6.varSets.pop(), ['COM STANDBY FREQUENCY:1', 122.8]);
+    assert.deepStrictEqual(kpm.keypadSpec({ preset: 'xpdr', apply: { input: 'XPDR_CODE' } }).apply, { input: 'XPDR_CODE', encode: 'bcd16' });
     const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
     assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'button', press: { keypad: { digits: 3 } } } } }] }, 'x'), /somewhere to set/);
     assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'button', press: { timer: 'T1', action: 'lap' } } } }] }, 'x'), /stopwatch action/);

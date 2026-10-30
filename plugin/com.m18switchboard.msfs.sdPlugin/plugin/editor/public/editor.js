@@ -20,7 +20,10 @@ const S = {
   inputs: [],
   library: [],
   clipboard: null,
+  keypad: null, // the keypad layout, edited as a page of its own: { name, keys, builtIn, problems }
+  kpDirty: false,
 };
+const KP = 'kp'; // S.page while the keypad layout is being edited
 
 // ---------- helpers ----------
 
@@ -55,7 +58,7 @@ function el(tag, attrs = {}, ...children) {
 }
 
 const clone = o => JSON.parse(JSON.stringify(o));
-const page = () => S.profile.pages[S.page];
+const page = () => (S.page === KP ? S.keypad : S.profile.pages[S.page]);
 const keys = () => (page().keys = page().keys || {});
 const rc = slot => [Math.floor(slot / COLS), slot % COLS];
 const slotOf = (r, c) => (r >= 0 && r < 3 && c >= 0 && c < COLS ? r * COLS + c : null);
@@ -63,11 +66,12 @@ const parseVal = v => (v === '' || v === undefined ? undefined : isNaN(Number(v)
 
 function setDirty(d = true) {
   S.dirty = d;
-  $('#dirty').hidden = !d;
+  $('#dirty').hidden = !(S.dirty || S.kpDirty);
 }
 
+// An edit: to the keypad layout while its tab is open, otherwise to the profile.
 function changed() {
-  setDirty(true);
+  if (S.page === KP) { S.kpDirty = true; setDirty(S.dirty); } else setDirty(true);
   renderGrid();
 }
 
@@ -117,6 +121,21 @@ function clean(p) {
 }
 
 async function save() {
+  if (S.kpDirty) {
+    try {
+      clean({ pages: [S.keypad] });
+      const r = await api('PUT', '/api/keypad', { keys: S.keypad.keys });
+      S.kpDirty = false;
+      S.keypad.builtIn = false;
+      S.keypad.problems = r.problems;
+      setDirty(S.dirty);
+      status(r.problems.length ? `Keypad saved, but: ${r.problems.join('; ')}` : 'Keypad saved: every keypad uses it now.', r.problems.length ? 'bad' : 'good');
+      renderTabs();
+    } catch (e) {
+      return status(`Keypad not saved: ${e.message}`, 'bad');
+    }
+    if (!S.dirty) return;
+  }
   try {
     clean(S.profile);
     await api('PUT', `/api/profiles/${encodeURIComponent(S.file)}`, S.profile);
@@ -233,6 +252,34 @@ function renderTabs() {
     }, p.name || `Page ${i + 1}`, i === 0 ? el('span', { class: 'muted' }, ' (main)') : null,
     onDock ? el('span', { class: 'ondock' }, '● on dock') : null));
   });
+  // The keypad layout: not a page of this profile, one layout for every keypad (user, 2026-10-30).
+  if (S.keypad) {
+    tabs.append(el('div', {
+      class: `tab tab-keypad ${S.page === KP ? 'active' : ''}`,
+      title: 'The keypad shown by every "Open a keypad" key, in every profile',
+      on: { click: () => { S.page = KP; S.selected.clear(); renderAll(); } },
+    }, 'Keypad', el('span', { class: 'muted' }, ' (all keypads)')));
+  }
+  const note = $('#keypadNote');
+  note.hidden = S.page !== KP;
+  if (S.page === KP) {
+    note.innerHTML = '';
+    note.append(el('span', {}, `The keypad layout used by every keypad${S.keypad.builtIn ? ' (the built-in one)' : ''}. Give each key a role in the inspector; style it like any key. Save stores it for all profiles. `),
+      el('button', { on: { click: async () => {
+        if (!confirm('Go back to the built-in keypad layout?')) return;
+        await api('PUT', '/api/keypad', { reset: true });
+        await loadKeypad();
+        S.kpDirty = false; setDirty(S.dirty);
+        renderAll();
+        status('Keypad back to the built-in layout', 'good');
+      } } }, 'Reset to built-in'),
+      ...(S.keypad.problems || []).map(p => el('div', { class: 'warn' }, `⚠ ${p}`)));
+  }
+}
+
+async function loadKeypad() {
+  const r = await api('GET', '/api/keypad');
+  S.keypad = { name: 'Keypad', keys: clone(r.keys), builtIn: r.builtIn, problems: r.problems, presets: r.presets };
 }
 
 function bindPages() {
@@ -244,13 +291,16 @@ function bindPages() {
     S.selected.clear();
     setDirty(); renderAll();
   });
+  const notKeypad = () => { if (S.page === KP) { status('The keypad is not a page of this profile', 'bad'); return false; } return true; };
   $('#renamePage').addEventListener('click', () => {
+    if (!notKeypad()) return;
     const name = prompt('Page name', page().name);
     if (!name) return;
     page().name = name;
     setDirty(); renderTabs();
   });
   $('#delPage').addEventListener('click', () => {
+    if (!notKeypad()) return;
     if (S.profile.pages.length === 1) return status('A profile needs at least one page', 'bad');
     if (!confirm(`Delete page "${page().name}"?`)) return;
     S.profile.pages.splice(S.page, 1);
@@ -258,6 +308,7 @@ function bindPages() {
     setDirty(); renderAll();
   });
   const move = d => {
+    if (!notKeypad()) return;
     const to = S.page + d;
     if (to < 0 || to >= S.profile.pages.length) return;
     const ps = S.profile.pages;
@@ -268,6 +319,7 @@ function bindPages() {
   $('#movePageLeft').addEventListener('click', () => move(-1));
   $('#movePageRight').addEventListener('click', () => move(1));
   $('#showOnDock').addEventListener('click', async () => {
+    if (!notKeypad()) return;
     if (S.dirty) return status('Save first, then show it on the dock', 'bad');
     try { await api('POST', '/api/show', { id: S.profile.id, page: S.page }); status('Showing on the dock', 'good'); } catch (e) { status(e.message, 'bad'); }
   });
@@ -599,6 +651,10 @@ function field(label, control, note, help) {
 // ⓘ next to a label: the help text on hover, or pinned open by a click (user, 2026-10-29). Texts
 // live in HELP so they are easy to find and correct.
 const HELP = {
+  keypadKey: 'One key of the keypad layout every keypad uses. Its role says what it does: a digit, ENT, DEL, CLR, CANCEL, '
+    + 'or what it shows: the title (with the value now), the value now, or the digits typed. Without a face or icon it gets '
+    + 'the built-in look; a label replaces the word on ENT / DEL / CLR / CANCEL and digits. In a custom face, a Live value '
+    + 'layer shows the role\'s text. Keys that do nothing at the moment (8 and 9 on a transponder, ENT before a digit) are dimmed.',
   stopwatch: 'A stopwatch the dock keeps itself, counting sim time: it stops while the sim is paused and follows sim '
     + 'rate. It keeps its time across restarts of the plugin or VSD Craft. Keys with the same name share one stopwatch: '
     + 'a readout showing it (Show as: Stopwatch M:SS), and keys with the "Stopwatch control" press to start, stop or reset it.',
@@ -732,7 +788,7 @@ function renderInspector() {
   if (!key) {
     box.append(el('h3', {}, `Key ${slot}: empty`),
       el('div', { class: 'inline' },
-        el('button', { class: 'primary', on: { click: () => { keys()[slot] = { type: 'button', label: 'NEW' }; changed(); renderInspector(); } } }, 'Add key'),
+        el('button', { class: 'primary', on: { click: () => { keys()[slot] = S.page === KP ? { type: 'keypad', role: 'digit', digit: '1' } : { type: 'button', label: 'NEW' }; changed(); renderInspector(); } } }, 'Add key'),
         S.clipboard ? el('button', { on: { click: paste } }, 'Paste') : null));
     return;
   }
@@ -740,7 +796,10 @@ function renderInspector() {
   const redraw = () => { changed(); renderInspector(); };
   box.append(el('h3', {}, `Key ${slot}`));
 
-  box.append(field('Type', select_([['switch', 'Switch (on/off look)'], ['armable', 'Switch (armable)'], ['readout', 'Readout (live value)'], ['button', 'Button'], ['decor', 'Decorative (no function)']], key.type, v => {
+  const types = S.page === KP ? [['keypad', 'Keypad key'], ['decor', 'Decorative (no function)']]
+    : [['switch', 'Switch (on/off look)'], ['armable', 'Switch (armable)'], ['readout', 'Readout (live value)'], ['button', 'Button'], ['decor', 'Decorative (no function)']];
+  box.append(field('Type', select_(types, key.type, v => {
+    if (v === 'keypad' && !key.role) { key.role = 'digit'; key.digit = '1'; }
     // Decorative keys only look: what the key read or did goes (user, 2026-10-30).
     if (v === 'decor') {
       const had = FUNCTION_FIELDS.filter(k => key[k] !== undefined);
@@ -751,7 +810,15 @@ function renderInspector() {
     if (v === 'switch' && !key.states) key.states = { 0: 'off', 1: 'on' };
     if (v === 'armable' && !key.armed) key.armed = { var: '', unit: 'bool' };
     redraw();
-  }), null, key.type === 'armable' ? 'armable' : key.type === 'decor' ? 'decor' : null));
+  }), null, key.type === 'armable' ? 'armable' : key.type === 'decor' ? 'decor' : key.type === 'keypad' ? 'keypadKey' : null));
+  if (key.type === 'keypad') {
+    box.append(field('Role', select_(Object.entries(KEYPAD_ROLES), key.role || 'digit', v => {
+      key.role = v;
+      if (v === 'digit') key.digit = key.digit || '1'; else delete key.digit;
+      redraw();
+    })));
+    if (key.role === 'digit') box.append(field('Digit', select_([...'1234567890'].map(d => [d, d]), String(key.digit ?? '1'), v => { key.digit = v; redraw(); })));
+  }
   box.append(field('Label', el('textarea', { rows: 2, on: { input: e => { key.label = e.target.value; changed(); } } }, key.label || ''),
     'Shown on drawn tiles. A new line starts a second line.'));
 
@@ -769,9 +836,10 @@ function renderInspector() {
   box.append(el('h4', {}, 'Face (optional)'));
   box.append(faceDesigner(key, slot));
 
-  if (key.type === 'decor') {
+  if (key.type === 'decor' || key.type === 'keypad') {
     box.append(el('h4', {}, 'Sublabel'));
-    box.append(field('Sublabel', input(key.sublabel, v => { if (v) { key.sublabel = v; ensureSublabelLayer(key); } else delete key.sublabel; changed(); }), 'smaller text under the label'));
+    box.append(field('Sublabel', input(key.sublabel, v => { if (v) { key.sublabel = v; ensureSublabelLayer(key); } else delete key.sublabel; changed(); }),
+      key.type === 'keypad' && key.role === 'title' ? 'empty shows "now" and the value' : 'smaller text under the label'));
     return inspectorTail(box, key, slot);
   }
 
@@ -951,6 +1019,9 @@ function renderInspector() {
   inspectorTail(box, key, slot);
 }
 
+const KEYPAD_ROLES = { digit: 'Digit', ent: 'ENT (set the value)', del: 'DEL (last digit)', clr: 'CLR (all digits)',
+  cancel: 'CANCEL (close)', title: 'Title, with the value now', now: 'Value now', typed: 'Digits typed' };
+
 // Keypad (user, 2026-10-30): a preset (XPDR, COM / NAV standby) or your own.
 const KEYPAD_PRESETS = {
   xpdr: 'Transponder code (4 digits, 0-7)', com1: 'COM1 standby (e.g. 124.850)', com2: 'COM2 standby',
@@ -976,28 +1047,61 @@ function keypadEditor(key) {
     }), null, 'keypad'),
     field('Title', input(k.title, v => { if (v) k.title = v; else delete k.title; changed(); }, { placeholder: custom ? 'ENTER' : 'as the preset' }), 'Shown on the keypad, with the key\'s value now'),
   ];
+  const num = (o, f) => v => { if (v === '') delete o[f]; else o[f] = Number(v); changed(); };
   if (custom) {
-    const a = k.apply = k.apply || { event: '' };
-    const num = (o, f) => v => { if (v === '') delete o[f]; else o[f] = Number(v); changed(); };
-    const target = a.var !== undefined ? 'var' : a.input !== undefined ? 'input' : 'event';
     rows.push(
       field('Digits', input(k.digits, num(k, 'digits'), { type: 'number', min: 1, max: 10 })),
       field('After the decimal point', input(k.decimals, num(k, 'decimals'), { type: 'number', min: 0, max: 9 })),
       field('Digits 0-7 only', el('input', { type: 'checkbox', checked: k.octal ? true : null, on: { change: e => { if (e.target.checked) k.octal = true; else delete k.octal; changed(); } } })),
-      field('Set when all digits are in', el('input', { type: 'checkbox', checked: k.autoEnter === false ? null : true, on: { change: e => { if (e.target.checked) delete k.autoEnter; else k.autoEnter = false; changed(); } } }), 'Otherwise only on ENT'),
-      field('Sets', select_([['event', 'A sim event, with the value'], ['var', 'A simvar'], ['input', 'An input event']], target, v => {
-        for (const f of ['event', 'var', 'unit', 'input']) delete a[f];
-        if (v === 'var') { a.var = ''; a.unit = 'number'; } else a[v] = '';
-        changed(); renderInspector();
-      })));
-    const what = target === 'var' ? 'var' : target;
-    rows.push(field(target === 'event' ? 'Event' : target === 'var' ? 'Simvar' : 'Input event', el('div', { class: 'inline' },
-      input(a[what], v => { a[what] = v; changed(); }, target === 'input' ? { list: 'inputList' } : {}),
-      el('button', { on: { click: () => browse(target === 'event' ? 'events' : target === 'var' ? 'simvars' : 'inputs', c => { a[what] = c.name; if (target === 'var' && c.unit) a.unit = c.unit; changed(); renderInspector(); }) } }, 'Browse…'))));
-    if (target === 'var') rows.push(field('Unit', input(a.unit, v => { a.unit = v || 'number'; changed(); }, { list: 'unitList' })));
-    rows.push(field('Value sent', select_([['number', 'The number'], ['bcd16', 'BCD (digits as hex, e.g. XPNDR_SET)']], a.encode || 'number', v => { if (v === 'number') delete a.encode; else a.encode = v; changed(); renderInspector(); })));
-    if ((a.encode || 'number') === 'number') rows.push(field('Multiplied by', input(a.scale, num(a, 'scale'), { type: 'number', placeholder: '1' }), 'e.g. 1000000 to send MHz as Hz'));
+      field('Set when all digits are in', el('input', { type: 'checkbox', checked: k.autoEnter === false ? null : true, on: { change: e => { if (e.target.checked) delete k.autoEnter; else k.autoEnter = false; changed(); } } }), 'Otherwise only on ENT'));
   }
+
+  // Where the value goes: shown and editable for presets too, so another pathway can be tried if
+  // the preset's does not work in an aircraft (user, 2026-10-30). Editing a preset's stores the
+  // whole pathway on this key; "Back to the preset's" removes it.
+  const presetApply = (k.preset && S.keypad && S.keypad.presets && S.keypad.presets[k.preset] && S.keypad.presets[k.preset].apply) || {};
+  const own = k.apply || {};
+  const ownTarget = own.event !== undefined || own.var !== undefined || own.input !== undefined;
+  const eff = { ...presetApply, ...own };
+  if (ownTarget) for (const f of ['event', 'var', 'unit', 'input']) if (own[f] === undefined) delete eff[f];
+  const backBtn = el('button', { hidden: k.apply === undefined ? true : null, on: { click: e => { e.preventDefault(); delete k.apply; changed(); renderInspector(); } } }, 'Back to the preset\'s pathway');
+  const changedMark = el('span', { class: 'warn' }, !custom && k.apply !== undefined ? ' (changed from the preset\'s)' : '');
+  const editApply = fn => {
+    k.apply = clone(eff);
+    fn(k.apply);
+    if (!custom) { changedMark.textContent = ' (changed from the preset\'s)'; backBtn.hidden = false; }
+    changed();
+  };
+  const target = eff.var !== undefined ? 'var' : eff.input !== undefined ? 'input' : 'event';
+  rows.push(el('h4', {}, 'Sends the value', changedMark));
+  rows.push(field('Sets', select_([['event', 'A sim event, with the value'], ['var', 'A simvar'], ['input', 'An input event']], target, v => {
+    editApply(a => { for (const f of ['event', 'var', 'unit', 'input']) delete a[f]; if (v === 'var') { a.var = ''; a.unit = 'number'; } else a[v] = ''; });
+    renderInspector();
+  })));
+  const targetIn = input(eff[target], v => editApply(a => { a[target] = v; }), target === 'input' ? { list: 'inputList' } : {});
+  rows.push(field(target === 'event' ? 'Event' : target === 'var' ? 'Simvar' : 'Input event', el('div', { class: 'inline' },
+    targetIn,
+    el('button', { on: { click: () => browse(target === 'event' ? 'events' : target === 'var' ? 'simvars' : 'inputs', c => {
+      editApply(a => { a[target] = c.name; if (target === 'var' && c.unit) a.unit = c.unit; });
+      renderInspector();
+    }) } }, 'Browse…'))));
+  if (target === 'var') rows.push(field('Unit', input(eff.unit, v => editApply(a => { a.unit = v || 'number'; }), { list: 'unitList' })));
+  rows.push(field('Value sent', select_([['number', 'The number'], ['bcd16', 'BCD (digits as hex, e.g. XPNDR_SET)']], eff.encode || 'number', v => {
+    editApply(a => { if (v === 'number') delete a.encode; else a.encode = v; });
+    renderInspector();
+  })));
+  if ((eff.encode || 'number') === 'number') rows.push(field('Multiplied by', input(eff.scale, v => editApply(a => { if (v === '') delete a.scale; else a.scale = Number(v); }), { type: 'number', placeholder: '1' }), 'e.g. 1000000 to send MHz as Hz'));
+  if (!custom) rows.push(field('', backBtn));
+  // Try the pathway now with some digits, as ENT would.
+  const tryVal = input('', () => {}, { placeholder: 'digits, e.g. 1200', style: 'width:130px' });
+  const tryOut = el('span', { class: 'test-out' });
+  rows.push(field('Try it', el('div', { class: 'inline' }, tryVal, el('button', { on: { click: async e => {
+    e.preventDefault();
+    try {
+      const r = await api('POST', '/api/keypad-test', { keypad: key.press.keypad, typed: tryVal.value });
+      tryOut.textContent = `sent ${r.value} to ${r.apply.event || r.apply.var || r.apply.input}`; tryOut.className = 'test-out';
+    } catch (err) { tryOut.textContent = err.message; tryOut.className = 'test-out bad'; }
+  } } }, 'Send'), tryOut), 'Sends the digits now, as ENT would; check the cockpit'));
   rows.push(field('Preview', el('button', { on: { click: async e => {
     e.preventDefault();
     try {
@@ -1288,6 +1392,11 @@ const facesOf = key => [key.face, ...Object.values(key.valueFaces || {})].filter
 // sublabel (user, 2026-10-29). It draws nothing while the key has no sublabel.
 function defaultFace(key) {
   const label = key.label || '';
+  // A keypad key's live value is its role's text: the digit, ENT, the title, the digits typed.
+  if (key.type === 'keypad') {
+    const big = key.role === 'digit' ? 64 : key.role === 'typed' ? 56 : 34;
+    return { layers: [{ kind: 'value', x: 72, y: key.role === 'title' || key.sublabel ? 50 : 72, size: big }, { kind: 'sublabel', x: 72, y: 100 }] };
+  }
   const sub = y => ({ kind: 'sublabel', ...(y === undefined ? {} : { x: 72, y }) });
   if (key.type === 'readout') {
     return key.icon
@@ -1365,7 +1474,7 @@ function faceDesigner(key, slot) {
     ] : null,
     ...(armable ? [] : Object.keys(valueFaces)).map(v => el('button', { class: faceTarget === v ? 'active' : '', on: { click: () => { faceTarget = v; faceLayer = 0; renderInspector(); } } },
       `value ${v}${key.text && key.text[v] ? ` (${key.text[v]})` : ''}`)),
-    armable || key.type === 'decor' ? null : el('button', { title: 'Design a separate face shown when the sim value is this', on: { click: () => {
+    armable || key.type === 'decor' || key.type === 'keypad' ? null : el('button', { title: 'Design a separate face shown when the sim value is this', on: { click: () => {
       const v = prompt('Face for which sim value? (e.g. 0, 1, 3)', String(Object.keys(key.states || key.text || {})[0] ?? '0'));
       if (v === null || v.trim() === '') return;
       addFace(v.trim());
@@ -1668,13 +1777,14 @@ async function init() {
     else if ((e.ctrlKey || e.metaKey) && e.key === 'v') paste();
     else if (e.key === 'Delete' || e.key === 'Backspace') deleteSel();
   });
-  window.addEventListener('beforeunload', e => { if (S.dirty) { e.preventDefault(); e.returnValue = ''; } });
+  window.addEventListener('beforeunload', e => { if (S.dirty || S.kpDirty) { e.preventDefault(); e.returnValue = ''; } });
 
   bindLook();
   await loadLook();
   S.sim = await api('GET', '/api/state');
   $('#folderNote').textContent = `Profiles are saved in ${S.sim.profilesDir}`;
   S.icons = await api('GET', '/api/icons');
+  await loadKeypad();
   await loadFiles();
   loadLibrary();
   loadInputs();

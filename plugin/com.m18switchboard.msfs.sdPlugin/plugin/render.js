@@ -200,11 +200,16 @@ const tiles = {
   },
   // A library icon's content scaled into the top of the key, with a live value below.
   // Keypad keys (keypad.js): a big digit or word, dimmed when not available; colour by role.
-  keypadKey(text, { role = 'digit', dim = false } = {}) {
+  keypadKey(text, { role = 'digit', dim = false, sublabel = '' } = {}) {
     const color = dim ? '#3a3f47' : role === 'ent' ? style.on : role === 'cancel' ? style.off : style.label;
     const size = role === 'digit' ? 64 : 34;
     return svgUri(`<rect x="6" y="6" width="132" height="132" rx="14" fill="none" stroke="${dim ? '#22262c' : '#3a4250'}" stroke-width="3"/>` +
-      lines(text, 72, { size, color, width: 112 }));
+      lines(text, sublabel ? 62 : 72, { size, color, width: 112 }) +
+      (sublabel ? lines(sublabel, 112, { size: SUBLABEL_SIZE, color: dim ? '#3a3f47' : style.dim }) : ''));
+  },
+  // A library icon, faded: a keypad key that does nothing right now.
+  dimIcon(uri) {
+    return svgUri(`<image href="${uri}" xlink:href="${uri}" x="0" y="0" width="144" height="144" opacity="0.3"/>`);
   },
   // The keypad's title (what is being set, and its value now) and the digits typed so far.
   keypadTitle(title, now) {
@@ -262,7 +267,8 @@ const tiles = {
         body += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${num(L.r, 0)}" fill="${esc(L.color || '#333333')}"/>`;
       }
     });
-    return svgUri(body, face.background || '#000000');
+    // dim: a keypad key that does nothing right now (keypad.js).
+    return svgUri(ctx.dim ? `<g opacity="0.3">${body}</g>` : body, face.background || '#000000');
   },
   // One slot's piece of a scene drawn across the whole panel.
   // scene: { rows: { 0: 'MSFS', 2: 'NOT CONNECTED' }, icons: { 7: dataUri }, color, offset }

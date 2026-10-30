@@ -153,3 +153,6 @@ input.narrow { width: 6em; }
 .or-source .step-head button { margin-left: auto; padding: 0 8px; }
 button.add-or { margin: 2px 0 4px; font-size: 12px; padding: 2px 10px; }
 .test-out.bad { color: var(--warn); }
+.tab.tab-keypad { margin-left: auto; border-style: dashed; }
+.keypad-note { margin: 0 0 10px; padding: 8px 10px; border: 1px dashed #3a4250; border-radius: 6px; font-size: 13px; }
+.keypad-note .warn { margin-top: 4px; }

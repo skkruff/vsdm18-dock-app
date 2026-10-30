@@ -16,6 +16,7 @@ class ProfileStore {
     this.oldPresetsFile = path.join(path.dirname(dir), 'presets.json'); // before the library
     this.settingsFile = path.join(path.dirname(dir), 'settings.json'); // look: font, colours
     this.dockStateFile = path.join(path.dirname(dir), 'dock-state.json'); // stopwatches, kept across restarts
+    this.keypadFile = path.join(path.dirname(dir), 'keypad.json'); // the keypad layout, for every keypad
     this.log = log;
     this.watcher = null;
   }
@@ -114,6 +115,16 @@ class ProfileStore {
 
   writeSettings(s) {
     fs.writeFileSync(this.settingsFile, JSON.stringify(s, null, 2) + '\n');
+  }
+
+  // The keypad layout: { keys }, or {} for the built-in one.
+  readKeypad() {
+    try { return JSON.parse(fs.readFileSync(this.keypadFile, 'utf8')); } catch { return {}; }
+  }
+
+  writeKeypad(layout) {
+    if (!layout) { try { fs.unlinkSync(this.keypadFile); } catch { /* already the built-in one */ } return; }
+    fs.writeFileSync(this.keypadFile, JSON.stringify(layout, null, 2) + '\n');
   }
 
   readDockState() {

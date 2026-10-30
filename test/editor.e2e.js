@@ -358,6 +358,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.strictEqual(await page.inputValue('#inspector .field:has-text("Keypad for") select'), 'xpdr');
     await page.click('#inspector button:has-text("Show the keypad on the dock picture")');
     await page.waitForFunction(() => /aria-label="CANCEL"/.test(decodeURIComponent(document.querySelector('.slot[data-slot="0"] img').src)));
+    // The preset's pathway is shown and can be changed (user, 2026-10-30), tried, and put back.
+    assert.strictEqual(await page.inputValue('#inspector .field:has(> span:text-is("Event")) input'), 'XPNDR_SET');
+    await page.fill('#inspector .field:has(> span:text-is("Event")) input', 'XPNDR_SET_ALT');
+    await page.keyboard.press('Tab');
+    await page.waitForSelector('#inspector h4:has-text("changed from the preset")');
+    await page.fill('#inspector .field:has-text("Try it") input', '7700');
+    await page.click('#inspector .field:has-text("Try it") button');
+    await page.waitForSelector('#inspector .test-out:has-text("sent 30464 to XPNDR_SET_ALT")');
+    assert.deepStrictEqual(h.sim.sent.pop(), { event: 'XPNDR_SET_ALT', value: 0x7700 }, 'BCD, through the new event');
+    await page.click('#inspector button:has-text("Back to the preset")');
+    assert.strictEqual(await page.inputValue('#inspector .field:has(> span:text-is("Event")) input'), 'XPNDR_SET');
     // Your own keypad: e.g. an autopilot altitude, 5 digits, sent with AP_ALT_VAR_SET_ENGLISH.
     await page.selectOption('#inspector .field:has-text("Keypad for") select', '');
     await page.fill('#inspector .field:has(> span:text-is("Digits")) input', '5');
@@ -369,6 +380,22 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.strictEqual(dv['2'].format, 'duration', 'a stopwatch readout shows M:SS');
     assert.deepStrictEqual(dv['3'].press, { timer: 'T1', action: 'toggle' });
     assert.deepStrictEqual(dv['4'].press, { keypad: { title: 'ALT SEL', digits: 5, decimals: 0, apply: { event: 'AP_ALT_VAR_SET_ENGLISH' } } });
+    // The keypad layout (user, 2026-10-30): one for every keypad, edited like a page.
+    await page.click('.tab.tab-keypad');
+    await page.waitForSelector('#keypadNote:has-text("used by every keypad")');
+    await page.click(slot(0));
+    assert.strictEqual(await page.inputValue('#inspector .field:has(> span:text-is("Role")) select'), 'cancel');
+    await page.selectOption('#inspector .field:has(> span:text-is("Role")) select', 'clr');
+    await page.fill('#inspector .field:has-text("Label") textarea', 'CLEAR');
+    await page.waitForFunction(() => /aria-label="CLEAR"/.test(decodeURIComponent(document.querySelector('.slot[data-slot="0"] img').src)));
+    await save();
+    const kpFile = JSON.parse(fs.readFileSync(path.join(path.dirname(h.dir), 'keypad.json'), 'utf8'));
+    assert.deepStrictEqual(kpFile.keys['0'], { type: 'keypad', role: 'clr', label: 'CLEAR' });
+    assert.strictEqual(h.engine.keypadLayout['0'].role, 'clr', 'the dock uses it');
+    page.prompts = [];
+    await page.click('#keypadNote button:has-text("Reset to built-in")');
+    await page.waitForFunction(() => /aria-label="CANCEL"/.test(decodeURIComponent(document.querySelector('.slot[data-slot="0"] img').src)));
+    assert.ok(!fs.existsSync(path.join(path.dirname(h.dir), 'keypad.json')), 'built-in again');
     await page.click('.tab:nth-child(2)');
 
     // A save that fails validation is refused with a message, and the file is untouched.

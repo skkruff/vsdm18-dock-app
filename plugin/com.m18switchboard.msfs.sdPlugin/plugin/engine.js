@@ -63,17 +63,35 @@ function armableStep(key, active, armed, valueOf = () => undefined) {
   if (any(armed, key.armedIs, key.armedOr)) return 'armed';
   return 'otherwise';
 }
-// One key of an open keypad.
-function keypadImage(k, slot) {
-  const { spec } = k;
-  if (slot === kp.SLOTS.cancel) return tiles.keypadKey('CANCEL', { role: 'cancel' });
-  if (slot === kp.SLOTS.title) return tiles.keypadTitle(spec.title || 'ENTER', k.now ? `now ${k.now}` : '');
-  if (slot === kp.SLOTS.typed) return tiles.keypadTyped(kp.display(spec, k.typed));
-  if (slot === kp.SLOTS.del) return tiles.keypadKey('DEL', { role: 'del', dim: !k.typed });
-  if (slot === kp.SLOTS.ent) return tiles.keypadKey('ENT', { role: 'ent', dim: !k.typed });
-  const d = kp.SLOT_DIGIT[slot];
-  if (d !== undefined) return tiles.keypadKey(d, { dim: (spec.octal && Number(d) > 7) || k.typed.length >= spec.digits });
-  return tiles.blank();
+// One key of the keypad layout (keypad.js), for an open keypad k = { spec, typed, now }. Keys
+// without a face or icon get the built-in look for their role; a label replaces a fixed role's
+// word, a face's live value layers show the role's text. Keys that do nothing now are dimmed.
+function keypadKeyImage(engine, key, k) {
+  if (!key) return tiles.blank();
+  if (key.type !== 'keypad') return engine.keyImage(key);
+  const { spec, typed, now } = k;
+  const role = key.role;
+  const d = String(key.digit);
+  const enabled = role === 'digit' ? !(spec.octal && Number(d) > 7) && typed.length < spec.digits
+    : ['ent', 'del', 'clr'].includes(role) ? !!typed : true;
+  const nowText = now ? `now ${now}` : '';
+  const text = role === 'digit' ? d : role === 'title' ? (spec.title || 'ENTER') : role === 'now' ? now
+    : role === 'typed' ? kp.display(spec, typed) : (key.label || kp.ROLE_TEXT[role] || '');
+  const label = role === 'digit' ? (key.label || d) : text;
+  const sublabel = key.sublabel !== undefined ? key.sublabel : role === 'title' ? nowText : '';
+  if (key.face) {
+    const iconFor = name => {
+      const uri = engine.renderer.icon(name || key.icon, null);
+      return uri ? { uri, box: engine.renderer.iconBox(name || key.icon, null) } : null;
+    };
+    return tiles.face(key.face, { iconFor, valueFor: () => label, state: enabled ? 'on' : 'clear', sublabel, dim: !enabled });
+  }
+  const icon = key.icon && engine.renderer.icon(key.icon, null);
+  if (icon) return enabled ? icon : tiles.dimIcon(icon);
+  if (role === 'title') return tiles.keypadTitle(text, sublabel);
+  if (role === 'now') return tiles.keypadTitle(key.label || 'NOW', now || '');
+  if (role === 'typed') return tiles.keypadTyped(text);
+  return tiles.keypadKey(label, { role: role === 'digit' ? 'digit' : role, dim: !enabled, sublabel });
 }
 
 // What cycle / step / hold / set change: press.var (a simvar, user 2026-10-30), press.input, or
@@ -158,6 +176,7 @@ class ProfileEngine {
     Object.assign(this, { sim, display, renderer, profiles, announcePages, announceMs, announceAircraftMs, logoIcon, animateScenes, sceneFps, keyboard, log });
     this.dockVars = dockVars || new DockVars();
     this.keypad = null; // { spec, typed, now } while a keypad covers the dock
+    this.keypadLayout = kp.DEFAULT_LAYOUT;
     this.scene = null; // panel-wide picture shown instead of the keys (aircraft or page name)
     this.sceneTimer = null;
     this.slide = 0; // sideways offset of panel-wide text, animated (see _slide)
@@ -405,7 +424,7 @@ class ProfileEngine {
     if (this.status === 'offline') return tiles.scene({ ...this._statusScene('offline'), offset: this.slide }, slot);
     if (this.scene) return tiles.scene({ ...this.scene, offset: this.slide }, slot);
     if (this.status === 'loading') return tiles.scene({ ...this._statusScene('loading'), offset: this.slide }, slot);
-    if (this.keypad) return keypadImage(this.keypad, slot);
+    if (this.keypad) return keypadKeyImage(this, this.keypadLayout[slot], this.keypad);
     const key = this.page.keys?.[slot];
     if (!key) return tiles.blank();
     const w = key.read ? this.watches.get(sourceKey(key.read)) : null;
@@ -421,6 +440,8 @@ class ProfileEngine {
     if (!key) return tiles.blank();
     if (error) return tiles.unavailable(key.label || '');
     if (key.type === 'armable') return this._armableImage(key, value, valueOf);
+    // A keypad layout key outside an open keypad (the editor): shown with sample entry.
+    if (key.type === 'keypad') return keypadKeyImage(this, key, { spec: kp.keypadSpec('com1'), typed: '1248', now: '121.500' });
     const valueFace = lookup(key.valueFaces, value);
     const valueIcon = valueFace ? null : this.renderer.icon(lookup(key.valueIcons, value), null);
     if (valueIcon) return valueIcon;
@@ -570,11 +591,14 @@ class ProfileEngine {
 
   _keypadPress(slot) {
     const k = this.keypad;
-    if (NAV[slot] || slot === kp.SLOTS.cancel) return this._closeKeypad();
-    if (slot === kp.SLOTS.del) k.typed = k.typed.slice(0, -1);
-    else if (slot === kp.SLOTS.ent) return k.typed ? this._enterKeypad() : this._closeKeypad();
-    else if (kp.SLOT_DIGIT[slot] !== undefined) {
-      k.typed = kp.typeDigit(k.spec, k.typed, kp.SLOT_DIGIT[slot]);
+    const key = this.keypadLayout[slot];
+    const role = key && key.type === 'keypad' ? key.role : null;
+    if (NAV[slot] || role === 'cancel') return this._closeKeypad();
+    if (role === 'del') k.typed = k.typed.slice(0, -1);
+    else if (role === 'clr') k.typed = '';
+    else if (role === 'ent') return k.typed ? this._enterKeypad() : this._closeKeypad();
+    else if (role === 'digit') {
+      k.typed = kp.typeDigit(k.spec, k.typed, String(key.digit));
       if (k.spec.autoEnter && k.typed.length === k.spec.digits) return this._enterKeypad();
     } else return;
     this.redrawAll(); // the typed digits, and which keys are dimmed
@@ -582,17 +606,19 @@ class ProfileEngine {
 
   _enterKeypad() {
     const { spec, typed } = this.keypad;
+    try { this.applyKeypad(spec, typed); } catch (e) { this.log('keypad failed', { error: e.message }); }
+    this._closeKeypad();
+  }
+
+  // Sends typed digits the way the keypad says (also the editor's "Try it"). Returns the value sent.
+  applyKeypad(spec, typed) {
     const value = kp.encode(spec, typed);
     const a = spec.apply;
-    this.log('keypad enter', { title: spec.title, typed, value });
-    try {
-      if (a.event) this.sim.send({ event: a.event, value });
-      else if (a.var) this.sim.setVar({ name: a.var, unit: a.unit || 'number' }, value);
-      else this.sim.setInput(a.input, value);
-    } catch (e) {
-      this.log('keypad failed', { error: e.message });
-    }
-    this._closeKeypad();
+    this.log('keypad enter', { title: spec.title, typed, value, ...a });
+    if (a.event) this.sim.send({ event: a.event, value });
+    else if (a.var) this.sim.setVar({ name: a.var, unit: a.unit || 'number' }, value);
+    else this.sim.setInput(a.input, value);
+    return value;
   }
 
   _closeKeypad() {
@@ -603,7 +629,13 @@ class ProfileEngine {
   // The 15 keypad images, for the editor's preview.
   keypadImages(keypad, typed = '', now = '') {
     const k = { spec: kp.keypadSpec(keypad), typed, now };
-    return Array.from({ length: LCD_SLOTS }, (_, s) => keypadImage(k, s));
+    return Array.from({ length: LCD_SLOTS }, (_, s) => keypadKeyImage(this, this.keypadLayout[s], k));
+  }
+
+  // The keypad layout used by every keypad (keypad.json; the built-in one when there is none).
+  setKeypadLayout(keys) {
+    this.keypadLayout = keys && Object.keys(keys).length ? keys : kp.DEFAULT_LAYOUT;
+    if (this.keypad) this.redrawAll();
   }
 
   _stopHold(slot) {

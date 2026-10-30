@@ -130,3 +130,11 @@ and changed by presses (the keypad needs the same for the digits being typed).
   flash at zero is optional.
 - **Must survive a plugin / VSD Craft restart** (user): persist its state (running, start, accumulated).
 - Known limits: not shown on the PFD, separate from the G1000 timer.
+
+## Keypad layout: finalise and lock (possible future task, user 2026-10-30)
+
+The keypad's look is editable for now ("Keypad" tab in the editor, one layout for every keypad,
+saved in keypad.json). Once the user has settled on a layout, it can become the built-in one and
+the layout editing be locked away again. The functional configuration stays exposed: per keypad
+key, the preset, title and especially the send pathway (event / simvar / input event, encoding,
+scale), since the right pathway may differ per aircraft.

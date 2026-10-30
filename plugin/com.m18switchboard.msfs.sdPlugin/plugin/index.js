@@ -124,6 +124,8 @@ const engine = new ProfileEngine({
   log: (...a) => log.info(...a),
 });
 
+engine.setKeypadLayout(store.readKeypad().keys);
+
 // Saving in the editor (or by hand) reloads profiles; the dock updates in place.
 store.watch(() => engine.setProfiles(loadAll()));
 

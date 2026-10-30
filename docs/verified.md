@@ -49,6 +49,9 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
 - 2026-10-30, user (dock + sim): keyboard shortcuts work; armable annunciators, dimmers (step,
   wrap, ramp) and the customisation features work in flight with no blockers.
+- 2026-10-30, unit + browser tests only: editable keypad layout (keypad.json, Keypad tab),
+  per-key send pathway overriding a preset's, "Try it". Fixed: keypad values were rounded to whole
+  numbers (fine for Hz events, wrong for MHz written to a simvar).
 - 2026-10-30, unit + browser tests only: dock stopwatches (`dockvars.js`, sim-time counting,
   saved in dock-state.json) and keypads (`keypad.js`: presets XPDR / COM / NAV standby, custom).
   Unverified in the sim: that SIMULATION TIME stops while paused; that XPNDR_SET (BCD),

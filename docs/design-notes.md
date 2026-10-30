@@ -115,7 +115,7 @@ Dimmer knobs are not flight critical: put them on their own page.
 
 ## Editor help (ⓘ), 2026-10-29
 
-The ⓘ mechanism is built (texts in `HELP` in `editor.js`); so far only on the armable key and
+The ⓘ mechanism is built (texts in `HELP` in `editor/public/inspector.js`); so far only on the armable key and
 "Acts on". Polishing step: write help for the remaining key setup intricacies (hold repeat timings,
 cycle vs set, sources vs Acts on, faces per value, crop auto/full).
 

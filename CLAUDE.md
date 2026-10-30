@@ -15,7 +15,7 @@ dialogs (input events with values, simvar/event catalogs with Test/Send), Learn 
 save-in-place bug fix. Round 4 (2026-10-28): fixed bars and Barlow default, sliding splash,
 library categories (dropdown, automatic Groups, duplicate fix), group drop outlines, Sublabel on all
 keys, insert asks only about missing input events. 2026-10-29: status screens sway, COM receive
-and autopilot simvars in the catalog, Switch (armable) key type, ⓘ help (texts in `HELP`; more in
+and autopilot simvars in the catalog, Switch (armable) key type, ⓘ help (texts in `HELP`, `editor/public/inspector.js`; more in
 the polish pass, `docs/design-notes.md`). 2026-10-30: simvar writes, units, separator, step wrap and
 ramp, decorative keys, keyboard shortcuts (all tested by the user in flight), then dock variables:
 sim-time stopwatches kept across restarts, and keypads (XPDR / COM / NAV standby presets, custom),
@@ -64,7 +64,11 @@ data folder is still `%APPDATA%\HotSpot\StreamDock`.
   - `plugin/keys.js` + `plugin/keys-helper.ps1`: keyboard shortcuts sent to the sim (SendInput
     scancodes through a PowerShell helper, Windows only).
   - `plugin/store.js`: the user's profile folder (seed, read, write, watch) and presets.
-  - `plugin/editor/server.js` + `editor/public/`: the editor (local web page, port 8765).
+  - `plugin/editor/server.js` + `editor/public/`: the editor (local web page, port 8765, this PC
+    only: changes need the `X-Switchboard` header). The page is classic scripts sharing globals,
+    loaded in order by `index.html`: `core.js` (state, helpers, save), `pages.js`, `library.js`,
+    `inspector.js` (key editor, `HELP` texts), `inspector-parts.js`, `browse.js`, `face.js`,
+    `look.js`, `main.js` (start-up).
   - `plugin/sim/simconnect.js`: sim layer, `SimBackend` implemented on node-simconnect.
   - `profiles/*.json`, `library.json`: shipped starting points (profiles copied to the user's
     folder when missing; library items merged in unless the user deleted them). `library.json` is

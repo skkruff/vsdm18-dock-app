@@ -2,7 +2,7 @@
 //   connect(), onAircraftChanged(cb), subscribe(vars, cb), read(var), send(action), setVar(var, value)
 // Other backends (MobiFlight, AAO, ...) should expose the same methods and events:
 //   'connected' (info), 'disconnected', 'aircraft' ({ title, atcModel, path }),
-//   'aircraftLoaded' (file), 'exception' ({ name, about })
+//   'aircraftLoaded' (file), 'exception' ({ name, about }), 'pause' (Pause_EX1 flags, 0 = running)
 //
 // A variable spec is { name, unit, type } with type one of bool | int | number | string.
 // An action is { event, value } where value defaults to 0.
@@ -26,6 +26,10 @@ const TYPES = {
 const USER = SimConnectConstants.OBJECT_ID_USER;
 const GROUP_PRIORITY_HIGHEST = 1;
 const AIRCRAFT_LOADED_EVENT = 1;
+// Pause_EX1 reports the pause state as flags: 0 none, 1 full (menu), 2 legacy pause key, 4 active
+// pause, 8 sim pause. SIMULATION TIME keeps running in active pause (user test, 2026-10-30), so
+// stopwatches follow this instead.
+const PAUSE_EVENT = 3;
 const AIRCRAFT_STATE_REQUEST = 2;
 const AIRCRAFT_VARS = [
   { name: 'TITLE', unit: null, type: 'string' },
@@ -82,6 +86,11 @@ class SimConnectBackend extends EventEmitter {
     handle.on('exception', e => this.emit('exception', {
       name: e.exceptionName || String(e.exception), about: this.sent.get(e.sendId) || `send id ${e.sendId}`,
     }));
+    handle.on('event', e => {
+      if (e.clientEventId !== PAUSE_EVENT) return;
+      this.pauseFlags = e.data;
+      this.emit('pause', e.data);
+    });
     handle.on('eventFilename', e => {
       if (e.clientEventId !== AIRCRAFT_LOADED_EVENT) return;
       this.emit('aircraftLoaded', e.fileName);
@@ -118,6 +127,7 @@ class SimConnectBackend extends EventEmitter {
     handle.on('error', lost);
 
     this._track(handle.subscribeToSystemEvent(AIRCRAFT_LOADED_EVENT, 'AircraftLoaded'), 'system event AircraftLoaded');
+    this._track(handle.subscribeToSystemEvent(PAUSE_EVENT, 'Pause_EX1'), 'system event Pause_EX1');
     // The event only fires on a load; ask for the current aircraft file too.
     this._track(handle.requestSystemState(AIRCRAFT_STATE_REQUEST, 'AircraftLoaded'), 'system state AircraftLoaded');
     // Re-register everything subscribed before a (re)connect.

@@ -87,6 +87,15 @@ items.push({
     { dr: 0, dc: 2, key: { type: 'button', label: 'RESET', press: { timer: 'T1', action: 'reset' } } },
   ],
 });
+items.push({
+  id: 'dock.stopwatch.onekey',
+  name: 'Stopwatch on one key (tap start/stop, hold reset)',
+  category: 'Chrono',
+  notes: 'Shows dock stopwatch T1; a tap starts or stops it, holding for 1 s resets it. The bar is green while it runs.',
+  shipped: true,
+  keys: [{ dr: 0, dc: 0, key: { type: 'readout', label: 'TIMER', read: { timer: 'T1' }, format: 'duration', separator: true,
+    press: { timer: 'T1', action: 'toggle', holdReset: true } } }],
+});
 const keypadKey = (id, name, label, read, fmt, preset) => items.push({
   id, name, category: 'Radios', shipped: true,
   notes: `Shows ${read.var}; pressing it opens a keypad to type a new value.`,

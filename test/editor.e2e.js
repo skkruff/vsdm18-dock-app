@@ -348,6 +348,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click(slot(3));
     await page.click('#inspector button:has-text("Add key")');
     await page.selectOption('#inspector .field:has-text("Action") select', 'timer');
+    await page.selectOption('#inspector .field:has-text("Does") select', 'toggle-hold');
+    await page.waitForSelector('#inspector .field:has-text("Hold for, ms")');
     // Keypad: on a transponder readout the XPDR preset is the guess; Preview shows it on the dock picture.
     await page.click(slot(4));
     await page.click('#inspector button:has-text("Add key")');
@@ -378,7 +380,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const dv = file().pages[file().pages.length - 1].keys;
     assert.deepStrictEqual(dv['2'].read, { timer: 'T1' });
     assert.strictEqual(dv['2'].format, 'duration', 'a stopwatch readout shows M:SS');
-    assert.deepStrictEqual(dv['3'].press, { timer: 'T1', action: 'toggle' });
+    assert.deepStrictEqual(dv['3'].press, { timer: 'T1', action: 'toggle', holdReset: true }, 'start / stop, hold to reset');
     assert.deepStrictEqual(dv['4'].press, { keypad: { title: 'ALT SEL', digits: 5, decimals: 0, apply: { event: 'AP_ALT_VAR_SET_ENGLISH' } } });
     // The keypad layout (user, 2026-10-30): one for every keypad, edited like a page.
     await page.click('.tab.tab-keypad');

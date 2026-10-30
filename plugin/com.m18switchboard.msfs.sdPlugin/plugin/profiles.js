@@ -39,6 +39,7 @@ function validate(p, file) {
       }
       if (press && press.timer !== undefined) {
         if (!press.timer) errors.push(`${where}: stopwatch press needs the stopwatch's name`);
+        if (press.holdReset && (press.action || 'toggle') !== 'toggle') errors.push(`${where}: hold to reset goes with start / stop (action toggle)`);
         if (press.action !== undefined && !TIMER_ACTIONS.includes(press.action)) errors.push(`${where}: stopwatch action must be one of ${TIMER_ACTIONS.join(', ')}`);
       }
       if (key.read && key.read.timer === '') errors.push(`${where}: stopwatch source needs a name`);

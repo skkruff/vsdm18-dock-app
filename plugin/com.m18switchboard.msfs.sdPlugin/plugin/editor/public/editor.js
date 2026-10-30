@@ -963,7 +963,13 @@ function renderInspector() {
   if (pkind === 'keypad') box.append(...keypadEditor(key));
   if (pkind === 'timer') {
     box.append(field('Stopwatch', input(p.timer, v => { key.press.timer = v; changed(); }, { placeholder: 'T1' }), 'The same name as on the key showing its time'));
-    box.append(field('Does', select_([['toggle', 'Start / stop'], ['reset', 'Reset to 0:00'], ['start', 'Start'], ['stop', 'Stop']], p.action || 'toggle', v => { key.press.action = v; changed(); })));
+    // "Start / stop, hold to reset": the whole stopwatch on one key (user, 2026-10-30).
+    const does = p.holdReset ? 'toggle-hold' : (p.action || 'toggle');
+    box.append(field('Does', select_([['toggle', 'Start / stop'], ['toggle-hold', 'Start / stop; hold to reset'], ['reset', 'Reset to 0:00'], ['start', 'Start'], ['stop', 'Stop']], does, v => {
+      if (v === 'toggle-hold') { key.press.action = 'toggle'; key.press.holdReset = true; } else { key.press.action = v; delete key.press.holdReset; delete key.press.holdMs; }
+      redraw();
+    }), p.holdReset ? 'A tap starts or stops it (when you let go); holding stops it and sets it to 0:00' : null));
+    if (p.holdReset) box.append(field('Hold for, ms', input(p.holdMs, v => { if (v === '') delete key.press.holdMs; else key.press.holdMs = Number(v); changed(); }, { type: 'number', min: 200, placeholder: '1000' })));
   }
   if (pkind === 'event') {
     const evInput = input(p.event, v => { key.press.event = v; changed(); }, { placeholder: 'e.g. BAROMETRIC' });

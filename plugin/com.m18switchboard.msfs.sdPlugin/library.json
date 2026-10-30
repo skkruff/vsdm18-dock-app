@@ -1302,6 +1302,33 @@
       ]
     },
     {
+      "id": "dock.stopwatch.onekey",
+      "name": "Stopwatch on one key (tap start/stop, hold reset)",
+      "category": "Chrono",
+      "notes": "Shows dock stopwatch T1; a tap starts or stops it, holding for 1 s resets it. The bar is green while it runs.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "TIMER",
+            "read": {
+              "timer": "T1"
+            },
+            "format": "duration",
+            "separator": true,
+            "press": {
+              "timer": "T1",
+              "action": "toggle",
+              "holdReset": true
+            }
+          }
+        }
+      ]
+    },
+    {
       "id": "dock.keypad.xpdr",
       "name": "XPDR code, keypad entry (any aircraft)",
       "category": "Radios",

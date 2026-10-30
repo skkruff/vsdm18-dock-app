@@ -417,6 +417,8 @@ const text = uri => decodeURIComponent(uri);
       3: { type: 'switch', label: 'RUN', read: { timer: 'T1', part: 'running' }, states: { 1: 'on' } },
       4: { type: 'readout', label: 'XPDR', read: { var: 'TRANSPONDER CODE:1', unit: 'number' }, pad: 4, press: { keypad: 'xpdr' } },
       5: { type: 'button', label: 'COM1', press: { keypad: { preset: 'com1' } } },
+      6: { type: 'button', label: 'ALL IN ONE', press: { timer: 'T2', action: 'toggle', holdReset: true, holdMs: 40 } },
+      7: { type: 'readout', label: 'T2', read: { timer: 'T2' }, format: 'duration' },
     } }] };
     const e6 = new ProfileEngine({ sim: sim6, display: { image: (s, u) => imgs.set(s, u), title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), dockVars: dv, announceMs: 1, announceAircraftMs: 1 });
     e6.start();
@@ -449,6 +451,31 @@ const text = uri => decodeURIComponent(uri);
     assert.match(text(imgs.get(0)), /aria-label="1:15"/, 'stopped');
     e6.keyDown(2); e6.keyUp(2);
     assert.match(text(imgs.get(0)), /aria-label="0:00"/, 'reset');
+    // Any pause (Pause_EX1; active pause included) holds every stopwatch (user test, 2026-10-30).
+    e6.keyDown(1); e6.keyUp(1);
+    simTime(9030);
+    sim6.emit('pause', 4);
+    simTime(9040); simTime(9050);
+    sim6.emit('pause', 0);
+    simTime(9055);
+    assert.match(text(imgs.get(0)), /aria-label="0:15"/, '10 s before the pause and 5 s after; the 20 s paused not counted');
+    e6.keyDown(1); e6.keyUp(1);
+    e6.keyDown(2); e6.keyUp(2);
+    // One key: a tap starts / stops it, holding resets it (user, 2026-10-30).
+    e6.keyDown(6);
+    assert.strictEqual(dv.value({ timer: 'T2', part: 'running' }), 0, 'nothing on key down');
+    e6.keyUp(6);
+    assert.strictEqual(dv.value({ timer: 'T2', part: 'running' }), 1, 'a tap starts it');
+    simTime(9060); simTime(9070);
+    assert.match(text(imgs.get(7)), /aria-label="0:15"/);
+    e6.keyDown(6);
+    await new Promise(r => setTimeout(r, 70));
+    e6.keyUp(6);
+    assert.match(text(imgs.get(7)), /aria-label="0:00"/, 'holding resets it');
+    assert.strictEqual(dv.value({ timer: 'T2', part: 'running' }), 0, 'and stops it');
+    e6.keyDown(6); e6.keyUp(6);
+    assert.strictEqual(dv.value({ timer: 'T2', part: 'running' }), 1, 'a tap starts it again');
+    e6.keyDown(6); e6.keyUp(6);
 
     // Keypad: XPDR, octal, sent as soon as 4 digits are in (BCD), then the page is back.
     e6.keyDown(4); e6.keyUp(4);

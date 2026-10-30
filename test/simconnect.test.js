@@ -53,6 +53,14 @@ const C172_PATH = 'd:\\mfs2024\\official2024\\onestore\\asobo-aircraft-c172sp-as
   await sim.connect();
   assert.strictEqual(seen.connected, 1);
   assert.ok(handle.calls.some(c => c[0] === 'subscribeToSystemEvent' && c[2] === 'AircraftLoaded'));
+  // Pause state (Pause_EX1 flags) for the stopwatches: active pause does not stop SIMULATION TIME.
+  const pauseId = handle.calls.find(c => c[0] === 'subscribeToSystemEvent' && c[2] === 'Pause_EX1')[1];
+  const pauses = [];
+  sim.on('pause', f => pauses.push(f));
+  handle.emit('event', { clientEventId: pauseId, data: 4 });
+  handle.emit('event', { clientEventId: pauseId, data: 0 });
+  handle.emit('event', { clientEventId: 999, data: 1 });
+  assert.deepStrictEqual(pauses, [4, 0], 'active pause, then running');
   assert.ok(handle.calls.some(c => c[0] === 'addToDataDefinition' && c[2] === 'TITLE' && c[3] === null));
   const req = handle.calls.find(c => c[0] === 'requestDataOnSimObject' && c[2] === handle.defIdFor('LIGHT LANDING'));
   assert.strictEqual(req[4], SimConnectPeriod.SIM_FRAME, 'per-frame check');

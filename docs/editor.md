@@ -62,8 +62,8 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   - Step actions: **Wrap at the ends**, and **Hold to ramp** (tap steps once, hold keeps
     stepping by "Ramp step"): one key can run a dimmer.
   - **Dock stopwatch** (a Source choice): name (keys with the same name share one) and what to show
-    (elapsed time, or running 1 / 0). **Stopwatch control** (an action): start / stop, reset,
-    start, stop. The library has a ready group: time, start/stop, reset.
+    (elapsed time, or running 1 / 0). **Stopwatch control** (an action): start / stop,
+    **start / stop; hold to reset** (the whole stopwatch on one key), reset, start, stop. The library has a ready group: time, start/stop, reset.
   - **Open a keypad** (an action): a preset (transponder code, COM1/2 or NAV1/2 standby; guessed
     from what the key reads) or your own (digits, decimals, 0-7 only, set when all digits are in,
     and the event, simvar or input event it sets, as a number times a factor or as BCD).

@@ -185,6 +185,7 @@ class ProfileEngine {
     this.holdTimers = new Map(); // slot -> interval re-sending a held position
     this.ramps = new Map(); // slot -> { ramping } while a step key with a ramp is held
     this.heldKeys = new Map(); // slot -> shortcut held down while the dock key is
+    this.timerHolds = new Map(); // slot -> { reset } while a hold-to-reset stopwatch key is down
     this.swallowed = new Set(); // slots whose key down only dismissed an announcement
     this.status = 'offline'; // offline | loading | ready
     this.profile = null;
@@ -213,6 +214,7 @@ class ProfileEngine {
       this._sway();
     });
     this.sim.on('exception', e => this._onException(e));
+    this.sim.on('pause', flags => { this.dockVars.setPaused(flags !== 0); this.log('pause', { flags }); });
     this.sim.onAircraftChanged(a => this.setAircraft(a));
     this._sway();
   }
@@ -499,6 +501,7 @@ class ProfileEngine {
 
   _stopHolds() {
     this.ramps.clear();
+    this.timerHolds.clear();
     // Never leave a shortcut held down when the page or aircraft changes.
     for (const keys of this.heldKeys.values()) { try { this.keyboard.up(keys); } catch (e) { /* helper gone */ } }
     this.heldKeys.clear();
@@ -513,6 +516,20 @@ class ProfileEngine {
     if (this.scene) { this.swallowed.add(slot); this._clearScene(); return this.redrawAll(); }
     const key = this.status === 'ready' ? this.page.keys?.[slot] : null;
     if (!key || !key.press) return;
+    // Stopwatch with hold to reset (user, 2026-10-30): a tap starts / stops (on release), holding
+    // for holdMs (default 1 s) stops it and sets it to 0:00, so one key does it all.
+    if (key.press.timer !== undefined && key.press.holdReset) {
+      this._stopHold(slot);
+      const r = { reset: false };
+      this.timerHolds.set(slot, r);
+      this.holdTimers.set(slot, setTimeout(() => {
+        r.reset = true;
+        this.dockVars.press(key.press.timer, 'stop');
+        this.dockVars.press(key.press.timer, 'reset');
+        this.log('press', { timer: key.press.timer, action: 'hold reset' });
+      }, key.press.holdMs ?? 1000));
+      return;
+    }
     if (key.press.keypad) {
       try { this._openKeypad(key); this.swallowed.add(slot); } catch (e) { this.log('press failed', { slot, error: e.message }); this.display.alert(slot); }
       return;
@@ -650,6 +667,12 @@ class ProfileEngine {
     this._stopHold(slot);
     if (this.swallowed.delete(slot)) return; // its key down did nothing, so neither does key up
     const key = this.status === 'ready' ? this.page?.keys?.[slot] : null;
+    const th = this.timerHolds.get(slot);
+    if (th) {
+      this.timerHolds.delete(slot);
+      if (!th.reset && key) this._press(key, 'down'); // a tap: start / stop
+      return;
+    }
     const held = this.heldKeys.get(slot);
     if (held) {
       this.heldKeys.delete(slot);

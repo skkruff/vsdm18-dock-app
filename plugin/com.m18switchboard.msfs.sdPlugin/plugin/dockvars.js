@@ -1,8 +1,9 @@
 // Dock variables (user, 2026-10-30): values the plugin keeps itself rather than reading from the
 // sim. Keys read them like a simvar and presses change them. So far: stopwatches.
 //
-// A stopwatch counts sim time (SIMULATION TIME), so it stops while the sim is paused and runs
-// faster at higher sim rates. Its state is saved (dock-state.json next to the profiles folder),
+// A stopwatch counts sim time (SIMULATION TIME), so it runs faster at higher sim rates, and stands
+// still while the sim reports any pause (Pause_EX1: menu, pause key, active pause), since
+// SIMULATION TIME itself keeps running in active pause (user test, 2026-10-30). Its state is saved (dock-state.json next to the profiles folder),
 // so it survives a plugin or VSD Craft restart: a running stopwatch carries on from where it was
 // saved once the sim's clock moves again (time while the plugin was not running is not counted).
 //
@@ -26,6 +27,12 @@ class DockVars extends EventEmitter {
     }
     this.lastSim = undefined;
     this.lastSave = 0;
+    this.paused = false;
+  }
+
+  // The sim's pause state (any pause, active pause included): stopwatches stand still meanwhile.
+  setPaused(paused) {
+    this.paused = !!paused;
   }
 
   _timer(name) {
@@ -56,7 +63,7 @@ class DockVars extends EventEmitter {
     this.lastSim = seconds;
     if (prev === undefined) return;
     const d = seconds - prev;
-    if (!(d > 0 && d <= MAX_STEP_S)) return;
+    if (this.paused || !(d > 0 && d <= MAX_STEP_S)) return;
     let moved = false;
     for (const [name, t] of this.timers) {
       if (!t.running) continue;
@@ -71,6 +78,7 @@ class DockVars extends EventEmitter {
   // The sim went away: the next report starts a fresh count instead of a jump.
   simGone() {
     this.lastSim = undefined;
+    this.paused = false;
     this._persist(true);
   }
 

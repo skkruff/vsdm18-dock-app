@@ -110,7 +110,8 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
 - `{ "var": "KOHLSMAN SETTING MB:1", "unit": "millibars" }`: a simvar. `unit: "bool"` gives 0/1.
 - `{ "timer": "T1" }`: a dock stopwatch's elapsed whole seconds (show with `"format": "duration"`,
   M:SS or H:MM:SS); `{ "timer": "T1", "part": "running" }`: 1 while it runs, else 0. Stopwatches
-  are kept by the plugin, count sim time (SIMULATION TIME: stop when paused, follow sim rate,
+  are kept by the plugin, count sim time (SIMULATION TIME, follow sim rate; held while the sim
+  reports any pause through the Pause_EX1 event, as active pause does not stop SIMULATION TIME;
   ignore jumps over 60 s such as a new flight) and are saved in `dock-state.json` next to the
   profiles folder, so they survive restarts. Keys using the same name share one stopwatch.
 
@@ -131,6 +132,7 @@ The key never changes on press; it changes when the sim reports the new value.
 | `{ "event": "PITOT_HEAT_TOGGLE" }` | sends a classic event, `value` optional |
 | `{ "event": "AVIONICS_MASTER_SET", "toggleValue": true }` | sends 1 if the read value is 0, else 0 |
 | `{ "timer": "T1", "action": "toggle" }` | a dock stopwatch: `toggle` (start / stop), `start`, `stop`, `reset` |
+| `{ "timer": "T1", "action": "toggle", "holdReset": true, "holdMs": 1000 }` | the whole stopwatch on one key: a tap starts / stops it (on release), holding for holdMs (default 1000) stops it and sets it to 0:00 |
 | `{ "keypad": "xpdr" }` | opens a keypad over the dock; the value typed is set on ENT, or as soon as all digits are in. Presets: `xpdr` (4 digits 0-7, XPNDR_SET as BCD; `vfr`: "1200", the code the VFR key sets, changeable e.g. to "7000"), `com1` / `com2` (6 digits, 3 decimals, COM_STBY_RADIO_SET_HZ / COM2_STBY_RADIO_SET_HZ), `nav1` / `nav2` (5 digits, 2 decimals, NAV1/2_STBY_SET_HZ). Your own: `{ "title", "digits", "decimals", "octal", "autoEnter": true, "apply": { "event" \| "var" + "unit" \| "input", "encode": "number" \| "bcd16", "scale" } }`; a preset can be given with overrides as `{ "preset": "com1", "title": "COM1" }`. Missing digits count as zeros (124.8 -> 124.800). A preset's pathway can be replaced on the key, e.g. `{ "preset": "xpdr", "apply": { "input": "XPDR_CODE" } }` (event / var / input replaces the preset's target; encode and scale fill in from the preset). The layout is the keypad layout below. CANCEL or a round button closes it |
 | `{ "keys": "Ctrl+Shift+L" }` | presses a keyboard shortcut (Windows), for things MSFS only has key bindings for (flashlight, views). Modifiers go down first (Ctrl, Shift, Alt, Win; RCtrl etc. for right-hand ones) and up last. `"whileHeld": true` keeps the keys down while the dock key is held. MSFS is brought to the front first unless `"focus": false`. Key names: letters, digits, F1-F24, Up/Down/Left/Right, Home, End, PgUp, PgDn, Insert, Delete, Esc, Enter, Tab, Space, Numpad0-9, NumpadAdd/Subtract/Multiply/Divide/Decimal/Enter, punctuation, or browser key codes (KeyL) |
 

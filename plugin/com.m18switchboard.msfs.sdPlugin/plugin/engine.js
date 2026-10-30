@@ -386,7 +386,8 @@ class ProfileEngine {
         ? tiles.iconReadout(icon, formatValue(key, value), this.renderer.iconBox(key.icon, key.iconState || null), sublabelFor(key, value))
         : tiles.readout(key.label || '', formatValue(key, value), sublabelFor(key, value));
     }
-    if (key.type === 'button') return this.renderer.icon(key.icon, null) || tiles.button(key.label || '', sublabelFor(key, value));
+    // Decorative keys (user, 2026-10-30) look like a button without a press: icon, or label and sublabel.
+    if (key.type === 'button' || key.type === 'decor') return this.renderer.icon(key.icon, null) || tiles.button(key.label || '', sublabelFor(key, value));
     const state = value === undefined ? 'clear' : (lookup(key.states, value) || key.otherwise || 'clear');
     return this.renderer.icon(key.icon, state) || tiles.switch(key.label || '', state, sublabelFor(key, value));
   }

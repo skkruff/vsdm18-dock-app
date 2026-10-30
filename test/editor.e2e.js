@@ -280,6 +280,24 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await save();
     assert.deepStrictEqual(file().pages[1].keys['8'].press, { event: 'AP_APR_HOLD' });
 
+    // Decorative key: choosing it drops the key's function (after a confirm) and hides those sections.
+    await page.click(slot(8));
+    await page.selectOption('#inspector select >> nth=0', 'decor');
+    await page.waitForSelector('#inspector .info[data-help="decor"]');
+    assert.ok(!(await page.isVisible('#inspector h4:has-text("When pressed")')), 'no press section');
+    assert.ok(!(await page.isVisible('#inspector h4:has-text("Reads from the sim")')), 'no source section');
+    await page.fill('#inspector .field:has-text("Sublabel") input', 'INTERIOR');
+    await save();
+    const deco = file().pages[1].keys['8'];
+    assert.strictEqual(deco.type, 'decor');
+    assert.deepStrictEqual([deco.read, deco.press, deco.sublabel], [undefined, undefined, 'INTERIOR']);
+    await page.click(slot(8));
+    await page.selectOption('#inspector select >> nth=0', 'armable');
+    await page.selectOption('#inspector .ladder .step >> nth=0 >> .field:has-text("Source") select', 'input');
+    await page.fill('#inspector .ladder .step >> nth=0 >> input[placeholder^="e.g. ELECTRICAL"]', 'LIGHTING_TAXI_1');
+    await page.fill('#inspector .ladder .step >> nth=1 >> input[placeholder^="e.g. NAV"]', 'AUTOPILOT APPROACH ARM');
+    await save();
+
     // A save that fails validation is refused with a message, and the file is untouched.
     await page.click(slot(8));
     await page.click('#inspector details summary');

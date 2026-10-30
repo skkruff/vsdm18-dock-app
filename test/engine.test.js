@@ -205,6 +205,16 @@ const text = uri => decodeURIComponent(uri);
   assert.match(two, /aria-label="110\.50"/, 'second value from its own source');
   assert.match(text(engine.keyImage(fk, 1)), /aria-label="ONE"/, 'face for value 1');
   assert.strictEqual(formatValue({ format: 'time' }, 13 * 3600 + 7 * 60 + 30), '13:07');
+  // Decorative keys: label and sublabel, or a face; no source, no press.
+  {
+    const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
+    const d = { type: 'decor', label: 'LIGHTS', sublabel: 'INTERIOR' };
+    validate({ id: 'x', match: {}, pages: [{ keys: { 0: d } }] }, 'x');
+    assert.deepStrictEqual(keySources(d), []);
+    assert.match(text(engine.keyImage(d)), /aria-label="LIGHTS".*aria-label="INTERIOR"/s);
+    assert.match(text(engine.keyImage({ ...d, face: { layers: [{ kind: 'text', text: 'ART' }, { kind: 'sublabel' }] } })), /aria-label="ART".*aria-label="INTERIOR"/s);
+    assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { ...d, press: { event: 'X' } } } }] }, 'x'), /decorative/);
+  }
 
   // A bar layer can show a fixed look instead of the key's state (user, 2026-10-30): a readout
   // with a face per TRANSPONDER STATE value, each with its own bar.

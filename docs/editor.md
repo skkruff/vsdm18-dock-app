@@ -28,7 +28,10 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   - Click to select, Ctrl/Shift-click for several, drag to move/swap.
   - Ctrl+C / Ctrl+V copy and paste, also between pages and profiles. Delete removes.
 - **Inspector** (right): everything about the selected key.
-  - Type: switch (on/off look), switch (armable), readout (live value), button.
+  - Type: switch (on/off look), switch (armable), readout (live value), button, decorative.
+  - **Decorative (no function)**: label, icon, sublabel and face only, for panel titles or
+    artwork. Choosing it removes the key's source, press action and per-value settings (after a
+    confirm), and the inspector hides those sections.
   - **Switch (armable)**: for autopilot modes that arm before they engage. Instead of "Reads from
     the sim" and "Look per value" it shows the look as three numbered steps checked top to bottom:
     1 green (active) when a source is a value, 2 otherwise white (armed) when a second source is a

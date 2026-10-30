@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const KEY_TYPES = ['switch', 'armable', 'button', 'readout'];
+const KEY_TYPES = ['switch', 'armable', 'button', 'readout', 'decor'];
 const LCD_SLOTS = 15;
 
 function validate(p, file) {
@@ -15,7 +15,8 @@ function validate(p, file) {
       const where = `page ${i + 1} slot ${slot}`;
       if (!(Number(slot) >= 0 && Number(slot) < LCD_SLOTS)) errors.push(`${where}: slot must be 0-14`);
       if (!KEY_TYPES.includes(key.type)) errors.push(`${where}: type must be one of ${KEY_TYPES.join(', ')}`);
-      if (key.type !== 'button' && !key.read) errors.push(`${where}: ${key.type} needs read`);
+      if (key.type !== 'button' && key.type !== 'decor' && !key.read) errors.push(`${where}: ${key.type} needs read`);
+      if (key.type === 'decor' && (key.read || key.press)) errors.push(`${where}: a decorative key has no source or press action`);
       if (key.type === 'armable' && !(key.armed && (key.armed.input || key.armed.var))) errors.push(`${where}: armable needs an armed source`);
       for (const k of ['activeOr', 'armedOr']) {
         for (const o of key[k] || []) if (!(o.read && (o.read.input || o.read.var))) errors.push(`${where}: an "or" source in ${k} is empty`);

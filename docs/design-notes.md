@@ -118,3 +118,15 @@ Dimmer knobs are not flight critical: put them on their own page.
 The ⓘ mechanism is built (texts in `HELP` in `editor.js`); so far only on the armable key and
 "Acts on". Polishing step: write help for the remaining key setup intricacies (hold repeat timings,
 cycle vs set, sources vs Acts on, faces per value, crop auto/full).
+
+## Stopwatch: build in the keypad phase (user, 2026-10-30)
+
+Agreed: a dock stopwatch, not the G1000's own timer (that would need PFD softkey sequences and
+probably state hidden in the NXi's JavaScript, not L:vars). Build it in the keypad phase on the
+same groundwork, **dock variables**: values the plugin keeps itself, readable by keys like a simvar
+and changed by presses (the keypad needs the same for the digits being typed).
+- Counts **sim time** (SIMULATION TIME / ABSOLUTE TIME): stops when the sim pauses, follows sim rate.
+- Start/stop and reset presses; elapsed time as MM:SS (H:MM:SS past an hour). Count-down with a
+  flash at zero is optional.
+- **Must survive a plugin / VSD Craft restart** (user): persist its state (running, start, accumulated).
+- Known limits: not shown on the PFD, separate from the G1000 timer.

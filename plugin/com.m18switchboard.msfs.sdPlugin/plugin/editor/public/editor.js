@@ -599,6 +599,8 @@ function field(label, control, note, help) {
 // ⓘ next to a label: the help text on hover, or pinned open by a click (user, 2026-10-29). Texts
 // live in HELP so they are easy to find and correct.
 const HELP = {
+  decor: 'For looks only: a label, an icon, a sublabel or a custom face, with no sim source and nothing on press. '
+    + 'Use it for panel titles, separators or artwork.',
   armable: 'For modes that arm before they engage (APR, GS, NAV/LOC capture, ALT). The key checks its '
     + 'two sources in order: green while the mode is active, white while it is only armed, otherwise '
     + 'the look you choose. HDG, VS, FLC, YD and AP are only on or off: use an ordinary Switch for those.',
@@ -720,12 +722,18 @@ function renderInspector() {
   const redraw = () => { changed(); renderInspector(); };
   box.append(el('h3', {}, `Key ${slot}`));
 
-  box.append(field('Type', select_([['switch', 'Switch (on/off look)'], ['armable', 'Switch (armable)'], ['readout', 'Readout (live value)'], ['button', 'Button']], key.type, v => {
+  box.append(field('Type', select_([['switch', 'Switch (on/off look)'], ['armable', 'Switch (armable)'], ['readout', 'Readout (live value)'], ['button', 'Button'], ['decor', 'Decorative (no function)']], key.type, v => {
+    // Decorative keys only look: what the key read or did goes (user, 2026-10-30).
+    if (v === 'decor') {
+      const had = FUNCTION_FIELDS.filter(k => key[k] !== undefined);
+      if (had.length && !confirm('A decorative key does nothing: its source, press action and per-value settings will be removed. Continue?')) return renderInspector();
+      for (const k of had) delete key[k];
+    }
     key.type = v;
     if (v === 'switch' && !key.states) key.states = { 0: 'off', 1: 'on' };
     if (v === 'armable' && !key.armed) key.armed = { var: '', unit: 'bool' };
     redraw();
-  }), null, key.type === 'armable' ? 'armable' : null));
+  }), null, key.type === 'armable' ? 'armable' : key.type === 'decor' ? 'decor' : null));
   box.append(field('Label', el('textarea', { rows: 2, on: { input: e => { key.label = e.target.value; changed(); } } }, key.label || ''),
     'Shown on drawn tiles. A new line starts a second line.'));
 
@@ -742,6 +750,12 @@ function renderInspector() {
 
   box.append(el('h4', {}, 'Face (optional)'));
   box.append(faceDesigner(key, slot));
+
+  if (key.type === 'decor') {
+    box.append(el('h4', {}, 'Sublabel'));
+    box.append(field('Sublabel', input(key.sublabel, v => { if (v) { key.sublabel = v; ensureSublabelLayer(key); } else delete key.sublabel; changed(); }), 'smaller text under the label'));
+    return inspectorTail(box, key, slot);
+  }
 
   if (key.type === 'armable') box.append(armableLadder(key));
   // Source
@@ -888,16 +902,24 @@ function renderInspector() {
   } else box.append(field('Preview value', input(S.previewValues[pvKey], v => { S.previewValues[pvKey] = v; renderGrid(); renderInspector(); }, { placeholder: isLivePage() ? 'live from sim' : `default: ${defaultPreview(key) ?? 'unknown'}` }),
     'Try values to see each look. Empty = live value (when this page is on the dock) or a default.'));
 
-  // Raw JSON
+  inspectorTail(box, key, slot);
+}
+
+// Raw JSON, Save to library, Delete: the end of every key's inspector.
+function inspectorTail(box, key, slot) {
   const raw = el('details', {}, el('summary', {}, 'Advanced: edit as JSON'));
   const ta = el('textarea', { class: 'json' }, JSON.stringify(key, null, 2));
   raw.append(ta, el('button', { on: { click: () => {
-    try { keys()[slot] = JSON.parse(ta.value); redraw(); } catch (e) { status(`JSON error: ${e.message}`, 'bad'); }
+    try { keys()[slot] = JSON.parse(ta.value); changed(); renderInspector(); } catch (e) { status(`JSON error: ${e.message}`, 'bad'); }
   } } }, 'Apply JSON'));
   box.append(raw);
   box.append(el('p', {}, el('button', { on: { click: saveToLibrary } }, 'Save to library'), ' ',
     el('button', { on: { click: deleteSel } }, 'Delete this key')));
 }
+
+// What a decorative key drops when chosen: everything that reads or acts on the sim.
+const FUNCTION_FIELDS = ['read', 'press', 'states', 'otherwise', 'armed', 'activeIs', 'armedIs', 'activeOr', 'armedOr',
+  'sublabels', 'text', 'valueIcons', 'valueFaces', 'decimals', 'pad', 'format'];
 
 // Learn: the user moves a control; everything that changed in the next moment comes back. One
 // candidate is taken directly; several are listed to choose from (user, 2026-10-28: be sure the
@@ -1170,7 +1192,7 @@ function faceDesigner(key, slot) {
     ] : null,
     ...(armable ? [] : Object.keys(valueFaces)).map(v => el('button', { class: faceTarget === v ? 'active' : '', on: { click: () => { faceTarget = v; faceLayer = 0; renderInspector(); } } },
       `value ${v}${key.text && key.text[v] ? ` (${key.text[v]})` : ''}`)),
-    armable ? null : el('button', { title: 'Design a separate face shown when the sim value is this', on: { click: () => {
+    armable || key.type === 'decor' ? null : el('button', { title: 'Design a separate face shown when the sim value is this', on: { click: () => {
       const v = prompt('Face for which sim value? (e.g. 0, 1, 3)', String(Object.keys(key.states || key.text || {})[0] ?? '0'));
       if (v === null || v.trim() === '') return;
       addFace(v.trim());

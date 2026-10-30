@@ -40,6 +40,7 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
 | `armable` | like a switch, with a third look: armed (white bar) | `read` (active source), `armed` |
 | `readout` | label and a live value; with `icon`, the top of that library icon above the value | `read` |
 | `button` | stateless library icon `<icon>_<theme>.png` or the label | `press` |
+| `decor` | looks only: icon, or label and `sublabel`, or a `face`; never reads or acts | nothing (no `read` or `press` allowed) |
 
 - **states** (switch): sim value to `on`, `off` or `clear`. `otherwise`: state for values not in
   the map. Unknown value (not yet read, sim reconnecting) shows `clear`.

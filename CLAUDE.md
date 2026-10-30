@@ -21,7 +21,8 @@ ramp, decorative keys, keyboard shortcuts (all tested by the user in flight), th
 sim-time stopwatches kept across restarts, and keypads (XPDR / COM / NAV standby presets, custom),
 with one editable keypad layout (`keypad.json`, editor "Keypad" tab) and an editable send pathway
 per keypad key.
-Awaiting the user's test of stopwatch and keypads (`docs/editor-test.md`).
+2026-10-30: the user confirmed a fully working C172 switchboard (their profile in Documents;
+brief Phase 3 done, beyond it in features). Next: a code review pass, then Phase 4 (second aircraft).
 
 ## Profile content principles (user, 2026-10-27)
 

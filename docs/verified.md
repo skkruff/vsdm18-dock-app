@@ -49,6 +49,12 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
 - 2026-10-30, user (dock + sim): keyboard shortcuts work; armable annunciators, dimmers (step,
   wrap, ramp) and the customisation features work in flight with no blockers.
+- 2026-10-30, user test (dock + sim, C172 G1000): **full C172 milestone.** The user's profile (4
+  pages: Primary, Radio Stack, Autopilot, Auxiliary) works end to end: keypads and the VFR key,
+  the one-key stopwatch (hold reset), and the stopwatch stopping in every pause (Pause_EX1 fix
+  confirmed). The autopilot page uses plain buttons on the G1000's AS1000_AUTOPILOT_*_PFD input
+  events; the user chose no annunciators there (the PFD shows the modes); armable keys stay for
+  aircraft with older autopilots.
 - 2026-10-30, user test (dock + sim): stopwatch starts and stops, follows sim rate, and its time
   survives turning VSD Craft off and on. It did NOT stop in active pause: SIMULATION TIME keeps
   running then. Fixed in code (unit tests only): stopwatches now also follow the Pause_EX1

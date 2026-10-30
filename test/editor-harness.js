@@ -16,7 +16,8 @@ const { FakeSim } = require('./fake-sim');
 
 async function startHarness({ iconDir = '', port = 0, profilesDir } = {}) {
   const dir = profilesDir || path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'switchboard-editor-')), 'profiles');
-  const store = new ProfileStore({ dir, bundledDir: path.join(pluginDir, '..', 'profiles') });
+  // Test fixtures, not the shipped profiles, so the e2e test does not depend on shipped content.
+  const store = new ProfileStore({ dir, bundledDir: path.join(__dirname, 'fixtures', 'profiles') });
   store.seed(path.join(pluginDir, '..', 'library.json'));
   const icons = new IconLibrary(iconDir, 'RGB');
   icons.scan();

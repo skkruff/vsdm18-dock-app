@@ -17,8 +17,11 @@ const tick = () => new Promise(r => setTimeout(r, 5));
 const text = uri => decodeURIComponent(uri);
 
 (async () => {
-  const { profiles, errors } = loadProfiles(path.join(pluginDir, 'profiles'));
-  assert.deepStrictEqual(errors, [], 'shipped profiles validate');
+  // The shipped profiles must load; the tests below run on fixed copies in test/fixtures, so
+  // improving a shipped profile never breaks them.
+  assert.deepStrictEqual(loadProfiles(path.join(pluginDir, 'profiles')).errors, [], 'shipped profiles validate');
+  const { profiles, errors } = loadProfiles(path.join(__dirname, 'fixtures', 'profiles'));
+  assert.deepStrictEqual(errors, [], 'fixture profiles validate');
   assert.deepStrictEqual(profiles.map(p => p.id), ['c172-g1000', 'generic'], 'fallback last');
 
   const sim = new FakeSim({

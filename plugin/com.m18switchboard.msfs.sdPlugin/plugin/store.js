@@ -21,20 +21,30 @@ class ProfileStore {
     this.watcher = null;
   }
 
-  // Creates the folder, copies in any shipped profile the user does not have yet, and adds shipped
-  // library items the user has neither got nor deleted.
+  // Creates the folder, copies in any shipped profile the user does not have yet, and brings the
+  // shipped library items up to date: new ones added (unless the user deleted them), changed ones
+  // replaced, ones no longer shipped removed. The user's own items are never touched, and their
+  // renames of shipped items (userEdits) stay on top. Shipped items are refreshed rather than
+  // kept because their ids name a page and slot of a shipped profile, which can change meaning
+  // when that profile is reworked (2026-10-30: the C172 profile became the user's).
   seed(bundledLibrary) {
     fs.mkdirSync(this.dir, { recursive: true });
     if (bundledLibrary && fs.existsSync(bundledLibrary)) {
       const lib = this.readLibrary();
-      const have = new Set(lib.items.map(i => i.id));
       const hidden = new Set(lib.hiddenShipped);
-      const added = JSON.parse(fs.readFileSync(bundledLibrary, 'utf8')).items
-        .filter(i => !have.has(i.id) && !hidden.has(i.id));
-      if (added.length || !fs.existsSync(this.libraryFile)) {
-        lib.items.push(...added);
-        this.writeLibrary(lib);
+      const bundled = JSON.parse(fs.readFileSync(bundledLibrary, 'utf8')).items.filter(i => !hidden.has(i.id));
+      const byId = new Map(bundled.map(i => [i.id, i]));
+      const before = JSON.stringify(lib.items);
+      const kept = [];
+      for (const item of lib.items) {
+        if (!item.shipped) { kept.push(item); continue; }
+        const fresh = byId.get(item.id);
+        if (!fresh) continue; // no longer shipped
+        kept.push({ ...fresh, ...(item.userEdits || {}), ...(item.userEdits ? { userEdits: item.userEdits } : {}) });
+        byId.delete(item.id);
       }
+      lib.items = [...kept, ...byId.values()];
+      if (JSON.stringify(lib.items) !== before || !fs.existsSync(this.libraryFile)) this.writeLibrary(lib);
     }
     const copied = [];
     for (const f of fs.readdirSync(this.bundledDir).filter(f => FILE_RE.test(f))) {

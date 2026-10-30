@@ -9,7 +9,9 @@ const profiles = ['c172-g1000', 'generic'].map(id => JSON.parse(fs.readFileSync(
 
 // Category from what the key reads or does.
 function category(key) {
-  const src = `${key.read?.input || ''} ${key.read?.var || ''} ${key.press?.event || ''}`.toUpperCase();
+  const src = `${key.read?.input || ''} ${key.read?.var || ''} ${key.press?.event || ''} ${key.press?.input || ''} ${key.label || ''}`.toUpperCase();
+  if (key.read?.timer !== undefined || key.press?.timer !== undefined || /TIME/.test(src)) return 'Chrono';
+  if (/AUTOPILOT|_AP_|FLIGHT_DIRECTOR/.test(src)) return 'Autopilot';
   if (/LIGHT/.test(src)) return 'Lights';
   if (/MAGNETO|ENGINE|STARTER|IGNITION/.test(src)) return 'Engine';
   if (/FUEL/.test(src)) return 'Fuel';
@@ -30,13 +32,23 @@ function describe(key) {
 }
 
 const items = [];
+// Keys with the same label on one aircraft (COM1 audio switch, COM1 frequency) get what they are.
+const KIND = { switch: 'switch', readout: 'readout', button: 'button', armable: 'mode', decor: 'decor' };
+const labelCount = new Map();
+for (const prof of profiles) for (const page of prof.pages) for (const key of Object.values(page.keys)) {
+  const l = `${prof.id}:${(key.label || key.icon || 'key').replace(/\n/g, ' ')}`;
+  labelCount.set(l, (labelCount.get(l) || 0) + 1);
+}
 for (const prof of profiles) {
   const aircraft = prof.fallback ? 'any aircraft, classic simvars' : (prof.banner || [prof.id]).join(' ');
   prof.pages.forEach((page, pi) => {
     for (const [slot, key] of Object.entries(page.keys)) {
       items.push({
         id: `${prof.id}.${pi}.${slot}`,
-        name: `${(key.label || key.icon || 'key').replace(/\n/g, ' ')} (${aircraft})`,
+        name: (() => {
+          const l = (key.label || key.icon || 'key').replace(/\n/g, ' ');
+          return `${l}${labelCount.get(`${prof.id}:${l}`) > 1 ? ` ${KIND[key.type] || key.type}` : ''} (${aircraft})`;
+        })(),
         category: category(key),
         notes: describe(key),
         shipped: true,
@@ -56,14 +68,14 @@ items.unshift({
   shipped: true,
   keys: [11, 12, 13, 14].map((s, i) => ({ dr: 0, dc: i, key: c172[s] })),
 });
-const aux = profiles[0].pages[1].keys;
+const aux = profiles[0].pages.find(p => p.name === 'Auxiliary').keys;
 items.unshift({
   id: 'group.fuel-selector',
   name: 'Fuel selector (◀ FUEL, state, FUEL ▶)',
   category: 'Fuel',
   notes: 'From the C172. Values 0 LEFT, 1 BOTH, 2 RIGHT.',
   shipped: true,
-  keys: [5, 6, 7].map((s, i) => ({ dr: 0, dc: i, key: aux[s] })),
+  keys: [10, 11, 12].map((s, i) => ({ dr: 0, dc: i, key: aux[s] })),
 });
 items.unshift({
   id: 'group.c172-lights-row',

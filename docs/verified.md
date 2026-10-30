@@ -49,6 +49,10 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
 - 2026-10-30, user (dock + sim): keyboard shortcuts work; armable annunciators, dimmers (step,
   wrap, ramp) and the customisation features work in flight with no blockers.
+- 2026-10-30: the user's C172 profile is now the shipped one (cleaned: the XPDR mode readout's
+  leftover armable fields removed, its bars made explicit; NOSE DN label; "Auxiliary" spelling).
+  Tests run on fixed copies in `test/fixtures/profiles`. Shipped library items are now refreshed
+  from the plugin on start (their ids name a page and slot, which changed meaning).
 - 2026-10-30, user test (dock + sim, C172 G1000): **full C172 milestone.** The user's profile (4
   pages: Primary, Radio Stack, Autopilot, Auxiliary) works end to end: keypads and the VFR key,
   the one-key stopwatch (hold reset), and the stopwatch stopping in every pause (Pause_EX1 fix

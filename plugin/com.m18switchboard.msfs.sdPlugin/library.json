@@ -138,7 +138,8 @@
             "press": {
               "step": -1,
               "min": 0
-            }
+            },
+            "icon": "arrow_blank_left"
           }
         },
         {
@@ -154,7 +155,8 @@
               "0": "LEFT",
               "1": "BOTH",
               "2": "RIGHT"
-            }
+            },
+            "icon": "fuel"
           }
         },
         {
@@ -169,7 +171,8 @@
             "press": {
               "step": 1,
               "max": 2
-            }
+            },
+            "icon": "arrow_blank_right"
           }
         }
       ]
@@ -193,7 +196,8 @@
             "press": {
               "step": -1,
               "min": 0
-            }
+            },
+            "icon": "arrow_left"
           }
         },
         {
@@ -233,27 +237,25 @@
             "press": {
               "step": 1,
               "max": 3
-            }
+            },
+            "icon": "arrow_right"
           }
         },
         {
           "dr": 0,
           "dc": 3,
           "key": {
-            "type": "switch",
+            "type": "button",
             "label": "START",
             "read": {
               "input": "ENGINE_MAGNETO_1"
             },
-            "states": {
-              "4": "on"
-            },
-            "otherwise": "off",
             "press": {
               "hold": 4,
               "release": 3,
               "repeatMs": 250
-            }
+            },
+            "icon": "engine_start"
           }
         }
       ]
@@ -279,16 +281,16 @@
               "1": "off",
               "2": "on"
             },
-            "sublabels": {
-              "0": "ARM",
-              "1": "OFF",
-              "2": "TEST"
-            },
             "press": {
               "cycle": [
                 1,
                 0
               ]
+            },
+            "sublabels": {
+              "0": "ARM",
+              "1": "OFF",
+              "2": "TEST"
             }
           }
         }
@@ -296,7 +298,7 @@
     },
     {
       "id": "c172-g1000.0.1",
-      "name": "ALT (C172 G1000)",
+      "name": "ALT switch (C172 G1000)",
       "category": "Electrical",
       "notes": "Reads ELECTRICAL_ALTERNATOR_1; toggles 0/1.",
       "shipped": true,
@@ -358,7 +360,7 @@
     },
     {
       "id": "c172-g1000.0.3",
-      "name": "AVN BUS 1 (C172 G1000)",
+      "name": "AVIONICS BUS 1 (C172 G1000)",
       "category": "Electrical",
       "notes": "Reads ELECTRICAL_LINE_BUS_1_TO_AVIONICS_BUS_1; toggles 0/1.",
       "shipped": true,
@@ -368,7 +370,7 @@
           "dc": 0,
           "key": {
             "type": "switch",
-            "label": "AVN\nBUS 1",
+            "label": "AVIONICS\nBUS 1",
             "read": {
               "input": "ELECTRICAL_LINE_BUS_1_TO_AVIONICS_BUS_1"
             },
@@ -380,6 +382,23 @@
               "cycle": [
                 0,
                 1
+              ]
+            },
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "AVIONICS\nBUS 1",
+                  "x": 72,
+                  "y": 46,
+                  "size": 30
+                },
+                {
+                  "kind": "bar",
+                  "x": 20,
+                  "y": 92,
+                  "r": 9.5
+                }
               ]
             }
           }
@@ -511,7 +530,7 @@
     },
     {
       "id": "c172-g1000.0.8",
-      "name": "NAV (C172 G1000)",
+      "name": "NAV switch (C172 G1000)",
       "category": "Lights",
       "notes": "Reads LIGHTING_NAV_0; toggles 0/1.",
       "shipped": true,
@@ -621,7 +640,8 @@
             "press": {
               "step": -1,
               "min": 0
-            }
+            },
+            "icon": "arrow_left"
           }
         }
       ]
@@ -679,7 +699,8 @@
             "press": {
               "step": 1,
               "max": 3
-            }
+            },
+            "icon": "arrow_right"
           }
         }
       ]
@@ -695,29 +716,58 @@
           "dr": 0,
           "dc": 0,
           "key": {
-            "type": "switch",
+            "type": "button",
             "label": "START",
             "read": {
               "input": "ENGINE_MAGNETO_1"
             },
-            "states": {
-              "4": "on"
-            },
-            "otherwise": "off",
             "press": {
               "hold": 4,
               "release": 3,
               "repeatMs": 250
-            }
+            },
+            "icon": "engine_start"
           }
         }
       ]
     },
     {
       "id": "c172-g1000.1.0",
-      "name": "COM1 (C172 G1000)",
+      "name": "COM1 switch (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads COM ACTIVE FREQUENCY:1 (MHz); no press action.",
+      "notes": "Reads COM RECEIVE:1 (bool); holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "COM1",
+            "states": {
+              "0": "clear",
+              "1": "on"
+            },
+            "icon": "com_radio_on",
+            "read": {
+              "var": "COM RECEIVE:1",
+              "unit": "bool"
+            },
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_COM_1_MIDCOM",
+              "repeatMs": 100
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.1",
+      "name": "COM1 readout (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads COM ACTIVE FREQUENCY:1 (MHz); sends COM_STBY_RADIO_SWAP.",
       "shipped": true,
       "keys": [
         {
@@ -730,16 +780,20 @@
               "var": "COM ACTIVE FREQUENCY:1",
               "unit": "MHz"
             },
-            "decimals": 3
+            "decimals": 3,
+            "icon": "com_1",
+            "press": {
+              "event": "COM_STBY_RADIO_SWAP"
+            }
           }
         }
       ]
     },
     {
-      "id": "c172-g1000.1.1",
+      "id": "c172-g1000.1.2",
       "name": "COM1 STBY (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads COM STANDBY FREQUENCY:1 (MHz); no press action.",
+      "notes": "Reads COM STANDBY FREQUENCY:1 (MHz); sets undefined.",
       "shipped": true,
       "keys": [
         {
@@ -752,26 +806,34 @@
               "var": "COM STANDBY FREQUENCY:1",
               "unit": "MHz"
             },
-            "decimals": 3
-          }
-        }
-      ]
-    },
-    {
-      "id": "c172-g1000.1.2",
-      "name": "COM1 SWAP (C172 G1000)",
-      "category": "Radios",
-      "notes": "Reads nothing; sends COM_STBY_RADIO_SWAP.",
-      "shipped": true,
-      "keys": [
-        {
-          "dr": 0,
-          "dc": 0,
-          "key": {
-            "type": "button",
-            "label": "COM1\nSWAP",
+            "decimals": 3,
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "COM1 STBY",
+                  "x": 72,
+                  "y": 28,
+                  "size": 24
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 54
+                },
+                {
+                  "kind": "value",
+                  "x": 72,
+                  "y": 100,
+                  "size": 42,
+                  "color": "#c0c0c0"
+                }
+              ]
+            },
             "press": {
-              "event": "COM_STBY_RADIO_SWAP"
+              "keypad": {
+                "preset": "com1"
+              }
             }
           }
         }
@@ -779,6 +841,941 @@
     },
     {
       "id": "c172-g1000.1.3",
+      "name": "NAV1 (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads NAV ACTIVE FREQUENCY:1 (MHz); sends NAV1_RADIO_SWAP.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "NAV1",
+            "read": {
+              "var": "NAV ACTIVE FREQUENCY:1",
+              "unit": "MHz"
+            },
+            "decimals": 2,
+            "pad": 0,
+            "press": {
+              "event": "NAV1_RADIO_SWAP"
+            },
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "NAV1",
+                  "x": 72,
+                  "y": 21,
+                  "size": 40
+                },
+                {
+                  "kind": "value",
+                  "x": 72,
+                  "y": 108,
+                  "size": 42
+                },
+                {
+                  "kind": "separator",
+                  "x": 72,
+                  "y": 72,
+                  "w": 68,
+                  "h": 10,
+                  "r": 3
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.4",
+      "name": "NAV1 STBY (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads NAV STANDBY FREQUENCY:1 (MHz); sets undefined.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "NAV1 STBY",
+            "read": {
+              "var": "NAV STANDBY FREQUENCY:1",
+              "unit": "MHz"
+            },
+            "decimals": 2,
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "NAV1 STBY",
+                  "x": 72,
+                  "y": 28,
+                  "size": 24
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 54
+                },
+                {
+                  "kind": "value",
+                  "x": 72,
+                  "y": 100,
+                  "size": 42,
+                  "color": "#c0c0c0"
+                }
+              ]
+            },
+            "press": {
+              "keypad": {
+                "preset": "nav1"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.5",
+      "name": "COM2 switch (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads COM RECEIVE:2 (bool); holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "COM2",
+            "states": {
+              "0": "clear",
+              "1": "on"
+            },
+            "icon": "com_radio_on",
+            "read": {
+              "var": "COM RECEIVE:2",
+              "unit": "bool"
+            },
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_COM_2_MIDCOM",
+              "repeatMs": 100
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.6",
+      "name": "COM2 readout (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads COM ACTIVE FREQUENCY:2 (MHz); sends COM2_RADIO_SWAP.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "COM2",
+            "read": {
+              "var": "COM ACTIVE FREQUENCY:2",
+              "unit": "MHz"
+            },
+            "decimals": 3,
+            "icon": "com_2",
+            "press": {
+              "event": "COM2_RADIO_SWAP"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.7",
+      "name": "COM2 STBY (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads COM STANDBY FREQUENCY:2 (MHz); sets undefined.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "COM2 STBY",
+            "read": {
+              "var": "COM STANDBY FREQUENCY:2",
+              "unit": "MHz"
+            },
+            "decimals": 3,
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "COM2 STBY",
+                  "x": 72,
+                  "y": 28,
+                  "size": 24
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 54
+                },
+                {
+                  "kind": "value",
+                  "x": 72,
+                  "y": 100,
+                  "size": 42,
+                  "color": "#c0c0c0"
+                }
+              ]
+            },
+            "press": {
+              "keypad": {
+                "preset": "com2"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.8",
+      "name": "NAV2 (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads NAV ACTIVE FREQUENCY:2 (MHz); sends NAV2_RADIO_SWAP.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "NAV2",
+            "read": {
+              "var": "NAV ACTIVE FREQUENCY:2",
+              "unit": "MHz"
+            },
+            "decimals": 2,
+            "pad": 0,
+            "press": {
+              "event": "NAV2_RADIO_SWAP"
+            },
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "NAV2",
+                  "x": 72,
+                  "y": 21,
+                  "size": 40
+                },
+                {
+                  "kind": "value",
+                  "x": 72,
+                  "y": 108,
+                  "size": 42
+                },
+                {
+                  "kind": "separator",
+                  "x": 72,
+                  "y": 72,
+                  "w": 68,
+                  "h": 10,
+                  "r": 3
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.9",
+      "name": "NAV2 STBY (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads NAV STANDBY FREQUENCY:2 (MHz); sets undefined.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "NAV2 STBY",
+            "read": {
+              "var": "NAV STANDBY FREQUENCY:2",
+              "unit": "MHz"
+            },
+            "decimals": 2,
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "NAV2 STBY",
+                  "x": 72,
+                  "y": 28,
+                  "size": 24
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 54
+                },
+                {
+                  "kind": "value",
+                  "x": 72,
+                  "y": 100,
+                  "size": 42,
+                  "color": "#c0c0c0"
+                }
+              ]
+            },
+            "press": {
+              "keypad": {
+                "preset": "nav2"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.10",
+      "name": "XPDR (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads TRANSPONDER CODE:1 (number); sets undefined.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "XPDR",
+            "read": {
+              "var": "TRANSPONDER CODE:1",
+              "unit": "number"
+            },
+            "pad": 4,
+            "press": {
+              "keypad": {
+                "preset": "xpdr"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.1.11",
+      "name": "XPDR MODE (C172 G1000)",
+      "category": "Radios",
+      "notes": "Reads TRANSPONDER STATE:1 (number); toggles 0/3/4.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "XPDR MODE",
+            "read": {
+              "var": "TRANSPONDER STATE:1",
+              "unit": "number"
+            },
+            "sublabels": {
+              "1": "STBY",
+              "2": "TEST",
+              "3": "ON",
+              "4": "ALT"
+            },
+            "valueFaces": {
+              "0": {
+                "layers": [
+                  {
+                    "kind": "text",
+                    "text": "XPDR",
+                    "x": 72,
+                    "y": 28,
+                    "size": 24
+                  },
+                  {
+                    "kind": "bar",
+                    "look": "off"
+                  },
+                  {
+                    "kind": "sublabel"
+                  }
+                ]
+              },
+              "1": {
+                "layers": [
+                  {
+                    "kind": "text",
+                    "text": "XPDR",
+                    "x": 72,
+                    "y": 28,
+                    "size": 24
+                  },
+                  {
+                    "kind": "sublabel",
+                    "x": 72,
+                    "y": 54
+                  },
+                  {
+                    "kind": "bar",
+                    "look": "clear"
+                  }
+                ]
+              },
+              "2": {
+                "layers": [
+                  {
+                    "kind": "text",
+                    "text": "XPDR",
+                    "x": 72,
+                    "y": 28,
+                    "size": 24
+                  },
+                  {
+                    "kind": "sublabel",
+                    "x": 72,
+                    "y": 54
+                  },
+                  {
+                    "kind": "bar",
+                    "look": "armed"
+                  }
+                ]
+              },
+              "3": {
+                "layers": [
+                  {
+                    "kind": "text",
+                    "text": "XPDR",
+                    "x": 72,
+                    "y": 28,
+                    "size": 24
+                  },
+                  {
+                    "kind": "sublabel",
+                    "x": 72,
+                    "y": 54
+                  },
+                  {
+                    "kind": "bar",
+                    "look": "on"
+                  }
+                ]
+              },
+              "4": {
+                "layers": [
+                  {
+                    "kind": "text",
+                    "text": "XPDR",
+                    "x": 72,
+                    "y": 28,
+                    "size": 24
+                  },
+                  {
+                    "kind": "sublabel",
+                    "x": 72,
+                    "y": 54
+                  },
+                  {
+                    "kind": "bar",
+                    "look": "on"
+                  }
+                ]
+              }
+            },
+            "press": {
+              "cycle": [
+                0,
+                3,
+                4
+              ],
+              "var": {
+                "var": "TRANSPONDER STATE:1",
+                "unit": "number"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.2.0",
+      "name": "AP (C172 G1000)",
+      "category": "Autopilot",
+      "notes": "Reads nothing; holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "AP",
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_AUTOPILOT_AP_PFD"
+            },
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "AP",
+                  "x": 72,
+                  "y": 72,
+                  "size": 65
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 104
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.2.1",
+      "name": "HDG (C172 G1000)",
+      "category": "Autopilot",
+      "notes": "Reads nothing; holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "HDG",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "HDG",
+                  "x": 72,
+                  "y": 72,
+                  "size": 65
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 104
+                }
+              ]
+            },
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_AUTOPILOT_HEADING_PFD"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.2.2",
+      "name": "NAV button (C172 G1000)",
+      "category": "Autopilot",
+      "notes": "Reads nothing; holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "NAV",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "NAV",
+                  "x": 72,
+                  "y": 72,
+                  "size": 65
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 104
+                }
+              ]
+            },
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_AUTOPILOT_NAVIGATION_PFD"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.2.3",
+      "name": "VS (C172 G1000)",
+      "category": "Autopilot",
+      "notes": "Reads nothing; holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "VS",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "VS",
+                  "x": 72,
+                  "y": 72,
+                  "size": 65
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 104
+                }
+              ]
+            },
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_AUTOPILOT_VERTICALSPEED_PFD"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.2.4",
+      "name": "NOSE UP (C172 G1000)",
+      "category": "Autopilot",
+      "notes": "Reads nothing; holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "NOSE\nUP",
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_AUTOPILOT_VERTICALSPEED_UP_PFD"
+            },
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "NOSE",
+                  "x": 72,
+                  "y": 47,
+                  "size": 34
+                },
+                {
+                  "kind": "text",
+                  "text": "UP",
+                  "x": 72,
+                  "y": 87,
+                  "size": 65
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.2.5",
+      "name": "FD (C172 G1000)",
+      "category": "Autopilot",
+      "notes": "Reads nothing; holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "FD",
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_AUTOPILOT_FD_PFD"
+            },
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "FD",
+                  "x": 72,
+                  "y": 72,
+                  "size": 65
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 104
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.2.6",
+      "name": "ALT button (C172 G1000)",
+      "category": "Autopilot",
+      "notes": "Reads nothing; holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "ALT",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "ALT",
+                  "x": 72,
+                  "y": 72,
+                  "size": 65
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 104
+                }
+              ]
+            },
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_AUTOPILOT_ALTITUDE_PFD"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.2.7",
+      "name": "APR (C172 G1000)",
+      "category": "Autopilot",
+      "notes": "Reads nothing; holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "APR",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "APR",
+                  "x": 72,
+                  "y": 72,
+                  "size": 65
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 104
+                }
+              ]
+            },
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_AUTOPILOT_APPROACH_PFD"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.2.8",
+      "name": "FLC (C172 G1000)",
+      "category": "Autopilot",
+      "notes": "Reads nothing; holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "FLC",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "FLC",
+                  "x": 72,
+                  "y": 72,
+                  "size": 65
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 104
+                }
+              ]
+            },
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_AUTOPILOT_FLIGHTLEVELCHANGE_PFD"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.2.9",
+      "name": "NOSE DN (C172 G1000)",
+      "category": "Autopilot",
+      "notes": "Reads nothing; holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "NOSE\nDN",
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_AUTOPILOT_VERTICALSPEED_DOWN_PFD"
+            },
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "NOSE",
+                  "x": 72,
+                  "y": 47,
+                  "size": 34
+                },
+                {
+                  "kind": "text",
+                  "text": "DN",
+                  "x": 72,
+                  "y": 87,
+                  "size": 65
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.2.10",
+      "name": "VNV (C172 G1000)",
+      "category": "Autopilot",
+      "notes": "Reads nothing; holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "VNV",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "VNV",
+                  "x": 72,
+                  "y": 72,
+                  "size": 65
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 104
+                }
+              ]
+            },
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_AUTOPILOT_VERTICAL_NAVIGATION_PFD"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.2.11",
+      "name": "BC (C172 G1000)",
+      "category": "Autopilot",
+      "notes": "Reads nothing; holds 1, releases to 0.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "BC",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "BC",
+                  "x": 72,
+                  "y": 72,
+                  "size": 65
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 104
+                }
+              ]
+            },
+            "press": {
+              "hold": 1,
+              "release": 0,
+              "input": "AS1000_AUTOPILOT_BACKCOURSE_PFD"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.3.0",
       "name": "QNH (C172 G1000)",
       "category": "Instruments",
       "notes": "Reads KOHLSMAN SETTING MB:1 (millibars); sends BAROMETRIC.",
@@ -798,16 +1795,35 @@
             "decimals": 0,
             "press": {
               "event": "BAROMETRIC"
+            },
+            "face": {
+              "layers": [
+                {
+                  "kind": "icon",
+                  "crop": "auto",
+                  "x": 5,
+                  "y": 7,
+                  "w": 132,
+                  "h": 72
+                },
+                {
+                  "kind": "value",
+                  "x": 69,
+                  "y": 115,
+                  "size": 38,
+                  "prefix": "QNH"
+                }
+              ]
             }
           }
         }
       ]
     },
     {
-      "id": "c172-g1000.1.4",
-      "name": "XPDR (C172 G1000)",
-      "category": "Radios",
-      "notes": "Reads TRANSPONDER CODE:1 (number); no press action.",
+      "id": "c172-g1000.3.1",
+      "name": "TIME (C172 G1000)",
+      "category": "Chrono",
+      "notes": "Reads LOCAL TIME (seconds); no press action.",
       "shipped": true,
       "keys": [
         {
@@ -815,18 +1831,351 @@
           "dc": 0,
           "key": {
             "type": "readout",
-            "label": "XPDR",
-            "read": {
-              "var": "TRANSPONDER CODE:1",
-              "unit": "number"
+            "label": "TIME",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "TIME",
+                  "x": 67,
+                  "y": 21,
+                  "size": 26,
+                  "color": "#ffffff"
+                },
+                {
+                  "kind": "text",
+                  "text": "Local",
+                  "x": 23,
+                  "y": 69,
+                  "size": 22,
+                  "color": "#c0c0c0"
+                },
+                {
+                  "kind": "value",
+                  "x": 99,
+                  "y": 69,
+                  "size": 38,
+                  "format": "time"
+                },
+                {
+                  "kind": "text",
+                  "text": "Zulu",
+                  "x": 23,
+                  "y": 108,
+                  "size": 23,
+                  "color": "#c0c0c0"
+                },
+                {
+                  "kind": "value",
+                  "x": 99,
+                  "y": 108,
+                  "size": 38,
+                  "read": {
+                    "var": "ZULU TIME",
+                    "unit": "seconds"
+                  },
+                  "format": "time"
+                }
+              ]
             },
-            "pad": 4
+            "read": {
+              "var": "LOCAL TIME",
+              "unit": "seconds"
+            },
+            "format": "time"
           }
         }
       ]
     },
     {
-      "id": "c172-g1000.1.5",
+      "id": "c172-g1000.3.2",
+      "name": "TIMER (C172 G1000)",
+      "category": "Chrono",
+      "notes": "Reads undefined (undefined); sets undefined.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "TIMER",
+            "read": {
+              "timer": "T1"
+            },
+            "format": "duration",
+            "separator": true,
+            "press": {
+              "timer": "T1",
+              "action": "toggle",
+              "holdReset": true
+            },
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "TIMER",
+                  "x": 72,
+                  "y": 28,
+                  "size": 24
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 50
+                },
+                {
+                  "kind": "separator",
+                  "x": 72,
+                  "y": 46
+                },
+                {
+                  "kind": "value",
+                  "x": 72,
+                  "y": 95,
+                  "size": 44
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.3.3",
+      "name": "Switches & Circuit Breakers Dimmer (C172 G1000)",
+      "category": "Lights",
+      "notes": "Reads LIGHTING_PANEL_1; steps +25.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "Switches & Circuit Breakers Dimmer",
+            "read": {
+              "input": "LIGHTING_PANEL_1"
+            },
+            "press": {
+              "step": 25,
+              "min": 0,
+              "max": 100,
+              "rampMs": 100,
+              "rampStep": 5,
+              "wrap": true
+            },
+            "suffix": "%",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "SW / SB\nPANELS",
+                  "x": 72,
+                  "y": 28,
+                  "size": 27
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 54
+                },
+                {
+                  "kind": "value",
+                  "x": 72,
+                  "y": 100,
+                  "size": 42
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.3.4",
+      "name": "Standby Instruments Dimmer (C172 G1000)",
+      "category": "Lights",
+      "notes": "Reads LIGHTING_PANEL_2; steps +25.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "Standby Instruments Dimmer",
+            "read": {
+              "input": "LIGHTING_PANEL_2"
+            },
+            "press": {
+              "step": 25,
+              "min": 0,
+              "max": 100,
+              "rampMs": 100,
+              "rampStep": 5,
+              "wrap": true
+            },
+            "suffix": "%",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "STBY\nIND",
+                  "x": 72,
+                  "y": 28,
+                  "size": 27
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 54
+                },
+                {
+                  "kind": "value",
+                  "x": 72,
+                  "y": 100,
+                  "size": 42
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.3.5",
+      "name": "PITOT HEAT (C172 G1000)",
+      "category": "Anti-ice",
+      "notes": "Reads PITOT HEAT SWITCH (bool); sends PITOT_HEAT_TOGGLE.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "switch",
+            "label": "PITOT\nHEAT",
+            "icon": "pitot_heat",
+            "read": {
+              "var": "PITOT HEAT SWITCH",
+              "unit": "bool"
+            },
+            "states": {
+              "0": "off",
+              "1": "on"
+            },
+            "press": {
+              "event": "PITOT_HEAT_TOGGLE"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.3.8",
+      "name": "Pedestal Dimmer (C172 G1000)",
+      "category": "Lights",
+      "notes": "Reads LIGHTING_PEDESTRAL_1; steps +25.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "Pedestal Dimmer",
+            "read": {
+              "input": "LIGHTING_PEDESTRAL_1"
+            },
+            "press": {
+              "step": 25,
+              "min": 0,
+              "max": 100,
+              "rampMs": 100,
+              "rampStep": 5,
+              "wrap": true
+            },
+            "suffix": "%",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "PEDESTAL",
+                  "x": 72,
+                  "y": 28,
+                  "size": 27
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 54
+                },
+                {
+                  "kind": "value",
+                  "x": 72,
+                  "y": 100,
+                  "size": 42
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.3.9",
+      "name": "Avionics Dimmer (C172 G1000)",
+      "category": "Lights",
+      "notes": "Reads LIGHTING_POTENTIOMETER_5; steps +25.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "Avionics Dimmer",
+            "read": {
+              "input": "LIGHTING_POTENTIOMETER_5"
+            },
+            "press": {
+              "step": 25,
+              "min": 0,
+              "max": 100,
+              "rampMs": 100,
+              "rampStep": 5,
+              "wrap": true
+            },
+            "suffix": "%",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "AVIONICS",
+                  "x": 72,
+                  "y": 28,
+                  "size": 27
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 54
+                },
+                {
+                  "kind": "value",
+                  "x": 72,
+                  "y": 100,
+                  "size": 42
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.3.10",
       "name": "◀ FUEL (C172 G1000)",
       "category": "Fuel",
       "notes": "Reads FUEL_SELECTOR_1; steps -1.",
@@ -844,13 +2193,14 @@
             "press": {
               "step": -1,
               "min": 0
-            }
+            },
+            "icon": "arrow_blank_left"
           }
         }
       ]
     },
     {
-      "id": "c172-g1000.1.6",
+      "id": "c172-g1000.3.11",
       "name": "FUEL SEL (C172 G1000)",
       "category": "Fuel",
       "notes": "Reads FUEL_SELECTOR_1; no press action.",
@@ -869,13 +2219,14 @@
               "0": "LEFT",
               "1": "BOTH",
               "2": "RIGHT"
-            }
+            },
+            "icon": "fuel"
           }
         }
       ]
     },
     {
-      "id": "c172-g1000.1.7",
+      "id": "c172-g1000.3.12",
       "name": "FUEL ▶ (C172 G1000)",
       "category": "Fuel",
       "notes": "Reads FUEL_SELECTOR_1; steps +1.",
@@ -893,6 +2244,78 @@
             "press": {
               "step": 1,
               "max": 2
+            },
+            "icon": "arrow_blank_right"
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.3.13",
+      "name": "FLASHLIGHT (C172 G1000)",
+      "category": "Lights",
+      "notes": "Reads nothing; sets undefined.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "button",
+            "label": "FLASHLIGHT",
+            "press": {
+              "keys": "Alt+F"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "c172-g1000.3.14",
+      "name": "Cabin Light Dimmer (C172 G1000)",
+      "category": "Lights",
+      "notes": "Reads LIGHTING_CABIN_1; steps +25.",
+      "shipped": true,
+      "keys": [
+        {
+          "dr": 0,
+          "dc": 0,
+          "key": {
+            "type": "readout",
+            "label": "Cabin Light Dimmer",
+            "read": {
+              "input": "LIGHTING_CABIN_1"
+            },
+            "press": {
+              "step": 25,
+              "min": 0,
+              "max": 100,
+              "rampMs": 100,
+              "rampStep": 5,
+              "wrap": true
+            },
+            "suffix": "%",
+            "face": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "CABIN\nLIGHT",
+                  "x": 72,
+                  "y": 28,
+                  "size": 27
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 54
+                },
+                {
+                  "kind": "value",
+                  "x": 72,
+                  "y": 100,
+                  "size": 42
+                }
+              ]
             }
           }
         }

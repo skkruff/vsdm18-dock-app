@@ -31,6 +31,21 @@ ship([{ id: 'a', name: 'A', shipped: true, keys: [] }, { id: 'b', name: 'B', shi
 store.seed(shipped);
 assert.deepStrictEqual(store.readLibrary().items.map(i => i.name), ['Old preset', 'Mine', 'B'], 'deleted stays deleted, new shipped item added, own items kept');
 
+// A redeploy changes a shipped item (same id, new content) and drops another: the library follows,
+// keeping the user's rename of a shipped item (2026-10-30: shipped ids name a page and slot).
+const lib2 = store.readLibrary();
+Object.assign(lib2.items.find(i => i.id === 'b'), { name: 'My B', userEdits: { name: 'My B' } });
+store.writeLibrary(lib2);
+ship([{ id: 'b', name: 'B2', category: 'New', shipped: true, keys: [{ dr: 0, dc: 0, key: { type: 'button', label: 'NEW' } }] }, { id: 'c', name: 'C', shipped: true, keys: [] }]);
+store.seed(shipped);
+const after = store.readLibrary().items;
+assert.deepStrictEqual(after.map(i => i.name), ['Old preset', 'Mine', 'My B', 'C']);
+assert.strictEqual(after.find(i => i.id === 'b').keys[0].key.label, 'NEW', 'content refreshed');
+assert.strictEqual(after.find(i => i.id === 'b').category, 'New');
+ship([{ id: 'c', name: 'C', shipped: true, keys: [] }]);
+store.seed(shipped);
+assert.deepStrictEqual(store.readLibrary().items.map(i => i.name), ['Old preset', 'Mine', 'C'], 'no longer shipped: removed');
+
 // The real shipped library parses and every key in it validates inside a profile.
 const { validate } = require('../plugin/com.m18switchboard.msfs.sdPlugin/plugin/profiles');
 const real = JSON.parse(fs.readFileSync(path.join(plugin, 'library.json'), 'utf8')).items;

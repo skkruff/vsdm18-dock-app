@@ -1,68 +1,1421 @@
 {
   "id": "c172-g1000",
   "name": "Cessna 172 SP G1000 (Asobo, MSFS 2024)",
-  "notes": "Controls and values: docs/aircraft/c172-controls.md. Standby battery modelled as ARM/OFF only (TEST not modelled). Pitot heat left out (user, 2026-10-28).",
-  "banner": ["C172", "G1000"],
+  "notes": "Controls and values: docs/aircraft/c172-controls.md. Standby battery modelled as ARM/OFF only (TEST not modelled). The user's working profile (2026-10-30): Primary, Radio Stack (keypads), Autopilot (G1000 PFD buttons, no annunciators: the PFD shows the modes), Auxiliary (QNH, time, stopwatch, dimmers, pitot heat, fuel selector, flashlight shortcut).",
+  "banner": [
+    "C172",
+    "G1000"
+  ],
   "match": {
-    "path": ["asobo_c172sp_g1000", "c172sp-as1000"]
+    "path": [
+      "asobo_c172sp_g1000",
+      "c172sp-as1000"
+    ]
   },
   "pages": [
     {
-      "name": "Main",
+      "name": "Primary",
       "keys": {
-        "0": { "type": "switch", "label": "STBY\nBATT", "read": { "input": "ELECTRICAL_BATTERY_STBY_2" },
-               "states": { "0": "on", "1": "off", "2": "on" }, "sublabels": { "0": "ARM", "1": "OFF", "2": "TEST" },
-               "press": { "cycle": [1, 0] } },
-        "1": { "type": "switch", "label": "ALT", "icon": "master_alternator", "read": { "input": "ELECTRICAL_ALTERNATOR_1" },
-               "states": { "0": "off", "1": "on" }, "press": { "cycle": [0, 1] } },
-        "2": { "type": "switch", "label": "BAT", "icon": "master_battery", "read": { "input": "ELECTRICAL_BATTERY_1" },
-               "states": { "0": "off", "1": "on" }, "press": { "cycle": [0, 1] } },
-        "3": { "type": "switch", "label": "AVN\nBUS 1", "read": { "input": "ELECTRICAL_LINE_BUS_1_TO_AVIONICS_BUS_1" },
-               "states": { "0": "off", "1": "on" }, "press": { "cycle": [0, 1] } },
-        "4": { "type": "switch", "label": "AVN\nBUS 2", "read": { "input": "ELECTRICAL_LINE_BUS_2_TO_AVIONICS_BUS_2" },
-               "states": { "0": "off", "1": "on" }, "press": { "cycle": [0, 1] } },
-
-        "5": { "type": "switch", "label": "BCN", "icon": "lights_beacon", "read": { "input": "LIGHTING_BEACON_1" },
-               "states": { "0": "off", "1": "on" }, "press": { "cycle": [0, 1] } },
-        "6": { "type": "switch", "label": "LAND", "icon": "lights_landing_lights", "read": { "input": "LIGHTING_LANDING_1" },
-               "states": { "0": "off", "1": "on" }, "press": { "cycle": [0, 1] } },
-        "7": { "type": "switch", "label": "TAXI", "icon": "lights_taxi_lights", "read": { "input": "LIGHTING_TAXI_1" },
-               "states": { "0": "off", "1": "on" }, "press": { "cycle": [0, 1] } },
-        "8": { "type": "switch", "label": "NAV", "icon": "lights_nav_lights", "read": { "input": "LIGHTING_NAV_0" },
-               "states": { "0": "off", "1": "on" }, "press": { "cycle": [0, 1] } },
-        "9": { "type": "switch", "label": "STRB", "icon": "lights_strobes", "read": { "input": "LIGHTING_STROBE_0" },
-               "states": { "0": "off", "1": "on" }, "press": { "cycle": [0, 1] } },
-
-        "10": { "type": "switch", "label": "FUEL\nPUMP", "icon": "toggle_fuel_pump", "read": { "input": "FUEL_PUMP_1" },
-                "states": { "0": "off", "1": "on" }, "press": { "cycle": [0, 1] } },
-        "11": { "type": "button", "label": "◀ MAG", "read": { "input": "ENGINE_MAGNETO_1" },
-                "press": { "step": -1, "min": 0 } },
-        "12": { "type": "readout", "label": "MAGS", "read": { "input": "ENGINE_MAGNETO_1" },
-                "text": { "0": "OFF", "1": "R", "2": "L", "3": "BOTH", "4": "START" },
-                "valueIcons": { "0": "magneto_off", "1": "magneto_right", "2": "magneto_left", "3": "magneto_both", "4": "magneto_start" } },
-        "13": { "type": "button", "label": "MAG ▶", "read": { "input": "ENGINE_MAGNETO_1" },
-                "press": { "step": 1, "max": 3 } },
-        "14": { "type": "switch", "label": "START", "read": { "input": "ENGINE_MAGNETO_1" },
-                "states": { "4": "on" }, "otherwise": "off",
-                "press": { "hold": 4, "release": 3, "repeatMs": 250 } }
+        "0": {
+          "type": "switch",
+          "label": "STBY\nBATT",
+          "read": {
+            "input": "ELECTRICAL_BATTERY_STBY_2"
+          },
+          "states": {
+            "0": "on",
+            "1": "off",
+            "2": "on"
+          },
+          "press": {
+            "cycle": [
+              1,
+              0
+            ]
+          },
+          "sublabels": {
+            "0": "ARM",
+            "1": "OFF",
+            "2": "TEST"
+          }
+        },
+        "1": {
+          "type": "switch",
+          "label": "ALT",
+          "icon": "master_alternator",
+          "read": {
+            "input": "ELECTRICAL_ALTERNATOR_1"
+          },
+          "states": {
+            "0": "off",
+            "1": "on"
+          },
+          "press": {
+            "cycle": [
+              0,
+              1
+            ]
+          }
+        },
+        "2": {
+          "type": "switch",
+          "label": "BAT",
+          "icon": "master_battery",
+          "read": {
+            "input": "ELECTRICAL_BATTERY_1"
+          },
+          "states": {
+            "0": "off",
+            "1": "on"
+          },
+          "press": {
+            "cycle": [
+              0,
+              1
+            ]
+          }
+        },
+        "3": {
+          "type": "switch",
+          "label": "AVIONICS\nBUS 1",
+          "read": {
+            "input": "ELECTRICAL_LINE_BUS_1_TO_AVIONICS_BUS_1"
+          },
+          "states": {
+            "0": "off",
+            "1": "on"
+          },
+          "press": {
+            "cycle": [
+              0,
+              1
+            ]
+          },
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "AVIONICS\nBUS 1",
+                "x": 72,
+                "y": 46,
+                "size": 30
+              },
+              {
+                "kind": "bar",
+                "x": 20,
+                "y": 92,
+                "r": 9.5
+              }
+            ]
+          }
+        },
+        "4": {
+          "type": "switch",
+          "label": "AVN\nBUS 2",
+          "read": {
+            "input": "ELECTRICAL_LINE_BUS_2_TO_AVIONICS_BUS_2"
+          },
+          "states": {
+            "0": "off",
+            "1": "on"
+          },
+          "press": {
+            "cycle": [
+              0,
+              1
+            ]
+          }
+        },
+        "5": {
+          "type": "switch",
+          "label": "BCN",
+          "icon": "lights_beacon",
+          "read": {
+            "input": "LIGHTING_BEACON_1"
+          },
+          "states": {
+            "0": "off",
+            "1": "on"
+          },
+          "press": {
+            "cycle": [
+              0,
+              1
+            ]
+          }
+        },
+        "6": {
+          "type": "switch",
+          "label": "LAND",
+          "icon": "lights_landing_lights",
+          "read": {
+            "input": "LIGHTING_LANDING_1"
+          },
+          "states": {
+            "0": "off",
+            "1": "on"
+          },
+          "press": {
+            "cycle": [
+              0,
+              1
+            ]
+          }
+        },
+        "7": {
+          "type": "switch",
+          "label": "TAXI",
+          "icon": "lights_taxi_lights",
+          "read": {
+            "input": "LIGHTING_TAXI_1"
+          },
+          "states": {
+            "0": "off",
+            "1": "on"
+          },
+          "press": {
+            "cycle": [
+              0,
+              1
+            ]
+          }
+        },
+        "8": {
+          "type": "switch",
+          "label": "NAV",
+          "icon": "lights_nav_lights",
+          "read": {
+            "input": "LIGHTING_NAV_0"
+          },
+          "states": {
+            "0": "off",
+            "1": "on"
+          },
+          "press": {
+            "cycle": [
+              0,
+              1
+            ]
+          }
+        },
+        "9": {
+          "type": "switch",
+          "label": "STRB",
+          "icon": "lights_strobes",
+          "read": {
+            "input": "LIGHTING_STROBE_0"
+          },
+          "states": {
+            "0": "off",
+            "1": "on"
+          },
+          "press": {
+            "cycle": [
+              0,
+              1
+            ]
+          }
+        },
+        "10": {
+          "type": "switch",
+          "label": "FUEL\nPUMP",
+          "icon": "toggle_fuel_pump",
+          "read": {
+            "input": "FUEL_PUMP_1"
+          },
+          "states": {
+            "0": "off",
+            "1": "on"
+          },
+          "press": {
+            "cycle": [
+              0,
+              1
+            ]
+          }
+        },
+        "11": {
+          "type": "button",
+          "label": "◀ MAG",
+          "read": {
+            "input": "ENGINE_MAGNETO_1"
+          },
+          "press": {
+            "step": -1,
+            "min": 0
+          },
+          "icon": "arrow_left"
+        },
+        "12": {
+          "type": "readout",
+          "label": "MAGS",
+          "read": {
+            "input": "ENGINE_MAGNETO_1"
+          },
+          "text": {
+            "0": "OFF",
+            "1": "R",
+            "2": "L",
+            "3": "BOTH",
+            "4": "START"
+          },
+          "valueIcons": {
+            "0": "magneto_off",
+            "1": "magneto_right",
+            "2": "magneto_left",
+            "3": "magneto_both",
+            "4": "magneto_start"
+          }
+        },
+        "13": {
+          "type": "button",
+          "label": "MAG ▶",
+          "read": {
+            "input": "ENGINE_MAGNETO_1"
+          },
+          "press": {
+            "step": 1,
+            "max": 3
+          },
+          "icon": "arrow_right"
+        },
+        "14": {
+          "type": "button",
+          "label": "START",
+          "read": {
+            "input": "ENGINE_MAGNETO_1"
+          },
+          "press": {
+            "hold": 4,
+            "release": 3,
+            "repeatMs": 250
+          },
+          "icon": "engine_start"
+        }
+      }
+    },
+    {
+      "name": "Radio Stack",
+      "keys": {
+        "0": {
+          "type": "switch",
+          "label": "COM1",
+          "states": {
+            "0": "clear",
+            "1": "on"
+          },
+          "icon": "com_radio_on",
+          "read": {
+            "var": "COM RECEIVE:1",
+            "unit": "bool"
+          },
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_COM_1_MIDCOM",
+            "repeatMs": 100
+          }
+        },
+        "1": {
+          "type": "readout",
+          "label": "COM1",
+          "read": {
+            "var": "COM ACTIVE FREQUENCY:1",
+            "unit": "MHz"
+          },
+          "decimals": 3,
+          "icon": "com_1",
+          "press": {
+            "event": "COM_STBY_RADIO_SWAP"
+          }
+        },
+        "2": {
+          "type": "readout",
+          "label": "COM1 STBY",
+          "read": {
+            "var": "COM STANDBY FREQUENCY:1",
+            "unit": "MHz"
+          },
+          "decimals": 3,
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "COM1 STBY",
+                "x": 72,
+                "y": 28,
+                "size": 24
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 54
+              },
+              {
+                "kind": "value",
+                "x": 72,
+                "y": 100,
+                "size": 42,
+                "color": "#c0c0c0"
+              }
+            ]
+          },
+          "press": {
+            "keypad": {
+              "preset": "com1"
+            }
+          }
+        },
+        "3": {
+          "type": "readout",
+          "label": "NAV1",
+          "read": {
+            "var": "NAV ACTIVE FREQUENCY:1",
+            "unit": "MHz"
+          },
+          "decimals": 2,
+          "pad": 0,
+          "press": {
+            "event": "NAV1_RADIO_SWAP"
+          },
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "NAV1",
+                "x": 72,
+                "y": 21,
+                "size": 40
+              },
+              {
+                "kind": "value",
+                "x": 72,
+                "y": 108,
+                "size": 42
+              },
+              {
+                "kind": "separator",
+                "x": 72,
+                "y": 72,
+                "w": 68,
+                "h": 10,
+                "r": 3
+              }
+            ]
+          }
+        },
+        "4": {
+          "type": "readout",
+          "label": "NAV1 STBY",
+          "read": {
+            "var": "NAV STANDBY FREQUENCY:1",
+            "unit": "MHz"
+          },
+          "decimals": 2,
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "NAV1 STBY",
+                "x": 72,
+                "y": 28,
+                "size": 24
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 54
+              },
+              {
+                "kind": "value",
+                "x": 72,
+                "y": 100,
+                "size": 42,
+                "color": "#c0c0c0"
+              }
+            ]
+          },
+          "press": {
+            "keypad": {
+              "preset": "nav1"
+            }
+          }
+        },
+        "5": {
+          "type": "switch",
+          "label": "COM2",
+          "states": {
+            "0": "clear",
+            "1": "on"
+          },
+          "icon": "com_radio_on",
+          "read": {
+            "var": "COM RECEIVE:2",
+            "unit": "bool"
+          },
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_COM_2_MIDCOM",
+            "repeatMs": 100
+          }
+        },
+        "6": {
+          "type": "readout",
+          "label": "COM2",
+          "read": {
+            "var": "COM ACTIVE FREQUENCY:2",
+            "unit": "MHz"
+          },
+          "decimals": 3,
+          "icon": "com_2",
+          "press": {
+            "event": "COM2_RADIO_SWAP"
+          }
+        },
+        "7": {
+          "type": "readout",
+          "label": "COM2 STBY",
+          "read": {
+            "var": "COM STANDBY FREQUENCY:2",
+            "unit": "MHz"
+          },
+          "decimals": 3,
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "COM2 STBY",
+                "x": 72,
+                "y": 28,
+                "size": 24
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 54
+              },
+              {
+                "kind": "value",
+                "x": 72,
+                "y": 100,
+                "size": 42,
+                "color": "#c0c0c0"
+              }
+            ]
+          },
+          "press": {
+            "keypad": {
+              "preset": "com2"
+            }
+          }
+        },
+        "8": {
+          "type": "readout",
+          "label": "NAV2",
+          "read": {
+            "var": "NAV ACTIVE FREQUENCY:2",
+            "unit": "MHz"
+          },
+          "decimals": 2,
+          "pad": 0,
+          "press": {
+            "event": "NAV2_RADIO_SWAP"
+          },
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "NAV2",
+                "x": 72,
+                "y": 21,
+                "size": 40
+              },
+              {
+                "kind": "value",
+                "x": 72,
+                "y": 108,
+                "size": 42
+              },
+              {
+                "kind": "separator",
+                "x": 72,
+                "y": 72,
+                "w": 68,
+                "h": 10,
+                "r": 3
+              }
+            ]
+          }
+        },
+        "9": {
+          "type": "readout",
+          "label": "NAV2 STBY",
+          "read": {
+            "var": "NAV STANDBY FREQUENCY:2",
+            "unit": "MHz"
+          },
+          "decimals": 2,
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "NAV2 STBY",
+                "x": 72,
+                "y": 28,
+                "size": 24
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 54
+              },
+              {
+                "kind": "value",
+                "x": 72,
+                "y": 100,
+                "size": 42,
+                "color": "#c0c0c0"
+              }
+            ]
+          },
+          "press": {
+            "keypad": {
+              "preset": "nav2"
+            }
+          }
+        },
+        "10": {
+          "type": "readout",
+          "label": "XPDR",
+          "read": {
+            "var": "TRANSPONDER CODE:1",
+            "unit": "number"
+          },
+          "pad": 4,
+          "press": {
+            "keypad": {
+              "preset": "xpdr"
+            }
+          }
+        },
+        "11": {
+          "type": "readout",
+          "label": "XPDR MODE",
+          "read": {
+            "var": "TRANSPONDER STATE:1",
+            "unit": "number"
+          },
+          "sublabels": {
+            "1": "STBY",
+            "2": "TEST",
+            "3": "ON",
+            "4": "ALT"
+          },
+          "valueFaces": {
+            "0": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "XPDR",
+                  "x": 72,
+                  "y": 28,
+                  "size": 24
+                },
+                {
+                  "kind": "bar",
+                  "look": "off"
+                },
+                {
+                  "kind": "sublabel"
+                }
+              ]
+            },
+            "1": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "XPDR",
+                  "x": 72,
+                  "y": 28,
+                  "size": 24
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 54
+                },
+                {
+                  "kind": "bar",
+                  "look": "clear"
+                }
+              ]
+            },
+            "2": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "XPDR",
+                  "x": 72,
+                  "y": 28,
+                  "size": 24
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 54
+                },
+                {
+                  "kind": "bar",
+                  "look": "armed"
+                }
+              ]
+            },
+            "3": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "XPDR",
+                  "x": 72,
+                  "y": 28,
+                  "size": 24
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 54
+                },
+                {
+                  "kind": "bar",
+                  "look": "on"
+                }
+              ]
+            },
+            "4": {
+              "layers": [
+                {
+                  "kind": "text",
+                  "text": "XPDR",
+                  "x": 72,
+                  "y": 28,
+                  "size": 24
+                },
+                {
+                  "kind": "sublabel",
+                  "x": 72,
+                  "y": 54
+                },
+                {
+                  "kind": "bar",
+                  "look": "on"
+                }
+              ]
+            }
+          },
+          "press": {
+            "cycle": [
+              0,
+              3,
+              4
+            ],
+            "var": {
+              "var": "TRANSPONDER STATE:1",
+              "unit": "number"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Autopilot",
+      "keys": {
+        "0": {
+          "type": "button",
+          "label": "AP",
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_AUTOPILOT_AP_PFD"
+          },
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "AP",
+                "x": 72,
+                "y": 72,
+                "size": 65
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 104
+              }
+            ]
+          }
+        },
+        "1": {
+          "type": "button",
+          "label": "HDG",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "HDG",
+                "x": 72,
+                "y": 72,
+                "size": 65
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 104
+              }
+            ]
+          },
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_AUTOPILOT_HEADING_PFD"
+          }
+        },
+        "2": {
+          "type": "button",
+          "label": "NAV",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "NAV",
+                "x": 72,
+                "y": 72,
+                "size": 65
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 104
+              }
+            ]
+          },
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_AUTOPILOT_NAVIGATION_PFD"
+          }
+        },
+        "3": {
+          "type": "button",
+          "label": "VS",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "VS",
+                "x": 72,
+                "y": 72,
+                "size": 65
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 104
+              }
+            ]
+          },
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_AUTOPILOT_VERTICALSPEED_PFD"
+          }
+        },
+        "4": {
+          "type": "button",
+          "label": "NOSE\nUP",
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_AUTOPILOT_VERTICALSPEED_UP_PFD"
+          },
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "NOSE",
+                "x": 72,
+                "y": 47,
+                "size": 34
+              },
+              {
+                "kind": "text",
+                "text": "UP",
+                "x": 72,
+                "y": 87,
+                "size": 65
+              }
+            ]
+          }
+        },
+        "5": {
+          "type": "button",
+          "label": "FD",
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_AUTOPILOT_FD_PFD"
+          },
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "FD",
+                "x": 72,
+                "y": 72,
+                "size": 65
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 104
+              }
+            ]
+          }
+        },
+        "6": {
+          "type": "button",
+          "label": "ALT",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "ALT",
+                "x": 72,
+                "y": 72,
+                "size": 65
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 104
+              }
+            ]
+          },
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_AUTOPILOT_ALTITUDE_PFD"
+          }
+        },
+        "7": {
+          "type": "button",
+          "label": "APR",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "APR",
+                "x": 72,
+                "y": 72,
+                "size": 65
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 104
+              }
+            ]
+          },
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_AUTOPILOT_APPROACH_PFD"
+          }
+        },
+        "8": {
+          "type": "button",
+          "label": "FLC",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "FLC",
+                "x": 72,
+                "y": 72,
+                "size": 65
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 104
+              }
+            ]
+          },
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_AUTOPILOT_FLIGHTLEVELCHANGE_PFD"
+          }
+        },
+        "9": {
+          "type": "button",
+          "label": "NOSE\nDN",
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_AUTOPILOT_VERTICALSPEED_DOWN_PFD"
+          },
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "NOSE",
+                "x": 72,
+                "y": 47,
+                "size": 34
+              },
+              {
+                "kind": "text",
+                "text": "DN",
+                "x": 72,
+                "y": 87,
+                "size": 65
+              }
+            ]
+          }
+        },
+        "10": {
+          "type": "button",
+          "label": "VNV",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "VNV",
+                "x": 72,
+                "y": 72,
+                "size": 65
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 104
+              }
+            ]
+          },
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_AUTOPILOT_VERTICAL_NAVIGATION_PFD"
+          }
+        },
+        "11": {
+          "type": "button",
+          "label": "BC",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "BC",
+                "x": 72,
+                "y": 72,
+                "size": 65
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 104
+              }
+            ]
+          },
+          "press": {
+            "hold": 1,
+            "release": 0,
+            "input": "AS1000_AUTOPILOT_BACKCOURSE_PFD"
+          }
+        }
       }
     },
     {
       "name": "Auxiliary",
       "keys": {
-        "0": { "type": "readout", "label": "COM1", "read": { "var": "COM ACTIVE FREQUENCY:1", "unit": "MHz" }, "decimals": 3 },
-        "1": { "type": "readout", "label": "COM1 STBY", "read": { "var": "COM STANDBY FREQUENCY:1", "unit": "MHz" }, "decimals": 3 },
-        "2": { "type": "button", "label": "COM1\nSWAP", "press": { "event": "COM_STBY_RADIO_SWAP" } },
-        "3": { "type": "readout", "label": "QNH", "icon": "set_altimeter", "read": { "var": "KOHLSMAN SETTING MB:1", "unit": "millibars" }, "decimals": 0,
-               "press": { "event": "BAROMETRIC" } },
-        "4": { "type": "readout", "label": "XPDR", "read": { "var": "TRANSPONDER CODE:1", "unit": "number" }, "pad": 4 },
-
-        "5": { "type": "button", "label": "◀ FUEL", "read": { "input": "FUEL_SELECTOR_1" },
-               "press": { "step": -1, "min": 0 } },
-        "6": { "type": "readout", "label": "FUEL SEL", "read": { "input": "FUEL_SELECTOR_1" },
-               "text": { "0": "LEFT", "1": "BOTH", "2": "RIGHT" } },
-        "7": { "type": "button", "label": "FUEL ▶", "read": { "input": "FUEL_SELECTOR_1" },
-               "press": { "step": 1, "max": 2 } }
+        "0": {
+          "type": "readout",
+          "label": "QNH",
+          "icon": "set_altimeter",
+          "read": {
+            "var": "KOHLSMAN SETTING MB:1",
+            "unit": "millibars"
+          },
+          "decimals": 0,
+          "press": {
+            "event": "BAROMETRIC"
+          },
+          "face": {
+            "layers": [
+              {
+                "kind": "icon",
+                "crop": "auto",
+                "x": 5,
+                "y": 7,
+                "w": 132,
+                "h": 72
+              },
+              {
+                "kind": "value",
+                "x": 69,
+                "y": 115,
+                "size": 38,
+                "prefix": "QNH"
+              }
+            ]
+          }
+        },
+        "1": {
+          "type": "readout",
+          "label": "TIME",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "TIME",
+                "x": 67,
+                "y": 21,
+                "size": 26,
+                "color": "#ffffff"
+              },
+              {
+                "kind": "text",
+                "text": "Local",
+                "x": 23,
+                "y": 69,
+                "size": 22,
+                "color": "#c0c0c0"
+              },
+              {
+                "kind": "value",
+                "x": 99,
+                "y": 69,
+                "size": 38,
+                "format": "time"
+              },
+              {
+                "kind": "text",
+                "text": "Zulu",
+                "x": 23,
+                "y": 108,
+                "size": 23,
+                "color": "#c0c0c0"
+              },
+              {
+                "kind": "value",
+                "x": 99,
+                "y": 108,
+                "size": 38,
+                "read": {
+                  "var": "ZULU TIME",
+                  "unit": "seconds"
+                },
+                "format": "time"
+              }
+            ]
+          },
+          "read": {
+            "var": "LOCAL TIME",
+            "unit": "seconds"
+          },
+          "format": "time"
+        },
+        "2": {
+          "type": "readout",
+          "label": "TIMER",
+          "read": {
+            "timer": "T1"
+          },
+          "format": "duration",
+          "separator": true,
+          "press": {
+            "timer": "T1",
+            "action": "toggle",
+            "holdReset": true
+          },
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "TIMER",
+                "x": 72,
+                "y": 28,
+                "size": 24
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 50
+              },
+              {
+                "kind": "separator",
+                "x": 72,
+                "y": 46
+              },
+              {
+                "kind": "value",
+                "x": 72,
+                "y": 95,
+                "size": 44
+              }
+            ]
+          }
+        },
+        "3": {
+          "type": "readout",
+          "label": "Switches & Circuit Breakers Dimmer",
+          "read": {
+            "input": "LIGHTING_PANEL_1"
+          },
+          "press": {
+            "step": 25,
+            "min": 0,
+            "max": 100,
+            "rampMs": 100,
+            "rampStep": 5,
+            "wrap": true
+          },
+          "suffix": "%",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "SW / SB\nPANELS",
+                "x": 72,
+                "y": 28,
+                "size": 27
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 54
+              },
+              {
+                "kind": "value",
+                "x": 72,
+                "y": 100,
+                "size": 42
+              }
+            ]
+          }
+        },
+        "4": {
+          "type": "readout",
+          "label": "Standby Instruments Dimmer",
+          "read": {
+            "input": "LIGHTING_PANEL_2"
+          },
+          "press": {
+            "step": 25,
+            "min": 0,
+            "max": 100,
+            "rampMs": 100,
+            "rampStep": 5,
+            "wrap": true
+          },
+          "suffix": "%",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "STBY\nIND",
+                "x": 72,
+                "y": 28,
+                "size": 27
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 54
+              },
+              {
+                "kind": "value",
+                "x": 72,
+                "y": 100,
+                "size": 42
+              }
+            ]
+          }
+        },
+        "5": {
+          "type": "switch",
+          "label": "PITOT\nHEAT",
+          "icon": "pitot_heat",
+          "read": {
+            "var": "PITOT HEAT SWITCH",
+            "unit": "bool"
+          },
+          "states": {
+            "0": "off",
+            "1": "on"
+          },
+          "press": {
+            "event": "PITOT_HEAT_TOGGLE"
+          }
+        },
+        "8": {
+          "type": "readout",
+          "label": "Pedestal Dimmer",
+          "read": {
+            "input": "LIGHTING_PEDESTRAL_1"
+          },
+          "press": {
+            "step": 25,
+            "min": 0,
+            "max": 100,
+            "rampMs": 100,
+            "rampStep": 5,
+            "wrap": true
+          },
+          "suffix": "%",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "PEDESTAL",
+                "x": 72,
+                "y": 28,
+                "size": 27
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 54
+              },
+              {
+                "kind": "value",
+                "x": 72,
+                "y": 100,
+                "size": 42
+              }
+            ]
+          }
+        },
+        "9": {
+          "type": "readout",
+          "label": "Avionics Dimmer",
+          "read": {
+            "input": "LIGHTING_POTENTIOMETER_5"
+          },
+          "press": {
+            "step": 25,
+            "min": 0,
+            "max": 100,
+            "rampMs": 100,
+            "rampStep": 5,
+            "wrap": true
+          },
+          "suffix": "%",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "AVIONICS",
+                "x": 72,
+                "y": 28,
+                "size": 27
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 54
+              },
+              {
+                "kind": "value",
+                "x": 72,
+                "y": 100,
+                "size": 42
+              }
+            ]
+          }
+        },
+        "10": {
+          "type": "button",
+          "label": "◀ FUEL",
+          "read": {
+            "input": "FUEL_SELECTOR_1"
+          },
+          "press": {
+            "step": -1,
+            "min": 0
+          },
+          "icon": "arrow_blank_left"
+        },
+        "11": {
+          "type": "readout",
+          "label": "FUEL SEL",
+          "read": {
+            "input": "FUEL_SELECTOR_1"
+          },
+          "text": {
+            "0": "LEFT",
+            "1": "BOTH",
+            "2": "RIGHT"
+          },
+          "icon": "fuel"
+        },
+        "12": {
+          "type": "button",
+          "label": "FUEL ▶",
+          "read": {
+            "input": "FUEL_SELECTOR_1"
+          },
+          "press": {
+            "step": 1,
+            "max": 2
+          },
+          "icon": "arrow_blank_right"
+        },
+        "13": {
+          "type": "button",
+          "label": "FLASHLIGHT",
+          "press": {
+            "keys": "Alt+F"
+          }
+        },
+        "14": {
+          "type": "readout",
+          "label": "Cabin Light Dimmer",
+          "read": {
+            "input": "LIGHTING_CABIN_1"
+          },
+          "press": {
+            "step": 25,
+            "min": 0,
+            "max": 100,
+            "rampMs": 100,
+            "rampStep": 5,
+            "wrap": true
+          },
+          "suffix": "%",
+          "face": {
+            "layers": [
+              {
+                "kind": "text",
+                "text": "CABIN\nLIGHT",
+                "x": 72,
+                "y": 28,
+                "size": 27
+              },
+              {
+                "kind": "sublabel",
+                "x": 72,
+                "y": 54
+              },
+              {
+                "kind": "value",
+                "x": 72,
+                "y": 100,
+                "size": 42
+              }
+            ]
+          }
+        }
       }
     }
   ]

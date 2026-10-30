@@ -268,7 +268,10 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
       const item = lib.items.find(i => i.id === decodeURIComponent(m[1]));
       if (!item) throw new Error('no such library item');
       const { name, category, notes } = await readBody(req);
-      Object.assign(item, name !== undefined ? { name } : {}, category !== undefined ? { category } : {}, notes !== undefined ? { notes } : {});
+      const change = { ...(name !== undefined ? { name } : {}), ...(category !== undefined ? { category } : {}), ...(notes !== undefined ? { notes } : {}) };
+      Object.assign(item, change);
+      // A shipped item is refreshed from the plugin on start; the user's renames stay on top.
+      if (item.shipped) item.userEdits = { ...(item.userEdits || {}), ...change };
       store.writeLibrary(lib);
       return item;
     }],

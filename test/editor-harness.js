@@ -35,7 +35,8 @@ async function startHarness({ iconDir = '', port = 0, profilesDir } = {}) {
   sim.emit('aircraft', sim.aircraft);
   store.watch(() => engine.setProfiles(store.load().profiles), 100);
   const timer = setInterval(() => sim.input('LIGHTING_TAXI_1', sim.inputValues.LIGHTING_TAXI_1 ? 0 : 1), 4000);
-  sim.simvars = { 'NAV ACTIVE FREQUENCY:1': 110.5, 'COM ACTIVE FREQUENCY:1': 124.85, 'KOHLSMAN SETTING MB:1': 1013.2 };
+  sim.readOnly = ['TRANSPONDER CODE:1'];
+  sim.simvars = { 'TRANSPONDER STATE:1': 3, 'TRANSPONDER CODE:1': 1200, 'NAV ACTIVE FREQUENCY:1': 110.5, 'COM ACTIVE FREQUENCY:1': 124.85, 'KOHLSMAN SETTING MB:1': 1013.2 };
   const { bar, ...colours } = measure(icons);
   const look = { measured: colours };
   const applyLook = s => { setStyle({ ...DEFAULT_STYLE, ...look.measured, ...s }); engine.redrawAll(); };

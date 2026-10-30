@@ -56,7 +56,10 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   - Value text per value (readouts): a word instead of the number (e.g. magneto 3 -> BOTH).
   - Decimals / padding for readouts.
   - When pressed: toggle/cycle, step (with min/max), hold (with release value and repeat for
-    spring-loaded positions), set, or a sim event.
+    spring-loaded positions), set, or a sim event. **Acts on** chooses what toggle / step / hold /
+    set change: an input event (a cockpit control), or a **simvar written directly** (Browse,
+    unit, and **Set** to write a value once and read it back: "kept" or "the sim did not keep
+    it"). Simvars marked [settable] in Browse are the ones the SDK says can be set.
   - **Face (optional)**: design the key's look yourself from layers drawn in order: a library
     icon (cropped to its content or whole, fitted into a box you place), your own text, live
     values (the key's own, or each from its own source), a state bar (green / red / outline) and

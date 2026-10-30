@@ -145,6 +145,17 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
         throw new Error(`no value for ${name} (${unit}): not a simvar this aircraft has, or the wrong unit`);
       }
     }],
+    // Sets a simvar now and reads it back after a moment: the sim ignores writes to variables it
+    // does not let clients set, or its avionics may put the old value back.
+    ['POST', /^\/api\/set-var$/, async (m, req) => {
+      const { var: name, unit = 'number', value } = await readBody(req);
+      if (!sim.connected) throw new Error('MSFS is not connected');
+      sim.setVar({ name, unit }, Number(value));
+      await new Promise(r => setTimeout(r, 400));
+      let after;
+      try { after = await sim.read({ name, unit, type: 'number' }); } catch (e) { after = null; }
+      return { value: after, kept: after !== null && Number(after) === Number(value) };
+    }],
     ['POST', /^\/api\/send-event$/, async (m, req) => {
       const { event, value = 0 } = await readBody(req);
       if (!sim.connected) throw new Error('MSFS is not connected');

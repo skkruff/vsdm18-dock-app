@@ -111,4 +111,8 @@ The key never changes on press; it changes when the sim reports the new value.
 | `{ "event": "PITOT_HEAT_TOGGLE" }` | sends a classic event, `value` optional |
 | `{ "event": "AVIONICS_MASTER_SET", "toggleValue": true }` | sends 1 if the read value is 0, else 0 |
 
-cycle/step/hold/set act on `press.input`, or on the key's `read.input` if not given.
+cycle/step/hold/set act on `press.var` (a simvar written directly, e.g.
+`{ "var": "TRANSPONDER STATE:1", "unit": "number" }`), else `press.input`, else the key's
+`read.input`. A simvar is only written when named in `press.var`. The sim keeps writes only to
+simvars it lets clients set (the SDK's "settable"), and an aircraft's avionics may put their own
+value back. Cycle and step start from the written simvar's current value (it is watched).

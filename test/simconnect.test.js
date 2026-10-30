@@ -20,6 +20,7 @@ class FakeHandle extends EventEmitter {
   enumerateInputEvents(...a) { return this.rec('enumerateInputEvents', a); }
   getInputEvent(...a) { return this.rec('getInputEvent', a); }
   setInputEvent(...a) { return this.rec('setInputEvent', a); }
+  setDataOnSimObject(...a) { return this.rec('setDataOnSimObject', a); }
   subscribeInputEvent(...a) { return this.rec('subscribeInputEvent', a); }
   unsubscribeInputEvent(...a) { return this.rec('unsubscribeInputEvent', a); }
   last(name) { return this.calls.filter(c => c[0] === name).pop(); }
@@ -129,6 +130,19 @@ const C172_PATH = 'd:\\mfs2024\\official2024\\onestore\\asobo-aircraft-c172sp-as
   const mapId = 100 + handle.calls.findIndex(c => c[0] === 'mapClientEventToSimEvent');
   handle.emit('exception', { exception: 7, exceptionName: 'NAME_UNRECOGNIZED', sendId: mapId });
   assert.deepStrictEqual(seen.exceptions.pop(), { name: 'NAME_UNRECOGNIZED', about: 'event LANDING_LIGHTS_TOGGLE' });
+
+  // Writing a simvar: one data definition per variable, reused, value as a float64.
+  sim.setVar({ name: 'TRANSPONDER STATE:1', unit: 'number' }, 4);
+  sim.setVar({ name: 'TRANSPONDER STATE:1', unit: 'number' }, 3);
+  const defs = handle.calls.filter(c => c[0] === 'addToDataDefinition' && c[2] === 'TRANSPONDER STATE:1');
+  assert.strictEqual(defs.length, 1, 'definition reused');
+  const sets = handle.calls.filter(c => c[0] === 'setDataOnSimObject');
+  assert.strictEqual(sets.length, 2);
+  assert.strictEqual(sets[1][1], defs[0][1], 'written through that definition');
+  assert.strictEqual(sets[1][3].buffer.getBuffer().readDoubleLE(0), 3);
+  const setId = 100 + handle.calls.lastIndexOf(sets[1]);
+  handle.emit('exception', { exception: 20, exceptionName: 'DATA_ERROR', sendId: setId });
+  assert.deepStrictEqual(seen.exceptions.pop(), { name: 'DATA_ERROR', about: 'set TRANSPONDER STATE:1 (number) to 3' });
 
   // One-shot read.
   const p = sim.read({ name: 'LIGHT NAV', unit: 'bool', type: 'bool' });

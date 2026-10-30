@@ -1,5 +1,5 @@
 // Sim layer, SimConnect implementation of the SimBackend interface (DESIGN_BRIEF.md section 3):
-//   connect(), onAircraftChanged(cb), subscribe(vars, cb), read(var), send(action)
+//   connect(), onAircraftChanged(cb), subscribe(vars, cb), read(var), send(action), setVar(var, value)
 // Other backends (MobiFlight, AAO, ...) should expose the same methods and events:
 //   'connected' (info), 'disconnected', 'aircraft' ({ title, atcModel, path }),
 //   'aircraftLoaded' (file), 'exception' ({ name, about })
@@ -13,7 +13,7 @@
 const { EventEmitter } = require('events');
 const {
   open, Protocol, SimConnectConstants, SimConnectPeriod, SimConnectDataType,
-  DataRequestFlag, EventFlag,
+  DataRequestFlag, EventFlag, RawBuffer,
 } = require('node-simconnect');
 
 const TYPES = {
@@ -49,6 +49,7 @@ class SimConnectBackend extends EventEmitter {
     this.handle = null;
     this.subs = new Map(); // specKey -> { spec, defId, listeners: Set, value }
     this.events = new Map(); // event name -> client event id
+    this.writeDefs = new Map(); // 'name|unit' -> data definition used to set that simvar
     this.sent = new Map(); // SimConnect send id -> what it was, for readable exceptions
     this.oneShots = new Map(); // defId -> resolve
     this.nextId = 10;
@@ -74,6 +75,7 @@ class SimConnectBackend extends EventEmitter {
     const { recvOpen, handle } = await this.openFn(this.appName, Protocol.KittyHawk);
     this.handle = handle;
     this.events.clear();
+    this.writeDefs.clear();
     this.sent.clear();
 
     handle.on('simObjectData', d => this._onData(d));
@@ -188,6 +190,23 @@ class SimConnectBackend extends EventEmitter {
     }
     this._track(this.handle.transmitClientEvent(USER, this.events.get(event), value,
       GROUP_PRIORITY_HIGHEST, EventFlag.EVENT_FLAG_GROUPID_IS_PRIORITY), `send ${event}`);
+  }
+
+  // Sets a simvar on the user aircraft (SimConnect SetDataOnSimObject), as a number in unit. The
+  // sim only takes it for variables it lets clients set (the SDK's "settable"); for others it
+  // reports an exception or ignores it, so read it back to know.
+  setVar({ name, unit }, value) {
+    if (!this.handle) throw new Error('not connected');
+    const key = `${name}|${unit}`;
+    let defId = this.writeDefs.get(key);
+    if (defId === undefined) {
+      defId = this.nextId++;
+      this._define(defId, { name, unit, type: 'number' });
+      this.writeDefs.set(key, defId);
+    }
+    const buffer = new RawBuffer(8);
+    buffer.writeFloat64(Number(value));
+    this._track(this.handle.setDataOnSimObject(defId, USER, { buffer, arrayCount: 0, tagged: false }), `set ${name} (${unit}) to ${value}`);
   }
 
   // All input events of the loaded aircraft: [{ name, hash, type: 'number' | 'string' }].

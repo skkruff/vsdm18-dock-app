@@ -208,7 +208,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('#inspector .ladder .step >> nth=0 >> button.add-or');
     await page.fill('#inspector .ladder .step >> nth=0 >> .or-source input[placeholder^="e.g. NAV"]', 'AUTOPILOT APPROACH CAPTURED');
     await page.fill('#inspector .field:has-text("When armed") input', 'ARM');
-    await page.fill('#inspector .field:has-text("Acts on") input', 'LIGHTING_TAXI_1');
+    await page.fill('#inspector input[placeholder="input event"]', 'LIGHTING_TAXI_1');
     await page.selectOption('#inspector .field:has-text("Preview") select', 'armed');
     // Drawn tile (no face): the armed preview shows the ARM sublabel.
     await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
@@ -237,6 +237,21 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.deepStrictEqual(ar.sublabels, { armed: 'ARM' });
     assert.deepStrictEqual(ar.activeOr, [{ read: { var: 'AUTOPILOT APPROACH CAPTURED', unit: 'bool' } }], '"or" source saved');
     assert.strictEqual(ar.press.input, 'LIGHTING_TAXI_1');
+
+    // A press can write a simvar instead (user, 2026-10-30): Acts on "Simvar", tried with Set.
+    await page.selectOption('#inspector .field:has-text("Acts on") select', 'var');
+    await page.fill('#inspector input[placeholder="e.g. TRANSPONDER STATE:1"]', 'TRANSPONDER STATE:1');
+    await page.fill('#inspector input[list="unitList"] >> nth=-1', 'number');
+    await page.fill('#inspector .field:has-text("Set now") input', '4');
+    await page.click('#inspector .field:has-text("Set now") button:has-text("Set")');
+    await page.waitForSelector('#inspector .field:has-text("Set now") .test-out:has-text("kept")');
+    assert.strictEqual(h.sim.simvars['TRANSPONDER STATE:1'], 4);
+    await save();
+    assert.deepStrictEqual(file().pages[1].keys['8'].press.var, { var: 'TRANSPONDER STATE:1', unit: 'number' });
+    assert.strictEqual(file().pages[1].keys['8'].press.input, undefined, 'one target only');
+    await page.fill('#inspector input[placeholder="e.g. TRANSPONDER STATE:1"]', 'TRANSPONDER CODE:1');
+    await page.click('#inspector .field:has-text("Set now") button:has-text("Set")');
+    await page.waitForSelector('#inspector .field:has-text("Set now") .test-out:has-text("did not keep")');
 
     // Choosing "Send a sim event" keeps that choice while the event name is still empty (user
     // report 2026-10-29: it fell back to Nothing), and saving without a name is refused.

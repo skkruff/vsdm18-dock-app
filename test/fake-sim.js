@@ -35,6 +35,14 @@ class FakeSim extends EventEmitter {
     return () => vars.forEach(v => this.varSubs.get(v.name).delete(cb));
   }
   send(a) { this.sent.push(a); }
+  // Writing a simvar: recorded; the fake keeps it unless the name is in readOnly.
+  setVar(spec, v) {
+    (this.varSets = this.varSets || []).push([spec.name, v]);
+    if (this.readOnly && this.readOnly.includes(spec.name)) return;
+    this.simvars = this.simvars || {};
+    this.simvars[spec.name] = v;
+    this.simvar(spec.name, v);
+  }
   async read(spec) {
     if (!this.simvars || !(spec.name in this.simvars)) throw new Error(`no answer for ${spec.name}`);
     return this.simvars[spec.name];

@@ -39,6 +39,8 @@ function keySources(key) {
   const out = key.read ? [key.read] : [];
   if (key.type === 'armable' && key.armed) out.push(key.armed);
   if (key.type === 'armable') out.push(...armableOrSources(key));
+  // A press that writes a simvar watches it too, so cycle and step know its current value.
+  if (key.press && key.press.var && key.press.var.var) out.push(key.press.var);
   const faces = [key.face, ...Object.values(key.valueFaces || {})].filter(Boolean);
   for (const f of faces) for (const L of f.layers || []) if (L.kind === 'value' && L.read) out.push(L.read);
   return out;
@@ -58,6 +60,15 @@ function armableStep(key, active, armed, valueOf = () => undefined) {
   if (any(armed, key.armedIs, key.armedOr)) return 'armed';
   return 'otherwise';
 }
+// What cycle / step / hold / set change: press.var (a simvar, user 2026-10-30), press.input, or
+// the key's own input event. A simvar is never written unless named in press.var.
+function pressTarget(key) {
+  const p = key.press || {};
+  if (p.var && p.var.var) return p.var;
+  const input = p.input || (key.read && key.read.input);
+  return input ? { input } : null;
+}
+
 function armableOrSources(key) {
   return [...(key.activeOr || []), ...(key.armedOr || [])].map(o => o.read).filter(Boolean);
 }
@@ -412,7 +423,7 @@ class ProfileEngine {
       if (key.press.hold !== undefined && key.press.repeatMs) {
         clearInterval(this.holdTimers.get(slot));
         this.holdTimers.set(slot, setInterval(() => {
-          try { this.sim.setInput(key.press.input || key.read.input, key.press.hold); } catch (e) { this._stopHold(slot); }
+          try { this._apply(pressTarget(key), key.press.hold); } catch (e) { this._stopHold(slot); }
         }, key.press.repeatMs));
       }
     } catch (e) {
@@ -442,8 +453,10 @@ class ProfileEngine {
 
   _press(key, phase) {
     const p = key.press;
-    const target = p.input || key.read?.input;
-    const current = key.read ? this.watches.get(sourceKey(key.read))?.value : undefined;
+    const target = pressTarget(key);
+    // The value to cycle or step from: the target's own, when it is watched, else the key's.
+    const own = target && this.watches.get(sourceKey(target));
+    const current = own && own.value !== undefined ? own.value : key.read ? this.watches.get(sourceKey(key.read))?.value : undefined;
     let value;
     if (phase === 'up') value = p.release;
     else if (p.event) {
@@ -462,8 +475,14 @@ class ProfileEngine {
     } else if (p.hold !== undefined) value = p.hold;
     else if (p.set !== undefined) value = p.set;
     else throw new Error('press has no action');
-    this.log('press', { input: target, value, phase });
-    this.sim.setInput(target, value);
+    this.log('press', { ...target, value, phase });
+    this._apply(target, value);
+  }
+
+  _apply(target, value) {
+    if (!target) throw new Error('press has nothing to act on');
+    if (target.var) return this.sim.setVar({ name: target.var, unit: target.unit || 'number' }, value);
+    return this.sim.setInput(target.input, value);
   }
 }
 

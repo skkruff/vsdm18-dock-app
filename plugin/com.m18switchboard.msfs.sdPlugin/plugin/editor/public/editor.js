@@ -608,7 +608,10 @@ const HELP = {
   armableOtherwise: 'Neither active nor armed. Clear (outline) suits autopilot modes.',
   armablePress: 'The source is usually a simvar, so set "Acts on" to the panel button\'s input event. G1000 buttons: '
     + 'Hold, while held 1, on release 0. Softkeys drop a held press unless re-sent every 130 ms or less.',
-  actsOn: 'The input event the press changes. Needed whenever the key reads a simvar, because a simvar cannot be pressed.',
+  actsOn: 'What the press changes. An input event is a cockpit control (switch, button, knob): the usual choice. '
+    + 'A simvar can also be written directly, but the sim only keeps values of simvars it lets clients set '
+    + '(marked [settable] in Browse), and an aircraft\'s avionics may put their own value back: try it with "Set". '
+    + 'Toggle / cycle and step read the simvar\'s current value to work out the next one.',
 };
 
 function info(id) {
@@ -806,8 +809,10 @@ function renderInspector() {
   const pkind = !key.press ? 'none' : p.event !== undefined ? 'event' : p.cycle ? 'cycle' : p.step !== undefined ? 'step' : p.hold !== undefined ? 'hold' : p.set !== undefined ? 'set' : 'none';
   box.append(field('Action', select_([['none', 'Nothing'], ['cycle', 'Toggle / cycle values'], ['step', 'Step up or down'], ['hold', 'Hold (spring-loaded)'], ['set', 'Set a value'], ['event', 'Send a sim event']], pkind, v => {
     const target = p.input;
+    const targetVar = p.var;
     key.press = { cycle: { cycle: [0, 1] }, step: { step: 1 }, hold: { hold: 1, release: 0 }, set: { set: 1 }, event: { event: '' } }[v];
-    if (!key.press) delete key.press; else if (target && v !== 'event') key.press.input = target;
+    if (!key.press) delete key.press;
+    else if (v !== 'event') { if (target) key.press.input = target; if (targetVar) key.press.var = targetVar; }
     redraw();
   })));
   const num = v => (v === '' ? undefined : Number(v));
@@ -835,9 +840,40 @@ function renderInspector() {
     box.append(field('Send 1/0 opposite of current', el('input', { type: 'checkbox', checked: p.toggleValue ? true : null, on: { change: e => setP('toggleValue', e.target.checked || undefined) } })));
   }
   if (['cycle', 'step', 'hold', 'set'].includes(pkind)) {
-    const actsOn = input(p.input, v => setP('input', v || undefined), { list: 'inputList', placeholder: key.read && key.read.input ? `(same as source: ${key.read.input})` : 'input event' });
-    box.append(field('Acts on', el('div', { class: 'inline' }, actsOn,
-      el('button', { on: { click: () => browse('inputs', c => { setP('input', c.name); renderInspector(); }) } }, 'Browse…')), null, 'actsOn'));
+    // What the press changes: an input event (a cockpit control) or a simvar written directly
+    // (user, 2026-10-30), e.g. TRANSPONDER STATE:1 where no event sets the mode.
+    const onVar = !!p.var;
+    box.append(field('Acts on', select_([['input', 'Input event (cockpit control)'], ['var', 'Simvar (written directly)']], onVar ? 'var' : 'input', v => {
+      if (v === 'var') {
+        delete key.press.input;
+        key.press.var = { var: key.read && key.read.var ? key.read.var : '', unit: key.read && key.read.var ? key.read.unit || 'number' : 'number' };
+      } else delete key.press.var;
+      redraw();
+    }), null, 'actsOn'));
+    if (!onVar) {
+      const actsOn = input(p.input, v => setP('input', v || undefined), { list: 'inputList', placeholder: key.read && key.read.input ? `(same as source: ${key.read.input})` : 'input event' });
+      box.append(field('Input event', el('div', { class: 'inline' }, actsOn,
+        el('button', { on: { click: () => browse('inputs', c => { setP('input', c.name); renderInspector(); }) } }, 'Browse…'))));
+    } else {
+      const tv = p.var;
+      box.append(field('Simvar', el('div', { class: 'inline' },
+        input(tv.var, v => { tv.var = v; changed(); }, { placeholder: 'e.g. TRANSPONDER STATE:1' }),
+        el('button', { on: { click: () => browse('simvars', c => { tv.var = c.name; if (c.unit) tv.unit = c.unit; changed(); renderInspector(); }) } }, 'Browse…'))));
+      box.append(field('Unit', input(tv.unit, v => { tv.unit = v || 'number'; changed(); }, { list: 'unitList' })));
+      // Try a write now and read it back: the sim ignores simvars it does not let clients set.
+      const val = input(p.set ?? p.hold ?? (p.cycle ? p.cycle[0] : ''), () => {}, { type: 'number', class: 'narrow' });
+      const out = el('span', { class: 'test-out' });
+      box.append(field('Set now', el('div', { class: 'inline' }, val,
+        el('button', { title: 'Write this value to the simvar now and read it back', on: { click: async e => {
+          e.preventDefault();
+          out.textContent = '…';
+          try {
+            const r = await api('POST', '/api/set-var', { var: tv.var, unit: tv.unit, value: val.value });
+            out.textContent = r.kept ? `now ${r.value}: kept` : r.value === null ? 'no value read back' : `now ${r.value}: the sim did not keep it`;
+            out.className = `test-out ${r.kept ? 'good' : 'bad'}`;
+          } catch (err) { out.textContent = err.message; out.className = 'test-out bad'; }
+        } } }, 'Set'), out), 'Writes the value once to see if the sim keeps it. Simvars marked [settable] in Browse are the ones the SDK says can be set.'));
+    }
   }
 
   // Preview value

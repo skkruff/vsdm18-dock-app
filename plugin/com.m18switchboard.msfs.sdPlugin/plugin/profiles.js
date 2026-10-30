@@ -31,8 +31,8 @@ function validate(p, file) {
       const press = key.press;
       if (press && press.event !== undefined && !press.event) errors.push(`${where}: "Send a sim event" needs the event's name`);
       if (press && (press.cycle || press.step !== undefined || press.hold !== undefined || press.set !== undefined)
-        && !(press.input || key.read?.input)) {
-        errors.push(`${where}: cycle/step/hold/set need an input event (read.input or press.input)`);
+        && !(press.input || key.read?.input || press.var?.var)) {
+        errors.push(`${where}: cycle/step/hold/set need something to act on: an input event (read.input or press.input) or a simvar (press.var)`);
       }
     }
   }

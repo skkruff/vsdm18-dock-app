@@ -32,3 +32,6 @@ stay in Groups; new ones also go in a category you choose.
 13. APR for both approach kinds: step 1 `AUTOPILOT APPROACH CAPTURED`, "+ or"
     `AUTOPILOT APPROACH ACTIVE`; step 2 `AUTOPILOT APPROACH HOLD`. Fly an ILS and an RNAV approach;
     note which simvars change (Test) at "APR pressed" and "captured".
+14. XPDR mode: on the XPDR key, When pressed "Toggle / cycle values" 3, 4; Acts on "Simvar",
+    `TRANSPONDER STATE:1`, unit `number`. Use **Set** with 4 and 3 first: "kept" means the sim
+    took it. Then check the G1000's XPDR mode follows, and whether it stays.

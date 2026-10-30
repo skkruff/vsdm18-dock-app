@@ -279,5 +279,34 @@ const text = uri => decodeURIComponent(uri);
 
   assert.strictEqual(formatValue({ decimals: 1 }, 1013.25), '1013.3');
   assert.strictEqual(formatValue({}, undefined), '---');
+  // Presses that write a simvar (press.var): cycle from its current value, step, hold.
+  {
+    const sim3 = new FakeSim({});
+    const xpdr = { var: 'TRANSPONDER STATE:1', unit: 'number' };
+    const prof = { id: 't', fallback: true, pages: [{ name: 'P', keys: {
+      0: { type: 'switch', label: 'XPDR', read: xpdr, states: { 4: 'on' }, press: { cycle: [3, 4], var: xpdr } },
+      1: { type: 'button', label: 'UP', press: { step: 1, max: 5, var: { var: 'OTHER', unit: 'number' } } },
+      2: { type: 'button', label: 'HOLD', press: { hold: 1, release: 0, var: { var: 'HELD', unit: 'number' } } },
+    } }] };
+    const imgs = new Map();
+    const e3 = new ProfileEngine({ sim: sim3, display: { image: (s, u) => imgs.set(s, u), title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
+    e3.start();
+    sim3.emit('connected');
+    sim3.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
+    await tick(); await tick();
+    sim3.simvar('TRANSPONDER STATE:1', 3);
+    sim3.simvar('OTHER', 2);
+    e3.keyDown(0); e3.keyUp(0);
+    assert.deepStrictEqual(sim3.varSets.pop(), ['TRANSPONDER STATE:1', 4], 'cycle 3 -> 4 written to the simvar');
+    assert.match(text(imgs.get(0)), /#b8f01c/, 'key follows the simvar the sim now reports');
+    e3.keyDown(0);
+    assert.deepStrictEqual(sim3.varSets.pop(), ['TRANSPONDER STATE:1', 3], 'and back');
+    e3.keyDown(1);
+    assert.deepStrictEqual(sim3.varSets.pop(), ['OTHER', 3], 'step from the written simvar\'s own value');
+    e3.keyDown(2); e3.keyUp(2);
+    assert.deepStrictEqual(sim3.varSets.slice(-2), [['HELD', 1], ['HELD', 0]], 'hold and release');
+    assert.strictEqual(sim3.sets.length, 0, 'no input events touched');
+  }
+
   console.log('engine: PASS');
 })().catch(e => { console.error('engine: FAIL', e); process.exitCode = 1; });

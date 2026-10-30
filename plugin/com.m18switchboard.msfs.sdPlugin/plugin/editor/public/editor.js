@@ -651,7 +651,7 @@ function field(label, control, note, help) {
 // ⓘ next to a label: the help text on hover, or pinned open by a click (user, 2026-10-29). Texts
 // live in HELP so they are easy to find and correct.
 const HELP = {
-  keypadKey: 'One key of the keypad layout every keypad uses. Its role says what it does: a digit, ENT, DEL, CLR, CANCEL, '
+  keypadKey: 'One key of the keypad layout every keypad uses. Its role says what it does: a digit, ENT, DEL, CLR, CANCEL, VFR, '
     + 'or what it shows: the title (with the value now), the value now, or the digits typed. Without a face or icon it gets '
     + 'the built-in look; a label replaces the word on ENT / DEL / CLR / CANCEL and digits. In a custom face, a Live value '
     + 'layer shows the role\'s text. Keys that do nothing at the moment (8 and 9 on a transponder, ENT before a digit) are dimmed.',
@@ -818,6 +818,11 @@ function renderInspector() {
       redraw();
     })));
     if (key.role === 'digit') box.append(field('Digit', select_([...'1234567890'].map(d => [d, d]), String(key.digit ?? '1'), v => { key.digit = v; redraw(); })));
+    // 9 is not a transponder digit: on keypads with a VFR code it becomes VFR (user, 2026-10-30).
+    if (key.role === 'digit' && String(key.digit) === '9') {
+      box.append(field('VFR on transponders', el('input', { type: 'checkbox', checked: key.vfr === false ? null : true, on: { change: e => { if (e.target.checked) delete key.vfr; else key.vfr = false; changed(); } } }),
+        'On keypads with a VFR code (the transponder), this key shows VFR and sets that code'));
+    }
   }
   box.append(field('Label', el('textarea', { rows: 2, on: { input: e => { key.label = e.target.value; changed(); } } }, key.label || ''),
     'Shown on drawn tiles. A new line starts a second line.'));
@@ -1020,7 +1025,7 @@ function renderInspector() {
 }
 
 const KEYPAD_ROLES = { digit: 'Digit', ent: 'ENT (set the value)', del: 'DEL (last digit)', clr: 'CLR (all digits)',
-  cancel: 'CANCEL (close)', title: 'Title, with the value now', now: 'Value now', typed: 'Digits typed' };
+  cancel: 'CANCEL (close)', vfr: 'VFR (sets the VFR code)', title: 'Title, with the value now', now: 'Value now', typed: 'Digits typed' };
 
 // Keypad (user, 2026-10-30): a preset (XPDR, COM / NAV standby) or your own.
 const KEYPAD_PRESETS = {
@@ -1047,6 +1052,12 @@ function keypadEditor(key) {
     }), null, 'keypad'),
     field('Title', input(k.title, v => { if (v) k.title = v; else delete k.title; changed(); }, { placeholder: custom ? 'ENTER' : 'as the preset' }), 'Shown on the keypad, with the key\'s value now'),
   ];
+  // The code a VFR key sets: MSFS has no VFR event, a VFR button just sets this code.
+  const presetVfr = k.preset && S.keypad && S.keypad.presets && S.keypad.presets[k.preset] ? S.keypad.presets[k.preset].vfr : undefined;
+  if (custom || presetVfr) {
+    rows.push(field('VFR code', input(k.vfr, v => { if (v) k.vfr = v; else delete k.vfr; changed(); }, { placeholder: presetVfr || 'none', style: 'width:100px' }),
+      presetVfr ? `Set by the VFR key; empty = ${presetVfr} (US). Europe: 7000` : 'Optional: a code the VFR key sets (e.g. 1200, 7000)'));
+  }
   const num = (o, f) => v => { if (v === '') delete o[f]; else o[f] = Number(v); changed(); };
   if (custom) {
     rows.push(

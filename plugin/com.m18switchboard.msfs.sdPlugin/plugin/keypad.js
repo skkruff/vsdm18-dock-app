@@ -13,13 +13,16 @@
 // One keypad layout for every keypad (user, 2026-10-30), edited in the editor's "Keypad" tab and
 // saved in keypad.json next to the profiles folder: { keys: { slot: { type: 'keypad', role, digit,
 // label, sublabel, icon, face } } } (decorative keys allowed too). Roles: digit (with digit),
-// ent, del (last digit), clr (all digits), cancel, title (title, with the value now below),
+// ent, del (last digit), clr (all digits), cancel, vfr (sets the keypad's VFR code; on keypads with
+// one, the 9 key does this too), title (title, with the value now below),
 // now (the value now), typed (the digits typed). The default (top row = slots 0-4):
 //   CANCEL  title   typed   DEL   ENT
 //     1       2       3      4     5
 //     6       7       8      9     0
 const PRESETS = {
-  xpdr: { title: 'XPDR', digits: 4, decimals: 0, octal: true, apply: { event: 'XPNDR_SET', encode: 'bcd16' } },
+  // vfr: the code the VFR key sets. MSFS has no VFR event; transponder VFR buttons set this code
+  // (1200 in the US, 7000 in most of Europe), so it can be changed per keypad (user, 2026-10-30).
+  xpdr: { title: 'XPDR', digits: 4, decimals: 0, octal: true, vfr: '1200', apply: { event: 'XPNDR_SET', encode: 'bcd16' } },
   com1: { title: 'COM1 STBY', digits: 6, decimals: 3, apply: { event: 'COM_STBY_RADIO_SET_HZ', scale: 1000000 } },
   com2: { title: 'COM2 STBY', digits: 6, decimals: 3, apply: { event: 'COM2_STBY_RADIO_SET_HZ', scale: 1000000 } },
   nav1: { title: 'NAV1 STBY', digits: 5, decimals: 2, apply: { event: 'NAV1_STBY_SET_HZ', scale: 1000000 } },
@@ -27,10 +30,17 @@ const PRESETS = {
 };
 const PRESET_NAMES = { xpdr: 'Transponder code', com1: 'COM1 standby', com2: 'COM2 standby', nav1: 'NAV1 standby', nav2: 'NAV2 standby' };
 
-const ROLES = ['digit', 'ent', 'del', 'clr', 'cancel', 'title', 'now', 'typed'];
+const ROLES = ['digit', 'ent', 'del', 'clr', 'cancel', 'vfr', 'title', 'now', 'typed'];
 const ROLE_NAMES = { digit: 'Digit', ent: 'ENT (set the value)', del: 'DEL (last digit)', clr: 'CLR (all digits)',
-  cancel: 'CANCEL (close)', title: 'Title, with the value now', now: 'Value now', typed: 'Digits typed' };
-const ROLE_TEXT = { ent: 'ENT', del: 'DEL', clr: 'CLR', cancel: 'CANCEL' };
+  cancel: 'CANCEL (close)', vfr: 'VFR (sets the VFR code)', title: 'Title, with the value now', now: 'Value now', typed: 'Digits typed' };
+const ROLE_TEXT = { ent: 'ENT', del: 'DEL', clr: 'CLR', cancel: 'CANCEL', vfr: 'VFR' };
+
+// A key that sets the VFR code: a VFR key, or the 9 on a keypad with a VFR code (a transponder,
+// where 9 is not a digit anyway), unless that key says vfr: false (user, 2026-10-30).
+function isVfrKey(key, spec) {
+  if (!key || key.type !== 'keypad' || !spec.vfr) return false;
+  return key.role === 'vfr' || (key.role === 'digit' && String(key.digit) === '9' && key.vfr !== false);
+}
 const DEFAULT_LAYOUT = {
   0: { type: 'keypad', role: 'cancel' }, 1: { type: 'keypad', role: 'title' }, 2: { type: 'keypad', role: 'typed' },
   3: { type: 'keypad', role: 'del' }, 4: { type: 'keypad', role: 'ent' },
@@ -68,6 +78,11 @@ function keypadSpec(k) {
   const spec = { autoEnter: true, decimals: 0, ...base, ...own, apply: { ...baseApply, ...ownApply } };
   if (!(spec.digits >= 1 && spec.digits <= 10)) throw new Error('keypad needs 1-10 digits');
   if (!(spec.decimals >= 0 && spec.decimals < spec.digits)) throw new Error('keypad decimals must be fewer than its digits');
+  if (spec.vfr !== undefined && spec.vfr !== '') {
+    spec.vfr = String(spec.vfr);
+    if (!/^[0-9]+$/.test(spec.vfr) || spec.vfr.length > spec.digits) throw new Error(`VFR code ${spec.vfr} must be up to ${spec.digits} digits`);
+    if (spec.octal && /[89]/.test(spec.vfr)) throw new Error(`VFR code ${spec.vfr}: digits 0-7 only`);
+  } else delete spec.vfr;
   const a = spec.apply;
   if (!a.event && !a.var && !a.input) throw new Error('keypad needs somewhere to set the value (an event, simvar or input event)');
   return spec;
@@ -95,4 +110,4 @@ function typeDigit(spec, typed, d) {
   return typed + d;
 }
 
-module.exports = { PRESETS, PRESET_NAMES, ROLES, ROLE_NAMES, ROLE_TEXT, DEFAULT_LAYOUT, layoutProblems, keypadSpec, display, encode, typeDigit };
+module.exports = { PRESETS, PRESET_NAMES, ROLES, ROLE_NAMES, ROLE_TEXT, DEFAULT_LAYOUT, isVfrKey, layoutProblems, keypadSpec, display, encode, typeDigit };

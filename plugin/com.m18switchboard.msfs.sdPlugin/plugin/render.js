@@ -213,7 +213,7 @@ const tiles = {
   },
   // The keypad's title (what is being set, and its value now) and the digits typed so far.
   keypadTitle(title, now) {
-    return svgUri(lines(title, now ? 46 : 72, { size: 28, width: 130 }) + (now ? lines(now, 98, { size: 30, color: style.dim, width: 130 }) : ''));
+    return svgUri(lines(title, now ? 42 : 72, { size: 28, width: 130 }) + (now ? lines(now, 96, { size: 38, color: style.dim, width: 132 }) : ''));
   },
   keypadTyped(text) {
     return svgUri(lines(text, 72, { size: 56, color: style.readout, width: 136 }));

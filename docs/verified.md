@@ -49,6 +49,10 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
 - 2026-10-30, user (dock + sim): keyboard shortcuts work; armable annunciators, dimmers (step,
   wrap, ramp) and the customisation features work in flight with no blockers.
+- 2026-10-30, user (dock + sim, C172 G1000): keypads work and set every value with no tweaking:
+  XPNDR_SET as BCD, COM_STBY_RADIO_SET_HZ, COM2_STBY_RADIO_SET_HZ, NAV1/2_STBY_SET_HZ.
+- 2026-10-30, from the SDK lists: there is no VFR event or simvar; a VFR button sets the VFR code
+  (XPNDR_SET 1200 / 7000). Added as the keypad's VFR key (unit tests only).
 - 2026-10-30, unit + browser tests only: editable keypad layout (keypad.json, Keypad tab),
   per-key send pathway overriding a preset's, "Try it". Fixed: keypad values were rounded to whole
   numbers (fine for Hz events, wrong for MHz written to a simvar).

@@ -452,7 +452,9 @@ const text = uri => decodeURIComponent(uri);
 
     // Keypad: XPDR, octal, sent as soon as 4 digits are in (BCD), then the page is back.
     e6.keyDown(4); e6.keyUp(4);
-    assert.match(text(imgs.get(1)), /aria-label="XPDR".*aria-label="now 1200"/s, 'title with the value now');
+    assert.match(text(imgs.get(1)), /aria-label="XPDR".*aria-label="1200"/s, 'title with the value now');
+    assert.doesNotMatch(text(imgs.get(1)), /now 1200/, 'just the value (user, 2026-10-30)');
+    assert.match(text(imgs.get(13)), /aria-label="VFR"/, 'the 9 is VFR on a transponder');
     assert.match(text(imgs.get(2)), /aria-label="____"/);
     const digit = d => { const s = { 1: 5, 2: 6, 3: 7, 4: 8, 5: 9, 6: 10, 7: 11, 8: 12, 9: 13, 0: 14 }[d]; e6.keyDown(s); e6.keyUp(s); };
     digit(7); digit(8); digit(7);
@@ -460,9 +462,16 @@ const text = uri => decodeURIComponent(uri);
     assert.match(text(imgs.get(12)), /#3a3f47/, '8 dimmed');
     digit(0); digit(0);
     assert.deepStrictEqual(sim6.sent.pop(), { event: 'XPNDR_SET', value: 0x7700 }, 'BCD');
+    // VFR: sets the VFR code (1200) at once, whatever was typed.
+    e6.keyDown(4); e6.keyUp(4);
+    digit(4);
+    e6.keyDown(13); e6.keyUp(13);
+    assert.deepStrictEqual(sim6.sent.pop(), { event: 'XPNDR_SET', value: 0x1200 }, 'VFR');
+    assert.match(text(imgs.get(4)), /aria-label="XPDR"/, 'page back after VFR');
     assert.match(text(imgs.get(4)), /aria-label="XPDR"/, 'page back');
     // COM: typed partly, ENT fills the rest with zeros; DEL removes the last digit.
     e6.keyDown(5); e6.keyUp(5);
+    assert.match(text(imgs.get(13)), /aria-label="9"/, 'a 9 on COM');
     digit(1); digit(2); digit(4); digit(9);
     e6.keyDown(3); e6.keyUp(3); // DEL
     digit(8);
@@ -509,6 +518,9 @@ const text = uri => decodeURIComponent(uri);
     assert.strictEqual(e6.applyKeypad(spec, '1228'), 122.8);
     assert.deepStrictEqual(sim6.varSets.pop(), ['COM STANDBY FREQUENCY:1', 122.8]);
     assert.deepStrictEqual(kpm.keypadSpec({ preset: 'xpdr', apply: { input: 'XPDR_CODE' } }).apply, { input: 'XPDR_CODE', encode: 'bcd16' });
+    assert.strictEqual(kpm.keypadSpec({ preset: 'xpdr', vfr: '7000' }).vfr, '7000', 'Europe');
+    assert.throws(() => kpm.keypadSpec({ preset: 'xpdr', vfr: '1290' }), /0-7 only/);
+    assert.ok(!kpm.isVfrKey({ type: 'keypad', role: 'digit', digit: '9', vfr: false }, kpm.keypadSpec('xpdr')), 'a 9 told not to be VFR');
     const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
     assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'button', press: { keypad: { digits: 3 } } } } }] }, 'x'), /somewhere to set/);
     assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'button', press: { timer: 'T1', action: 'lap' } } } }] }, 'x'), /stopwatch action/);

@@ -70,13 +70,14 @@ function keypadKeyImage(engine, key, k) {
   if (!key) return tiles.blank();
   if (key.type !== 'keypad') return engine.keyImage(key);
   const { spec, typed, now } = k;
-  const role = key.role;
+  const vfr = kp.isVfrKey(key, spec);
+  const role = vfr ? 'vfr' : key.role;
   const d = String(key.digit);
-  const enabled = role === 'digit' ? !(spec.octal && Number(d) > 7) && typed.length < spec.digits
+  const enabled = role === 'vfr' ? !!spec.vfr : role === 'digit' ? !(spec.octal && Number(d) > 7) && typed.length < spec.digits
     : ['ent', 'del', 'clr'].includes(role) ? !!typed : true;
-  const nowText = now ? `now ${now}` : '';
+  const nowText = now || ''; // just the value: "now" squeezed it (user, 2026-10-30)
   const text = role === 'digit' ? d : role === 'title' ? (spec.title || 'ENTER') : role === 'now' ? now
-    : role === 'typed' ? kp.display(spec, typed) : (key.label || kp.ROLE_TEXT[role] || '');
+    : role === 'typed' ? kp.display(spec, typed) : role === 'vfr' && key.role === 'digit' ? 'VFR' : (key.label || kp.ROLE_TEXT[role] || '');
   const label = role === 'digit' ? (key.label || d) : text;
   const sublabel = key.sublabel !== undefined ? key.sublabel : role === 'title' ? nowText : '';
   if (key.face) {
@@ -594,6 +595,8 @@ class ProfileEngine {
     const key = this.keypadLayout[slot];
     const role = key && key.type === 'keypad' ? key.role : null;
     if (NAV[slot] || role === 'cancel') return this._closeKeypad();
+    if (kp.isVfrKey(key, k.spec)) { k.typed = k.spec.vfr; return this._enterKeypad(); }
+    if (role === 'vfr') return; // a VFR key on a keypad without a VFR code
     if (role === 'del') k.typed = k.typed.slice(0, -1);
     else if (role === 'clr') k.typed = '';
     else if (role === 'ent') return k.typed ? this._enterKeypad() : this._closeKeypad();

@@ -49,6 +49,16 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
 - 2026-10-30, user (dock + sim): keyboard shortcuts work; armable annunciators, dimmers (step,
   wrap, ramp) and the customisation features work in flight with no blockers.
+- 2026-10-30, code review (unit + browser tests; all tests also run on Node 20.8.1, VSD Craft's
+  version, downloaded from nodejs.org): fixed the editor API accepting requests from any website
+  open in the browser (now needs the editor's header and a localhost Host); an unreadable
+  library / settings / keypad file being silently replaced (now kept aside); invalid match
+  patterns breaking aircraft matching; a press whose release never came eating the next release;
+  ramp timing order; fast simvars redrawing every sim frame (now at most 10 per second, the last
+  value always drawn). Refactored without behaviour change: key presses through one dispatcher,
+  one face drawing path, the editor split into ordered scripts, dead code removed. Not covered
+  (cannot run here): the keyboard helper on Windows. Known gap: the sim's pause state is only known
+  after the first pause change since connecting.
 - 2026-10-30: the user's C172 profile is now the shipped one (cleaned: the XPDR mode readout's
   leftover armable fields removed, its bars made explicit; NOSE DN label; "Auxiliary" spelling).
   Tests run on fixed copies in `test/fixtures/profiles`. Shipped library items are now refreshed

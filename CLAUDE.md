@@ -22,8 +22,10 @@ sim-time stopwatches kept across restarts, and keypads (XPDR / COM / NAV standby
 with one editable keypad layout (`keypad.json`, editor "Keypad" tab) and an editable send pathway
 per keypad key.
 2026-10-30: the user confirmed a fully working C172 switchboard (their profile in Documents;
-brief Phase 3 done, beyond it in features). Next: a code review pass, then Phase 4 (second aircraft),
-then Phase 4b (editor visual and QOL polish, backlog in `docs/design-notes.md`), then Phase 5.
+brief Phase 3 done, beyond it in features); it is now the shipped C172 profile (tests use
+`test/fixtures/profiles`). Code review done 2026-10-30 (see `verified.md`); README written.
+Next: Phase 4 (second aircraft), then Phase 4b (editor visual and QOL polish, backlog in
+`docs/design-notes.md`), then Phase 5.
 
 ## Profile content principles (user, 2026-10-27)
 
@@ -81,7 +83,8 @@ data folder is still `%APPDATA%\HotSpot\StreamDock`.
 - `test/`: `fake-host.js` (stand-in Stream Dock host), `icons.test.js`, `simconnect.test.js`
   (backend against a fake SimConnect handle), `engine.test.js` (engine with the real profiles
   against a fake sim), `store.test.js` (profile folder, library merging), `catalog.test.js`, `keys.test.js`, `fake-sim.js`. Run all
-  with `npm test`. `editor.e2e.js` drives the editor in
+  with `npm test`; they pass on Node 20.8.1 too. `fixtures/profiles/`: the profiles the engine
+  and editor tests run on (not the shipped ones). `editor.e2e.js` drives the editor in
   Chromium against `editor-harness.js` (`npm run test:editor`, needs Playwright);
   `node test/editor-harness.js [iconDir]` runs the editor on a fake sim for development.
 - `docs/aircraft/`: per-aircraft control inventories and input event lists.

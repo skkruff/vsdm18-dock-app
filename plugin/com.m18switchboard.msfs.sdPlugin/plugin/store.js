@@ -5,6 +5,8 @@
 const fs = require('fs');
 const path = require('path');
 const { loadProfiles, validate } = require('./profiles');
+const { migrateProfile, migrateKey } = require('./migrate');
+const migrateItem = item => ({ ...item, keys: (item.keys || []).map(g => ({ ...g, key: migrateKey(g.key) })) });
 
 const FILE_RE = /^[A-Za-z0-9_.-]+\.json$/;
 
@@ -97,14 +99,14 @@ class ProfileStore {
     return path.join(this.dir, file);
   }
 
+  // In the current model: old forms are migrated on the way to the editor (migrate.js).
   read(file) {
-    return JSON.parse(fs.readFileSync(this._path(file), 'utf8'));
+    return migrateProfile(JSON.parse(fs.readFileSync(this._path(file), 'utf8')));
   }
 
   // Validates, then writes atomically (temp file + rename) so a half-written file is never loaded.
   write(file, profile) {
-    validate(profile, file);
-    writeJson(this._path(file), profile);
+    writeJson(this._path(file), validate(profile, file)); // in the current model
   }
 
   // Deleting keeps a .bak copy beside the folder's files (not loaded, since it is not .json).
@@ -117,7 +119,7 @@ class ProfileStore {
   // hiddenShipped remembers shipped items the user deleted, so they are not added back.
   readLibrary() {
     const lib = readJson(this.libraryFile, this.log);
-    if (lib) return { items: lib.items || [], hiddenShipped: lib.hiddenShipped || [] };
+    if (lib) return { items: (lib.items || []).map(migrateItem), hiddenShipped: lib.hiddenShipped || [] };
     // Presets saved before the library existed become library items.
     let old = [];
     try { old = JSON.parse(fs.readFileSync(this.oldPresetsFile, 'utf8')); } catch { old = []; }

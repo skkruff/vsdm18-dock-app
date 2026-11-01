@@ -235,20 +235,22 @@ const text = uri => decodeURIComponent(uri);
     assert.match(text(engine.keyImage({ type: 'switch', read: { input: 'X' }, states: { 1: 'on' }, face: { layers: [{ kind: 'bar' }] } }, 1)), /fill="#b8f01c"/, 'no look: follows the state');
   }
 
-  // Switch (armable): active, else armed, else otherwise; both sources watched.
+  // Switch (armable), as saved before the key editor redesign: migrated to a readout with state
+  // logic (active, else armed, else otherwise); both sources watched.
   {
     const ak = {
       type: 'armable', label: 'APR', read: { var: 'AUTOPILOT APPROACH ACTIVE', unit: 'bool' },
       armed: { var: 'AUTOPILOT APPROACH ARM', unit: 'bool' }, sublabels: { active: 'LOC', armed: 'ARM' },
     };
     assert.deepStrictEqual(keySources(ak).map(s => s.var), ['AUTOPILOT APPROACH ACTIVE', 'AUTOPILOT APPROACH ARM']);
-    const img = (active, armed) => text(engine.keyImage(ak, active, null, () => armed));
+    const img = (active, armed) => text(engine.keyImage(ak, active, null, s => (s.var === 'AUTOPILOT APPROACH ARM' ? armed : undefined)));
     assert.match(img(1, 1), /fill="#b8f01c"/, 'active wins over armed');
     assert.match(img(1, 1), /aria-label="LOC"/);
     assert.match(img(0, 1), /fill="#ffffff"/, 'armed: white bar');
     assert.match(img(0, 1), /aria-label="ARM"/);
     assert.match(img(0, 0), /fill="none"/, 'otherwise: outline');
-    assert.match(img(undefined, 1), /fill="none"/, 'unknown: outline');
+    assert.match(img(undefined, undefined), /fill="none"/, 'nothing known: outline');
+    assert.match(img(undefined, 1), /fill="#ffffff"/, 'what is known counts: armed (the old ladder waited for active)');
     assert.match(text(engine.keyImage({ ...ak, otherwise: 'off' }, 0, null, () => 0)), /fill="#f0204c"/, 'otherwise can be off');
     assert.match(text(engine.keyImage({ ...ak, activeIs: 2 }, 2, null, () => 0)), /fill="#b8f01c"/, 'activeIs');
     assert.match(text(engine.keyImage(ak, 'armed')), /fill="#ffffff"/, 'editor preview by step name');
@@ -259,7 +261,7 @@ const text = uri => decodeURIComponent(uri);
     assert.match(armedIcon, /<image href="data:image\/png;base64,AAAA"/, 'PNG icon: its clear version');
     assert.match(armedIcon, /fill="#ffffff"/, 'with the bar filled white');
     const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
-    assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'armable', read: ak.read } } }] }, 'x'), /armed source/);
+    assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'armable', read: ak.read } } }] }, 'x'), /step 2 needs at least one condition/);
     validate({ id: 'x', match: {}, pages: [{ keys: { 0: ak } }] }, 'x');
 
     // A custom face shows the sublabel for the current step through a Sublabel layer.
@@ -282,7 +284,7 @@ const text = uri => decodeURIComponent(uri);
       activeOr: [{ read: { var: 'AUTOPILOT APPROACH ACTIVE', unit: 'bool' } }],
       armed: { var: 'AUTOPILOT APPROACH HOLD', unit: 'bool' },
     };
-    assert.deepStrictEqual(keySources(both).map(s => s.var), ['AUTOPILOT APPROACH CAPTURED', 'AUTOPILOT APPROACH HOLD', 'AUTOPILOT APPROACH ACTIVE']);
+    assert.deepStrictEqual(keySources(both).map(s => s.var), ['AUTOPILOT APPROACH CAPTURED', 'AUTOPILOT APPROACH ACTIVE', 'AUTOPILOT APPROACH HOLD']);
     const at = vals => text(engine.keyImage(both, vals.captured, null, src => vals[{ 'AUTOPILOT APPROACH ACTIVE': 'gps', 'AUTOPILOT APPROACH HOLD': 'hold' }[src.var]]));
     assert.match(at({ captured: 1, gps: 0, hold: 1 }), /fill="#b8f01c"/, 'ILS captured: active');
     assert.match(at({ captured: 0, gps: 1, hold: 1 }), /fill="#b8f01c"/, 'GPS approach active: active');
@@ -291,7 +293,7 @@ const text = uri => decodeURIComponent(uri);
     assert.match(at({ captured: undefined, gps: 1, hold: 1 }), /fill="#b8f01c"/, 'an "or" source alone is enough');
     const armedOr = { ...ak, armedOr: [{ read: { var: 'B', unit: 'bool' }, is: 2 }] };
     assert.match(text(engine.keyImage(armedOr, 0, null, s => (s.var === 'B' ? 2 : 0))), /fill="#ffffff"/, 'armed "or" with its own value');
-    assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { ...both, activeOr: [{ read: { var: '' } }] } } }] }, 'x'), /"or" source/);
+    assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { ...both, activeOr: [{ read: { var: '' } }] } } }] }, 'x'), /condition needs an input event/);
   }
 
   // Page names slide sideways while shown; keys without text are not resent each frame.
@@ -599,7 +601,7 @@ const text = uri => decodeURIComponent(uri);
     assert.deepStrictEqual(sim8.sets.map(s => s[1]).slice(0, 2), [90, 80], `from 100 it ramps down (${sim8.sets.map(s => s[1])})`);
     // Without wrap, a ramp held at its end sends nothing and stops.
     sim8.sets.length = 0;
-    prof.pages[0].keys[0].press.wrap = false;
+    prof.pages[0].keys[0] = { ...prof.pages[0].keys[0], press: { ...prof.pages[0].keys[0].press, wrap: false } };
     e8.keyDown(0);
     await new Promise(r => setTimeout(r, 80));
     assert.strictEqual(e8.holdTimers.size, 0, 'stopped at the end, not ticking');
@@ -637,6 +639,110 @@ const text = uri => decodeURIComponent(uri);
     assert.match(layer, /<rect x="22\.0" y="76\.5" width="100" height="7" rx="3\.5" fill="#ff0000"\/>/, 'separator layer');
     const unitLayer = text(engine.keyImage({ type: 'readout', read: { var: 'X', unit: 'n' }, suffix: '%', face: { layers: [{ kind: 'value' }, { kind: 'value', read: { var: 'Y', unit: 'n' }, suffix: 'RPM' }] } }, 40, null, () => 2400));
     assert.match(unitLayer, /aria-label="40%".*aria-label="2400 RPM"/s, 'value layers: the key\'s unit, or their own');
+  }
+
+  // ---------- key editor redesign (user schema, 2026-11-01) ----------
+  {
+    const { migrateKey } = require(path.join(pluginDir, 'plugin', 'migrate'));
+    const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
+    // Migration: hold-to-ramp and hold-to-reset become tap / hold; a dimmer readout a Rotary.
+    assert.deepStrictEqual(migrateKey({ type: 'readout', read: { input: 'D' }, press: { step: 25, min: 0, max: 100, wrap: true, rampMs: 100, rampStep: 5 } }),
+      { type: 'rotary', read: { input: 'D' }, press: { tap: { step: 25, min: 0, max: 100, wrap: true }, hold: { step: 5, min: 0, max: 100, wrap: true, repeatMs: 100 }, holdMs: 400 } });
+    assert.deepStrictEqual(migrateKey({ type: 'readout', read: { timer: 'T1' }, press: { timer: 'T1', action: 'toggle', holdReset: true } }).press,
+      { tap: { timer: 'T1', action: 'toggle' }, hold: [{ timer: 'T1', action: 'stop' }, { timer: 'T1', action: 'reset' }], holdMs: 1000 });
+    const m = migrateKey({ type: 'armable', read: { var: 'A', unit: 'bool' }, armed: { var: 'B', unit: 'bool' }, armedIs: 2, sublabels: { armed: 'ARM' }, valueFaces: { armed: { layers: [] } }, otherwise: 'off' });
+    assert.deepStrictEqual(m.logic, { steps: [{ when: [{ read: { var: 'A', unit: 'bool' } }], look: 'on' }, { when: [{ read: { var: 'B', unit: 'bool' }, is: 2 }], look: 'armed', sublabel: 'ARM' }], otherwise: { look: 'off' } });
+    assert.deepStrictEqual([m.type, m.armed, m.sublabels, m.valueFaces, Object.keys(m.logicFaces)], ['readout', undefined, undefined, undefined, ['1']]);
+    const unchanged = { type: 'switch', read: { input: 'X' }, press: { cycle: [0, 1] } };
+    assert.deepStrictEqual(migrateKey(unchanged), unchanged, 'current keys untouched');
+    // validate returns the current model.
+    assert.strictEqual(validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'armable', read: { var: 'A', unit: 'bool' }, armed: { var: 'B', unit: 'bool' } } } }] }, 'x').pages[0].keys[0].type, 'readout');
+
+    // Readout state logic with any number of steps; faces per step; a Rotary draws like a readout.
+    const ann = { type: 'readout', label: 'GEN', read: { var: 'V', unit: 'number' }, logic: { steps: [
+      { when: [{ read: { var: 'W', unit: 'bool' } }], look: 'off', sublabel: 'WARN' },
+      { when: [{ read: { var: 'V', unit: 'number' }, is: 2 }, { read: { var: 'V', unit: 'number' }, is: 3 }], look: 'armed', sublabel: 'LOW' },
+      { when: [{ read: { var: 'V', unit: 'number' }, is: 4 }], look: 'on', sublabel: 'OK' },
+    ], otherwise: { look: 'clear', sublabel: 'OFF' } }, logicFaces: { 2: { layers: [{ kind: 'text', text: 'ALL GOOD' }] } } };
+    const show = (v, w) => text(engine.keyImage(ann, v, null, s => (s.var === 'W' ? w : s.var === 'V' ? v : undefined)));
+    assert.match(show(4, 1), /fill="#f0204c".*/s, 'step 1 wins over later ones');
+    assert.match(show(4, 1), /aria-label="WARN"/);
+    assert.match(show(3, 0), /fill="#ffffff"/, 'any condition of a step');
+    assert.match(show(3, 0), /aria-label="LOW"/);
+    assert.match(show(4, 0), /aria-label="ALL GOOD"/, 'face for step 3');
+    assert.match(show(9, 0), /aria-label="OFF"/, 'otherwise');
+    assert.match(show(undefined, undefined), /fill="none"/, 'nothing known yet');
+    assert.match(text(engine.keyImage(ann, 'step 2')), /aria-label="LOW"/, 'the editor previews a step');
+    assert.deepStrictEqual(keySources(ann).map(s => s.var), ['V', 'W'], 'every condition source watched, once each');
+    assert.match(text(engine.keyImage({ type: 'rotary', label: 'CABIN', read: { input: 'D' }, suffix: '%' }, 40)), /aria-label="40%"/, 'rotary draws like a readout');
+
+    // Tap / hold on the dock.
+    const simA = new FakeSim({ X: 0, D: 50 });
+    const kprof = { id: 'th', fallback: true, pages: [{ name: 'P', keys: {
+      0: { type: 'switch', read: { input: 'X' }, press: { tap: { cycle: [0, 1] }, hold: { set: 2 }, holdMs: 40 } },
+      1: { type: 'button', read: { input: 'X' }, press: { tap: { set: 7 } } },
+      2: { type: 'button', press: [{ event: 'A' }, { event: 'B' }] },
+      3: { type: 'button', press: { tap: { event: 'TAP' }, hold: { event: 'AGAIN', repeatMs: 15 }, holdMs: 30 } },
+      4: { type: 'rotary', read: { input: 'D' }, press: { tap: { step: 25, min: 0, max: 100 }, hold: { step: -10, min: 0, max: 100, repeatMs: 15 }, holdMs: 30 } },
+    } }, { name: 'Q', keys: { 0: { type: 'readout', label: 'XPDR', read: { var: 'C', unit: 'number' }, press: { tap: { keypad: 'xpdr' } } } } }] };
+    const imgsA = new Map();
+    const eA = new ProfileEngine({ redrawMs: 0, sim: simA, display: { image: (s, u) => imgsA.set(s, u), title() {}, alert() {} }, profiles: [kprof], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
+    eA.start();
+    simA.emit('connected');
+    simA.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
+    await new Promise(r => setTimeout(r, 30));
+    eA.keyDown(0);
+    assert.strictEqual(simA.sets.length, 0, 'with a hold action, a tap waits for the release');
+    eA.keyUp(0);
+    assert.deepStrictEqual(simA.sets.pop(), ['X', 1], 'tap');
+    eA.keyDown(0);
+    await new Promise(r => setTimeout(r, 70));
+    eA.keyUp(0);
+    assert.deepStrictEqual(simA.sets, [['X', 2]], 'hold, and no tap after it');
+    simA.sets.length = 0;
+    eA.keyDown(1);
+    assert.deepStrictEqual(simA.sets.pop(), ['X', 7], 'without a hold action the tap acts at once');
+    eA.keyUp(1);
+    eA.keyDown(2); eA.keyUp(2);
+    assert.deepStrictEqual(simA.sent.splice(0).map(s => s.event), ['A', 'B'], 'a list of actions, in order');
+    eA.keyDown(3);
+    await new Promise(r => setTimeout(r, 80));
+    eA.keyUp(3);
+    const again = simA.sent.splice(0).map(s => s.event);
+    assert.ok(again.length >= 3 && again.every(e => e === 'AGAIN'), `a repeating hold (${again})`);
+    simA.input('D', 50);
+    eA.keyDown(4);
+    await new Promise(r => setTimeout(r, 55));
+    eA.keyUp(4);
+    const ramp = simA.sets.splice(0).map(s => s[1]);
+    assert.deepStrictEqual(ramp.slice(0, 2), [40, 30], `a repeating step ramps down from the value (${ramp})`);
+
+    // Preview mode: siloed from the sim (user, 2026-11-01).
+    simA.sets.length = 0; simA.sent.length = 0;
+    const other = { id: 'pv', name: 'Preview me', match: { title: ['nothing'] }, pages: kprof.pages };
+    eA.startPreview({ profile: other, pageIndex: 0, values: { 0: { 0: 1, 4: 75 }, 1: { 0: 1200 } } });
+    assert.match(text(imgsA.get(4)), /aria-label="75"/, 'preview values');
+    eA.keyDown(1); eA.keyUp(1);
+    eA.keyDown(0); await new Promise(r => setTimeout(r, 60)); eA.keyUp(0);
+    assert.deepStrictEqual([simA.sets, simA.sent], [[], []], 'nothing reaches the sim');
+    eA.keyDown(17); eA.keyUp(17);
+    assert.match(text(imgsA.get(0)), /aria-label="XPDR"/, 'the round buttons page through the previewed profile');
+    eA.keyDown(0); eA.keyUp(0);
+    assert.match(text(imgsA.get(0)), /aria-label="CANCEL"/, 'a keypad shows');
+    assert.match(text(imgsA.get(1)), /aria-label="1200"/, 'with the preview value');
+    for (const s of [5, 6, 7, 14]) { eA.keyDown(s); eA.keyUp(s); }
+    assert.deepStrictEqual(simA.sent, [], 'and ENT sends nothing');
+    simA.emit('aircraft', { title: 'Y', atcModel: '', path: 'y' });
+    await new Promise(r => setTimeout(r, 30));
+    assert.match(text(imgsA.get(0)), /aria-label="XPDR"/, 'the sim cannot take over the preview');
+    eA.stopPreview();
+    assert.doesNotMatch(text(imgsA.get(0)), /aria-label="XPDR"/, 'back to the dock as the sim has it');
+
+    // Validation of the new forms.
+    assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'readout' } } }] }, 'x'), /needs a source or state logic/);
+    assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'button', press: { tap: { event: '' } } } } }] }, 'x'), /tap: "Send a sim event" needs/);
+    assert.throws(() => validate({ id: 'x', match: {}, pages: [{ keys: { 0: { type: 'button', press: { hold: [{ timer: 'T', action: 'lap' }] } } } }] }, 'x'), /hold: action 1: stopwatch action/);
+    validate({ id: 'x', match: {}, pages: [{ keys: { 0: kprof.pages[0].keys[0], 1: kprof.pages[0].keys[1], 2: kprof.pages[0].keys[2] } }, kprof.pages[1], { keys: { 0: ann } }] }, 'x');
   }
 
   console.log('engine: PASS');

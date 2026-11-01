@@ -9,6 +9,7 @@ const { sourceKey, keySources } = require('../engine');
 const { FONTS, style } = require('../render');
 const { parseShortcut, formatShortcut } = require('../keys');
 const { DEFAULT_LAYOUT, PRESETS, layoutProblems, keypadSpec } = require('../keypad');
+const { validate } = require('../profiles');
 
 const PUBLIC = path.join(__dirname, 'public');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
@@ -115,7 +116,21 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
       profilesDir: store.dir,
       theme: config.theme,
       iconDir: config.iconDir,
+      preview: engine.preview ? { profile: engine.preview.profile.id, pageIndex: engine.preview.pageIndex } : null,
     })],
+    // Preview mode (user, 2026-11-01): the profile being edited on the dock, siloed from the sim.
+    // { profile, pageIndex, values: { page: { slot: value } }, sources }; validated, unsaved is fine.
+    ['POST', /^\/api\/preview$/, async (m, req) => {
+      const { profile, pageIndex = 0, values = {}, sources = {} } = await readBody(req);
+      engine.startPreview({ profile: validate(profile, 'preview'), pageIndex, values, sources });
+      return { ok: true };
+    }],
+    ['PUT', /^\/api\/preview$/, async (m, req) => {
+      const { profile, pageIndex, values, sources } = await readBody(req);
+      engine.updatePreview({ profile: profile ? validate(profile, 'preview') : undefined, pageIndex, values, sources });
+      return { ok: true };
+    }],
+    ['DELETE', /^\/api\/preview$/, () => { engine.stopPreview(); return { ok: true }; }],
     ['GET', /^\/api\/profiles$/, () => ({ profiles: store.list(), errors: store.load().errors })],
     ['GET', /^\/api\/profiles\/([^/]+)$/, (m) => store.read(decodeURIComponent(m[1]))],
     ['PUT', /^\/api\/profiles\/([^/]+)$/, async (m, req) => {

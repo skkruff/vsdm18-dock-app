@@ -1891,7 +1891,7 @@
       "id": "c172-g1000.3.2",
       "name": "TIMER (C172 G1000)",
       "category": "Chrono",
-      "notes": "Reads undefined (undefined); sets undefined.",
+      "notes": "Reads undefined (undefined); holds [object Object],[object Object], releases to undefined.",
       "shipped": true,
       "keys": [
         {
@@ -1906,9 +1906,21 @@
             "format": "duration",
             "separator": true,
             "press": {
-              "timer": "T1",
-              "action": "toggle",
-              "holdReset": true
+              "tap": {
+                "timer": "T1",
+                "action": "toggle"
+              },
+              "hold": [
+                {
+                  "timer": "T1",
+                  "action": "stop"
+                },
+                {
+                  "timer": "T1",
+                  "action": "reset"
+                }
+              ],
+              "holdMs": 1000
             },
             "face": {
               "layers": [
@@ -1945,25 +1957,33 @@
       "id": "c172-g1000.3.3",
       "name": "Switches & Circuit Breakers Dimmer (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_PANEL_1; steps +25.",
+      "notes": "Reads LIGHTING_PANEL_1; holds [object Object], releases to undefined.",
       "shipped": true,
       "keys": [
         {
           "dr": 0,
           "dc": 0,
           "key": {
-            "type": "readout",
+            "type": "rotary",
             "label": "Switches & Circuit Breakers Dimmer",
             "read": {
               "input": "LIGHTING_PANEL_1"
             },
             "press": {
-              "step": 25,
-              "min": 0,
-              "max": 100,
-              "rampMs": 100,
-              "rampStep": 5,
-              "wrap": true
+              "tap": {
+                "step": 25,
+                "min": 0,
+                "max": 100,
+                "wrap": true
+              },
+              "hold": {
+                "step": 5,
+                "min": 0,
+                "max": 100,
+                "wrap": true,
+                "repeatMs": 100
+              },
+              "holdMs": 400
             },
             "suffix": "%",
             "face": {
@@ -1996,25 +2016,33 @@
       "id": "c172-g1000.3.4",
       "name": "Standby Instruments Dimmer (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_PANEL_2; steps +25.",
+      "notes": "Reads LIGHTING_PANEL_2; holds [object Object], releases to undefined.",
       "shipped": true,
       "keys": [
         {
           "dr": 0,
           "dc": 0,
           "key": {
-            "type": "readout",
+            "type": "rotary",
             "label": "Standby Instruments Dimmer",
             "read": {
               "input": "LIGHTING_PANEL_2"
             },
             "press": {
-              "step": 25,
-              "min": 0,
-              "max": 100,
-              "rampMs": 100,
-              "rampStep": 5,
-              "wrap": true
+              "tap": {
+                "step": 25,
+                "min": 0,
+                "max": 100,
+                "wrap": true
+              },
+              "hold": {
+                "step": 5,
+                "min": 0,
+                "max": 100,
+                "wrap": true,
+                "repeatMs": 100
+              },
+              "holdMs": 400
             },
             "suffix": "%",
             "face": {
@@ -2076,25 +2104,33 @@
       "id": "c172-g1000.3.8",
       "name": "Pedestal Dimmer (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_PEDESTRAL_1; steps +25.",
+      "notes": "Reads LIGHTING_PEDESTRAL_1; holds [object Object], releases to undefined.",
       "shipped": true,
       "keys": [
         {
           "dr": 0,
           "dc": 0,
           "key": {
-            "type": "readout",
+            "type": "rotary",
             "label": "Pedestal Dimmer",
             "read": {
               "input": "LIGHTING_PEDESTRAL_1"
             },
             "press": {
-              "step": 25,
-              "min": 0,
-              "max": 100,
-              "rampMs": 100,
-              "rampStep": 5,
-              "wrap": true
+              "tap": {
+                "step": 25,
+                "min": 0,
+                "max": 100,
+                "wrap": true
+              },
+              "hold": {
+                "step": 5,
+                "min": 0,
+                "max": 100,
+                "wrap": true,
+                "repeatMs": 100
+              },
+              "holdMs": 400
             },
             "suffix": "%",
             "face": {
@@ -2127,25 +2163,33 @@
       "id": "c172-g1000.3.9",
       "name": "Avionics Dimmer (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_POTENTIOMETER_5; steps +25.",
+      "notes": "Reads LIGHTING_POTENTIOMETER_5; holds [object Object], releases to undefined.",
       "shipped": true,
       "keys": [
         {
           "dr": 0,
           "dc": 0,
           "key": {
-            "type": "readout",
+            "type": "rotary",
             "label": "Avionics Dimmer",
             "read": {
               "input": "LIGHTING_POTENTIOMETER_5"
             },
             "press": {
-              "step": 25,
-              "min": 0,
-              "max": 100,
-              "rampMs": 100,
-              "rampStep": 5,
-              "wrap": true
+              "tap": {
+                "step": 25,
+                "min": 0,
+                "max": 100,
+                "wrap": true
+              },
+              "hold": {
+                "step": 5,
+                "min": 0,
+                "max": 100,
+                "wrap": true,
+                "repeatMs": 100
+              },
+              "holdMs": 400
             },
             "suffix": "%",
             "face": {
@@ -2274,25 +2318,33 @@
       "id": "c172-g1000.3.14",
       "name": "Cabin Light Dimmer (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_CABIN_1; steps +25.",
+      "notes": "Reads LIGHTING_CABIN_1; holds [object Object], releases to undefined.",
       "shipped": true,
       "keys": [
         {
           "dr": 0,
           "dc": 0,
           "key": {
-            "type": "readout",
+            "type": "rotary",
             "label": "Cabin Light Dimmer",
             "read": {
               "input": "LIGHTING_CABIN_1"
             },
             "press": {
-              "step": 25,
-              "min": 0,
-              "max": 100,
-              "rampMs": 100,
-              "rampStep": 5,
-              "wrap": true
+              "tap": {
+                "step": 25,
+                "min": 0,
+                "max": 100,
+                "wrap": true
+              },
+              "hold": {
+                "step": 5,
+                "min": 0,
+                "max": 100,
+                "wrap": true,
+                "repeatMs": 100
+              },
+              "holdMs": 400
             },
             "suffix": "%",
             "face": {
@@ -2743,9 +2795,21 @@
             "format": "duration",
             "separator": true,
             "press": {
-              "timer": "T1",
-              "action": "toggle",
-              "holdReset": true
+              "tap": {
+                "timer": "T1",
+                "action": "toggle"
+              },
+              "hold": [
+                {
+                  "timer": "T1",
+                  "action": "stop"
+                },
+                {
+                  "timer": "T1",
+                  "action": "reset"
+                }
+              ],
+              "holdMs": 1000
             }
           }
         }

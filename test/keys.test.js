@@ -25,6 +25,12 @@ assert.strictEqual(formatShortcut(parseShortcut('ralt+pgdn')), 'RAlt+PgDn');
 // extended flag for the E0 keys (right Ctrl, arrows, numpad Enter ...).
 assert.deepStrictEqual(tapCommands(parseShortcut('Ctrl+Shift+L')), [
   'k 29 0 0', 's 15', 'k 42 0 0', 's 15', 'k 38 0 0', 's 40', 'k 38 0 1', 's 15', 'k 42 0 1', 's 15', 'k 29 0 1']);
+// Pause / Break (user report 2026-11-01): no plain scancode, sent as its virtual key.
+assert.deepStrictEqual(parseShortcut('Pause'), ['Pause'], 'the browser code, as recorded');
+assert.deepStrictEqual(parseShortcut('ctrl+break'), ['ControlLeft', 'Pause']);
+assert.strictEqual(formatShortcut(parseShortcut('Shift+Pause')), 'Shift+Pause');
+assert.deepStrictEqual(tapCommands(parseShortcut('Ctrl+Pause')), ['k 29 0 0', 's 15', 'v 19 69 0', 's 40', 'v 19 69 1', 's 15', 'k 29 0 1']);
+assert.deepStrictEqual(tapCommands(parseShortcut('PrtSc')), ['k 55 1 0', 's 40', 'k 55 1 1']);
 assert.deepStrictEqual(tapCommands(parseShortcut('RCtrl+Up')), ['k 29 1 0', 's 15', 'k 72 1 0', 's 40', 'k 72 1 1', 's 15', 'k 29 1 1']);
 
 // The sender: one helper process, started once; focus first unless told not to.

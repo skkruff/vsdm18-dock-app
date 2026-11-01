@@ -47,6 +47,10 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-01, user report: the Pause key gave "unknown key". It has no plain scancode (an E1
+  sequence), so it was not in the table. Now sent as virtual key 0x13 with scancode 0x45 (as
+  AutoHotkey does); PrtSc added as extended 0x37. Unit tested only; whether MSFS takes this
+  Pause is to be seen on the PC.
 - 2026-11-01, user test (DA62, sim): LIGHTING_PANEL_LIGHT_INTENSITY reads 0-100 (75 when part
   dimmed) but is set 0-1 (set 50: full; set 0.5: half). Added "Sends ×" (`scale`) to actions;
   engine tests cover a tap and a ramp. Not yet tried on the dock.

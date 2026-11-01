@@ -1,5 +1,6 @@
 # Keyboard helper for MSFS Switchboard (plugin/keys.js). Started once by the plugin; reads one
 # command per line on stdin: "k <scan> <ext 0|1> <up 0|1>" sends a key by scancode (SendInput),
+# "v <vk> <scan> <up 0|1>" sends a virtual key with its scancode (Pause, which has no plain scancode),
 # "s <ms>" sleeps, "f" brings MSFS to the front if it is not already, "p" answers "pong".
 $ErrorActionPreference = 'Stop'
 Add-Type -TypeDefinition @"
@@ -21,6 +22,14 @@ public static class SwKeys {
     i.type = 1;
     i.u.ki.wScan = scan;
     i.u.ki.dwFlags = 0x0008u | (ext ? 0x0001u : 0u) | (up ? 0x0002u : 0u);
+    return SendInput(1, new INPUT[] { i }, Marshal.SizeOf(typeof(INPUT)));
+  }
+  public static uint VirtualKey(ushort vk, ushort scan, bool up) {
+    INPUT i = new INPUT();
+    i.type = 1;
+    i.u.ki.wVk = vk;
+    i.u.ki.wScan = scan;
+    i.u.ki.dwFlags = up ? 0x0002u : 0u;
     return SendInput(1, new INPUT[] { i }, Marshal.SizeOf(typeof(INPUT)));
   }
   public static string Focus() {
@@ -45,6 +54,7 @@ while ($null -ne ($line = [Console]::In.ReadLine())) {
   try {
     switch ($p[0]) {
       'k' { [void][SwKeys]::Key([uint16]$p[1], $p[2] -eq '1', $p[3] -eq '1') }
+      'v' { [void][SwKeys]::VirtualKey([uint16]$p[1], [uint16]$p[2], $p[3] -eq '1') }
       's' { Start-Sleep -Milliseconds ([int]$p[1]) }
       'f' { [Console]::Out.WriteLine('focus ' + [SwKeys]::Focus()); Start-Sleep -Milliseconds 60 }
       'p' { [Console]::Out.WriteLine('pong') }

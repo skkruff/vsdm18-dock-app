@@ -30,8 +30,11 @@ const SC = {
 const EXT = {
   NumpadEnter: 0x1c, ControlRight: 0x1d, NumpadDivide: 0x35, AltRight: 0x38, Home: 0x47, ArrowUp: 0x48,
   PageUp: 0x49, ArrowLeft: 0x4b, ArrowRight: 0x4d, End: 0x4f, ArrowDown: 0x50, PageDown: 0x51,
-  Insert: 0x52, Delete: 0x53, MetaLeft: 0x5b, MetaRight: 0x5c, ContextMenu: 0x5d,
+  Insert: 0x52, Delete: 0x53, MetaLeft: 0x5b, MetaRight: 0x5c, ContextMenu: 0x5d, PrintScreen: 0x37,
 };
+// Keys with no plain scancode: Pause / Break is an E1 sequence, so it goes out as its virtual key
+// with the scancode Windows gives it (as AutoHotkey sends it: vk13 sc045). User report 2026-11-01.
+const VK = { Pause: { vk: 0x13, scan: 0x45 } };
 const MODIFIERS = ['ControlLeft', 'ControlRight', 'ShiftLeft', 'ShiftRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight'];
 
 // Names people write -> key codes (browser KeyboardEvent.code names, which the editor records).
@@ -50,6 +53,8 @@ const ALIASES = {
   numpadplus: 'NumpadAdd', numplus: 'NumpadAdd', numadd: 'NumpadAdd', numpadminus: 'NumpadSubtract', numminus: 'NumpadSubtract',
   numsub: 'NumpadSubtract', nummultiply: 'NumpadMultiply', numdivide: 'NumpadDivide', numenter: 'NumpadEnter',
   numdecimal: 'NumpadDecimal', numdel: 'NumpadDecimal',
+  pause: 'Pause', break: 'Pause', pausebreak: 'Pause', 'pause/break': 'Pause',
+  printscreen: 'PrintScreen', prtsc: 'PrintScreen', prtscn: 'PrintScreen', printscrn: 'PrintScreen', sysrq: 'PrintScreen',
 };
 // How each key is written back ("Ctrl+Shift+L").
 const SHORT = {
@@ -57,7 +62,7 @@ const SHORT = {
   AltRight: 'RAlt', MetaLeft: 'Win', MetaRight: 'RWin', ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left',
   ArrowRight: 'Right', PageUp: 'PgUp', PageDown: 'PgDn',
 };
-const ALL = new Set([...Object.keys(SC), ...Object.keys(EXT)]);
+const ALL = new Set([...Object.keys(SC), ...Object.keys(EXT), ...Object.keys(VK)]);
 const LOWER = new Map([...ALL].map(c => [c.toLowerCase(), c]));
 
 function codeOf(token) {
@@ -92,23 +97,29 @@ function formatShortcut(codes) {
 }
 
 function scan(code) {
+  if (VK[code]) return VK[code];
   if (EXT[code] !== undefined) return { scan: EXT[code], ext: true };
   return { scan: SC[code], ext: false };
 }
 
-// The helper's commands, one per line: "k <scan> <ext 0|1> <up 0|1>", "s <ms>" (sleep),
+// The helper's commands, one per line: "k <scan> <ext 0|1> <up 0|1>", "v <vk> <scan> <up 0|1>"
+// (a virtual key, for Pause), "s <ms>" (sleep),
 // "f" (bring MSFS to the front if it is not already).
 function tapCommands(codes, { holdMs = 40, gapMs = 15 } = {}) {
   return [...downCommands(codes, gapMs), `s ${holdMs}`, ...upCommands(codes, gapMs)];
 }
+function keyCommand(code, up) {
+  const k = scan(code);
+  return k.vk ? `v ${k.vk} ${k.scan} ${up ? 1 : 0}` : `k ${k.scan} ${k.ext ? 1 : 0} ${up ? 1 : 0}`;
+}
 function downCommands(codes, gapMs = 15) {
   const out = [];
-  codes.forEach((c, i) => { const k = scan(c); out.push(`k ${k.scan} ${k.ext ? 1 : 0} 0`); if (i < codes.length - 1) out.push(`s ${gapMs}`); });
+  codes.forEach((c, i) => { out.push(keyCommand(c, false)); if (i < codes.length - 1) out.push(`s ${gapMs}`); });
   return out;
 }
 function upCommands(codes, gapMs = 15) {
   const out = [];
-  [...codes].reverse().forEach((c, i) => { const k = scan(c); out.push(`k ${k.scan} ${k.ext ? 1 : 0} 1`); if (i < codes.length - 1) out.push(`s ${gapMs}`); });
+  [...codes].reverse().forEach((c, i) => { out.push(keyCommand(c, true)); if (i < codes.length - 1) out.push(`s ${gapMs}`); });
   return out;
 }
 

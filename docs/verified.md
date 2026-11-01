@@ -47,6 +47,13 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-01, user report (DA62): Learn always caught PROCEDURE_ELEVATOR_TRIM, which stays 0.
+  Cause (from the code): Learn subscribes to every input event, and a newly subscribed event's
+  first report counted as a change even when it only reported its current value. Fix: Learn
+  reads every event's value first and counts only reports that differ (browser test covers an
+  unchanged report before the real move). Assumed, to confirm in the sim: the trim event reports
+  its unchanged value; if Learn still catches it, it really changes (the plugin log lists
+  ignored first reports under "learn").
 - 2026-11-01, unit + browser tests only (not yet on the dock or in the sim): key editor redesign
   (`key-editor-schema.md`). Migration of armable, ramp, hold-to-reset and ramping readouts
   (`migrate.js`); N-step state logic; tap / hold with a 400 ms default, action lists, repeating

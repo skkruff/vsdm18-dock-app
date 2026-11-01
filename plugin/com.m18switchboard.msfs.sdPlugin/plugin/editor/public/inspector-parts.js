@@ -179,7 +179,7 @@ function inspectorTail(box, key, slot) {
 // candidate is taken directly; several are listed to choose from (user, 2026-10-28: be sure the
 // right one is picked when several inputs fire).
 async function learnInto(inputEl, apply) {
-  status('Learning: move the control in the cockpit now (30 s)…');
+  status('Learning: move the control in the cockpit (30 s; give it a second to read the cockpit first)…');
   inputEl.disabled = true;
   try {
     const { candidates } = await api('POST', '/api/learn');

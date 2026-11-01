@@ -15,6 +15,7 @@ const PUBLIC = path.join(__dirname, 'public');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
 const LEARN_TIMEOUT_MS = 30000;
 const LEARN_WINDOW_MS = 1500; // after the first change, keep collecting for this long
+const LEARN_READ_MS = 1500; // reading each input event's value before listening
 const CATALOG = path.join(__dirname, '..', '..', 'catalog');
 
 function send(res, status, body, type = 'application/json; charset=utf-8') {
@@ -53,22 +54,38 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
   // Waits for input events to change while the user works the cockpit. Everything that changes
   // within LEARN_WINDOW_MS of the first change is returned, so the user can pick the right one
   // when one switch moves several things: [{ name, value, changes }], first change first.
+  // A change means a value different from the one read before listening: an event newly
+  // subscribed reports its current value once, which is not a move (user report 2026-11-01:
+  // the DA62's PROCEDURE_ELEVATOR_TRIM reports 0 right after subscribing and won every Learn).
   async function learn() {
     if (!sim.connected) throw new Error('MSFS is not connected');
     const events = sim.inputs && sim.inputs.size ? [...sim.inputs.keys()] : (await sim.listInputEvents()).map(e => e.name);
+    const before = new Map();
+    await Promise.all(events.map(async name => {
+      try { before.set(name, await sim.getInput(name, LEARN_READ_MS)); } catch (e) { /* unreadable: any report counts */ }
+    }));
+    const same = (a, b) => a === b || (typeof a === 'number' && typeof b === 'number' && Math.abs(a - b) < 1e-6);
+    const quiet = new Set(); // first reports equal to the value read before
     return new Promise((resolve, reject) => {
       const seen = new Map();
       let unsub = null;
       let windowTimer = null;
+      const finish = () => {
+        unsub();
+        if (quiet.size) log('learn', { ignored: [...quiet].slice(0, 20), candidates: [...seen.keys()] });
+        resolve({ candidates: [...seen.values()] });
+      };
       const timer = setTimeout(() => { if (unsub) unsub(); reject(new Error('nothing changed within 30 s')); }, LEARN_TIMEOUT_MS);
       unsub = sim.subscribeInput(events, (name, value) => {
+        const last = seen.has(name) ? seen.get(name).value : before.get(name);
+        if (before.has(name) && same(value, last)) { if (!seen.has(name)) quiet.add(name); return; }
         const s = seen.get(name) || { name, value, changes: 0 };
         s.value = value;
         s.changes++;
         seen.set(name, s);
         if (windowTimer) return;
         clearTimeout(timer);
-        windowTimer = setTimeout(() => { unsub(); resolve({ candidates: [...seen.values()] }); }, LEARN_WINDOW_MS);
+        windowTimer = setTimeout(finish, LEARN_WINDOW_MS);
       });
     });
   }

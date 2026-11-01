@@ -156,3 +156,26 @@ button.add-or { margin: 2px 0 4px; font-size: 12px; padding: 2px 10px; }
 .tab.tab-keypad { margin-left: auto; border-style: dashed; }
 .keypad-note { margin: 0 0 10px; padding: 8px 10px; border: 1px dashed #3a4250; border-radius: 6px; font-size: 13px; }
 .keypad-note .warn { margin-top: 4px; }
+
+/* Key editor redesign (2026-11-01): type, then three foldable sections. */
+details.key-section { background: var(--panel2); margin: 10px 0; padding: 6px 12px 10px; }
+details.key-section > summary { cursor: pointer; font-weight: 600; padding: 4px 0; list-style-position: inside; }
+details.key-section > summary .muted { font-weight: normal; margin-left: 6px; }
+.dimmed-wrap > :first-child { opacity: .38; pointer-events: none; }
+.dim-note { font-size: 12px; color: var(--dim); font-style: italic; margin: 2px 0 6px; }
+input.narrow-wide { width: 10em; }
+.ladder .step-head .spacer { flex: 1; }
+.ladder .step-head button { padding: 0 8px; }
+.or-sources { margin-left: 4px; }
+table.value-table { width: 100%; border-collapse: collapse; margin: 6px 0; }
+table.value-table th { text-align: left; font-size: 11px; font-weight: 600; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; padding: 2px 4px; }
+table.value-table td { padding: 2px 4px; vertical-align: middle; }
+table.value-table select, table.value-table input { width: 100%; }
+.fill-values { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 4px 0; }
+.action-list { display: flex; flex-direction: column; gap: 6px; }
+.action-item { border-left: 3px solid #3a4250; padding: 2px 0 4px 10px; }
+.action-item .step-head { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
+.action-item .step-head .spacer { flex: 1; }
+.action-item .step-head button { padding: 0 8px; }
+.action { display: flex; flex-direction: column; }
+.action-list > button.add-or { align-self: flex-start; }

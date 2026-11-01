@@ -29,3 +29,17 @@ plugin log (`logs\` in the plugin folder).
 9. Browse simvars and events (Test / Send), Learn an input event, the face designer, and the
    library (save, insert, drag a group: outlines show where it lands).
 10. The Keypad tab shows the layout; Preview on a keypad key's settings draws it on the picture.
+
+## Key editor redesign (2026-11-01), once
+
+11. Your profile opens with the C172's stopwatch as tap start / stop, hold stop and reset
+    (1000 ms), and the dimmers as Rotary keys (tap 25, hold 5 every 100 ms). On the dock they
+    behave as before. Save once: the file is written in the new form.
+12. An autopilot annunciator as a Readout with State logic (e.g. APR: step 1 green LOC on
+    approach captured / active, step 2 white ARM on approach armed, otherwise clear) follows the
+    G1000 when armed and captured.
+13. A key with a tap and a hold action: a quick press does the tap, holding past 400 ms the hold,
+    never both. Try another hold time.
+14. Preview on dock with the aircraft loaded: the dock shows the editor's page and preview
+    values, edits follow, the round buttons page, and nothing pressed changes the cockpit. Stop
+    preview: the dock shows the sim again.

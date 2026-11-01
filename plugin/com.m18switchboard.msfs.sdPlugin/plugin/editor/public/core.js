@@ -74,6 +74,7 @@ function setDirty(d = true) {
 function changed() {
   if (S.page === KP) { S.kpDirty = true; setDirty(S.dirty); } else setDirty(true);
   renderGrid();
+  previewOnDockUpdate(); // pages.js: a preview on the dock follows the edits
 }
 
 // ---------- loading ----------
@@ -109,12 +110,13 @@ function clean(p) {
   for (const pg of p.pages || []) {
     for (const key of Object.values(pg.keys || {})) {
       if (key.sublabel === '') delete key.sublabel;
-      for (const m of ['text', 'sublabels', 'valueIcons']) {
+      for (const m of ['text', 'sublabels', 'valueIcons', 'states']) {
         if (key[m]) for (const [k, v] of Object.entries(key[m])) if (v === '') delete key[m][k];
         if (key[m] && !Object.keys(key[m]).length) delete key[m];
       }
       if (key.valueFaces && !Object.keys(key.valueFaces).length) delete key.valueFaces;
-      for (const f of [key.face, ...Object.values(key.valueFaces || {})].filter(Boolean)) {
+      if (key.logicFaces && !Object.keys(key.logicFaces).length) delete key.logicFaces;
+      for (const f of [key.face, ...Object.values(key.valueFaces || {}), ...Object.values(key.logicFaces || {})].filter(Boolean)) {
         for (const L of f.layers || []) if (L.sublabels) for (const [k, v] of Object.entries(L.sublabels)) if (v === '') delete L.sublabels[k];
       }
     }
@@ -137,7 +139,18 @@ async function save() {
     }
     if (!S.dirty) return;
   }
+  // Save rules per type (user schema): every key must have what its type needs.
+  const problems = [];
+  S.profile.pages.forEach((pg, i) => {
+    for (const [slot, key] of Object.entries(pg.keys || {})) {
+      const why = keyProblems(key);
+      if (why) problems.push(`${pg.name || `page ${i + 1}`}, key ${slot}: ${why}`);
+    }
+  });
+  if (problems.length) return status(`Not saved: ${problems.join('; ')}`, 'bad');
   try {
+    // Settings a key's type does not use go at save (user schema), not when the type changes.
+    for (const pg of S.profile.pages) for (const key of Object.values(pg.keys || {})) cleanUnused(key);
     clean(S.profile);
     await api('PUT', `/api/profiles/${encodeURIComponent(S.file)}`, S.profile);
     setDirty(false);
@@ -157,9 +170,9 @@ async function loadFilesQuiet() {
 
 async function pollState() {
   try {
-    bindLook();
-  await loadLook();
-  S.sim = await api('GET', '/api/state');
+    S.sim = await api('GET', '/api/state');
+    // The dock may have left preview (plugin restart, another editor tab): follow it.
+    if (S.previewing !== !!S.sim.preview) { S.previewing = !!S.sim.preview; renderPreviewButton(); }
     const a = S.sim.aircraft || {};
     $('#simStatus').innerHTML = '';
     $('#simStatus').append(

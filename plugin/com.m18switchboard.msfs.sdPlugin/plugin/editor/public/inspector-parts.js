@@ -1,4 +1,4 @@
-// Switchboard editor: Inspector parts: keypad and keyboard shortcut actions, sources, Learn, armable ladder.
+// Switchboard editor: Inspector parts: keypad and keyboard shortcut actions, sources, Learn.
 // Classic script sharing the page's globals with the other editor scripts (index.html order).
 
 'use strict';
@@ -20,13 +20,14 @@ function guessKeypad(key) {
   return /COM/i.test(v) ? 'com1' : 'xpdr';
 }
 
-function keypadEditor(key) {
-  const k = key.press.keypad;
+// Works on an action ({ keypad }) wherever it sits: the tap, the hold, or a list.
+function keypadEditor(action) {
+  const k = action.keypad;
   const custom = !k.preset;
   const rows = [
     field('Keypad for', select_([...Object.entries(KEYPAD_PRESETS), ['', 'Your own (digits, where it goes)']], k.preset || '', v => {
-      if (v) key.press.keypad = { preset: v, ...(k.title ? { title: k.title } : {}) };
-      else key.press.keypad = { title: k.title || 'ENTER', digits: 4, decimals: 0, apply: { event: '' } };
+      if (v) action.keypad = { preset: v, ...(k.title ? { title: k.title } : {}) };
+      else action.keypad = { title: k.title || 'ENTER', digits: 4, decimals: 0, apply: { event: '' } };
       changed(); renderInspector();
     }), null, 'keypad'),
     field('Title', input(k.title, v => { if (v) k.title = v; else delete k.title; changed(); }, { placeholder: custom ? 'ENTER' : 'as the preset' }), 'Shown on the keypad, with the key\'s value now'),
@@ -88,14 +89,14 @@ function keypadEditor(key) {
   rows.push(field('Try it', el('div', { class: 'inline' }, tryVal, el('button', { on: { click: async e => {
     e.preventDefault();
     try {
-      const r = await api('POST', '/api/keypad-test', { keypad: key.press.keypad, typed: tryVal.value });
+      const r = await api('POST', '/api/keypad-test', { keypad: action.keypad, typed: tryVal.value });
       tryOut.textContent = `sent ${r.value} to ${r.apply.event || r.apply.var || r.apply.input}`; tryOut.className = 'test-out';
     } catch (err) { tryOut.textContent = err.message; tryOut.className = 'test-out bad'; }
   } } }, 'Send'), tryOut), 'Sends the digits now, as ENT would; check the cockpit'));
   rows.push(field('Preview', el('button', { on: { click: async e => {
     e.preventDefault();
     try {
-      const { images } = await api('POST', '/api/render-keypad', { keypad: key.press.keypad });
+      const { images } = await api('POST', '/api/render-keypad', { keypad: action.keypad });
       showImages(images);
       setTimeout(renderGrid, 4000);
     } catch (err) { status(err.message, 'bad'); }
@@ -116,8 +117,9 @@ function shortcutFromEvent(e) {
   return { text: parts.join('+'), complete: !MODIFIER_CODES.includes(e.code) };
 }
 
-function shortcutEditor(key) {
-  const p = key.press;
+// Works on an action ({ keys }); "While held" only where the press is a plain one (allowHeld).
+function shortcutEditor(action, { allowHeld = true } = {}) {
+  const p = action;
   const note = el('span', { class: 'test-out' });
   const check = async () => {
     if (!p.keys) { note.textContent = ''; return; }
@@ -150,7 +152,7 @@ function shortcutEditor(key) {
   return [
     field('Shortcut', el('div', { class: 'inline' }, box, rec), null, 'keys'),
     field('', note),
-    field('While held', el('input', { type: 'checkbox', checked: p.whileHeld ? true : null, on: { change: e => { if (e.target.checked) p.whileHeld = true; else delete p.whileHeld; changed(); } } }),
+    !allowHeld ? null : field('While held', el('input', { type: 'checkbox', checked: p.whileHeld ? true : null, on: { change: e => { if (e.target.checked) p.whileHeld = true; else delete p.whileHeld; changed(); } } }),
       'Keys stay down while the dock key is held (e.g. push to talk); otherwise one press and release'),
     field('Bring MSFS to the front', el('input', { type: 'checkbox', checked: p.focus === false ? null : true, on: { change: e => { if (e.target.checked) delete p.focus; else p.focus = false; changed(); } } }),
       'So the keys go to the sim, not to whatever window has focus'),
@@ -172,10 +174,6 @@ function inspectorTail(box, key, slot) {
   box.append(el('p', {}, el('button', { on: { click: saveToLibrary } }, 'Save to library'), ' ',
     el('button', { on: { click: deleteSel } }, 'Delete this key')));
 }
-
-// What a decorative key drops when chosen: everything that reads or acts on the sim.
-const FUNCTION_FIELDS = ['read', 'press', 'states', 'otherwise', 'armed', 'activeIs', 'armedIs', 'activeOr', 'armedOr',
-  'sublabels', 'text', 'valueIcons', 'valueFaces', 'decimals', 'pad', 'format'];
 
 // Learn: the user moves a control; everything that changed in the next moment comes back. One
 // candidate is taken directly; several are listed to choose from (user, 2026-10-28: be sure the
@@ -201,50 +199,6 @@ async function learnInto(inputEl, apply) {
 }
 
 // Editor for a sim source: { input } or { var, unit }. onChange(newRead | null).
-// Switch (armable): a fixed ladder read top to bottom (user, 2026-10-29). The first step uses the
-// key's own source (read), so presses and Learn work as on any key.
-function armableLadder(key) {
-  const box = el('div', { class: 'ladder' });
-  const isField = (k, help) => field('is', input(key[k] ?? 1, v => { if (v === '' || v === '1') delete key[k]; else key[k] = isNaN(Number(v)) ? v : Number(v); changed(); },
-    { class: 'narrow' }), null, help);
-  box.append(el('h4', {}, 'Look (checked top to bottom)'),
-    el('div', { class: 'step' },
-      el('div', { class: 'step-head' }, el('span', { class: 'step-n' }, '1'), el('span', { class: 'swatch on' }), 'Green (active) when', info('armableActive')),
-      sourceEditor(key.read, r => { if (r) key.read = r; else delete key.read; if (r) delete r.hint; }, { unit: 'bool' }),
-      isField('activeIs'), orSources(key, 'activeOr')),
-    el('div', { class: 'step' },
-      el('div', { class: 'step-head' }, el('span', { class: 'step-n' }, '2'), 'otherwise', el('span', { class: 'swatch armed' }), 'White (armed) when', info('armableArmed')),
-      sourceEditor(key.armed, r => { key.armed = r || { var: '', unit: 'bool' }; if (r) delete r.hint; }, { unit: 'bool' }),
-      isField('armedIs'), orSources(key, 'armedOr')),
-    el('div', { class: 'step' },
-      el('div', { class: 'step-head' }, el('span', { class: 'step-n' }, '3'), 'otherwise', info('armableOtherwise')),
-      field('shows', select_([['', 'clear (outline)'], ['off', 'off (red)']], key.otherwise || '', v => { if (v) key.otherwise = v; else delete key.otherwise; changed(); }))));
-  return box;
-}
-
-// More sources for a ladder step, any one of which is enough ("or"), e.g. ILS capture or GPS
-// approach active (user, 2026-10-29).
-function orSources(key, k) {
-  const box = el('div', { class: 'or-sources' });
-  (key[k] || []).forEach((o, i) => {
-    box.append(el('div', { class: 'or-source' },
-      el('div', { class: 'step-head' }, el('span', { class: 'or-word' }, 'or'),
-        el('button', { title: 'Remove this "or"', on: { click: () => {
-          key[k].splice(i, 1);
-          if (!key[k].length) delete key[k];
-          changed(); renderInspector();
-        } } }, '✕')),
-      sourceEditor(o.read, r => { o.read = r || { var: '', unit: 'bool' }; if (r) delete r.hint; }, { unit: 'bool' }),
-      field('is', input(o.is ?? 1, v => { if (v === '' || v === '1') delete o.is; else o.is = isNaN(Number(v)) ? v : Number(v); changed(); }, { class: 'narrow' }))));
-  });
-  box.append(el('button', { class: 'add-or', title: 'Add another source; any one of them is enough', on: { click: () => {
-    key[k] = key[k] || [];
-    key[k].push({ read: { var: '', unit: 'bool' } });
-    changed(); renderInspector();
-  } } }, '+ or'));
-  return box;
-}
-
 function sourceEditor(read, onChange, { allowNone = false, unit = 'number' } = {}) {
   const box = el('div', { class: 'source' });
   const kind = !read ? 'none' : read.timer !== undefined ? 'timer' : read.input !== undefined ? 'input' : 'var';

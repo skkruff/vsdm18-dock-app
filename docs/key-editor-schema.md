@@ -118,3 +118,8 @@ Old forms are migrated when files are read (profiles, library, keypad layout), i
 3. Editor: Switch with N states (catalog enum prefill, Learn positions), Rotary template (level
    bar), Readout logic editor, preview mode controls.
 4. Tests throughout, docs, and the user's C172 profile migrated and checked.
+
+**Status (2026-11-01)**: stages 1-4 built and tested in the container (unit and browser tests);
+the shipped C172 and generic profiles are in the new form. Not done: a level-bar look for the
+Rotary (it draws like a readout for now; to decide during Phase 4). Waiting for the user's test on
+the dock.

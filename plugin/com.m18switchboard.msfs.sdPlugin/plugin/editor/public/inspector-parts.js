@@ -201,13 +201,14 @@ async function learnInto(inputEl, apply) {
 // Editor for a sim source: { input } or { var, unit }. onChange(newRead | null).
 function sourceEditor(read, onChange, { allowNone = false, unit = 'number' } = {}) {
   const box = el('div', { class: 'source' });
-  const kind = !read ? 'none' : read.timer !== undefined ? 'timer' : read.input !== undefined ? 'input' : 'var';
+  const kind = !read ? 'none' : read.timer !== undefined ? 'timer' : read.sim !== undefined ? 'sim' : read.input !== undefined ? 'input' : 'var';
   const set = r => { onChange(r); changed(); renderInspector(); };
-  const kinds = [['input', 'Input event (cockpit control)'], ['var', 'Simvar (sim value)'], ['timer', 'Dock stopwatch']];
+  const kinds = [['input', 'Input event (cockpit control)'], ['var', 'Simvar (sim value)'], ['timer', 'Dock stopwatch'], ['sim', 'Sim paused']];
   box.append(field('Source', select_(allowNone ? [['none', 'Nothing'], ...kinds] : kinds, kind, v => {
     // A stopwatch's elapsed time shows as M:SS on a readout.
-    set(v === 'none' ? null : v === 'input' ? { input: '' } : v === 'timer' ? { timer: 'T1', hint: { format: 'duration' } } : { var: '', unit });
-  }), null, kind === 'timer' ? 'stopwatch' : null));
+    set(v === 'none' ? null : v === 'input' ? { input: '' } : v === 'timer' ? { timer: 'T1', hint: { format: 'duration' } } : v === 'sim' ? { sim: 'paused' } : { var: '', unit });
+  }), null, kind === 'timer' ? 'stopwatch' : kind === 'sim' ? 'simPaused' : null));
+  if (kind === 'sim') box.append(el('p', { class: 'muted' }, '1 while the sim is paused (pause, active pause or the menu), else 0. Unknown until the first pause change after the plugin connects.'));
   if (kind === 'timer') {
     box.append(field('Stopwatch', input(read.timer, v => { read.timer = v; changed(); }, { placeholder: 'T1' }), 'Its name: keys using the same name share one stopwatch'));
     box.append(field('Shows', select_([['', 'Elapsed time (seconds)'], ['running', 'Running (1) or stopped (0)']], read.part || '', v => {

@@ -635,6 +635,32 @@ const text = uri => decodeURIComponent(uri);
     const sent = sim9.sets.splice(0).map(x => x[1]);
     assert.deepStrictEqual(sent.slice(0, 2), [0.55, 0.6], `a hold ramps in scaled values (${sent})`);
   }
+  // Sim paused (user, 2026-11-01): 1 in any pause, from Pause_EX1; unknown until reported.
+  {
+    const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
+    const simP = new FakeSim({});
+    const prof = { id: 'p', fallback: true, pages: [{ name: 'P', keys: { 0: { type: 'switch', label: 'PAUSE', read: { sim: 'paused' }, states: { 0: 'off', 1: 'on' }, press: { keys: 'Pause' } } } }] };
+    assert.doesNotThrow(() => validate(prof, 'p.json'));
+    assert.throws(() => validate({ ...prof, pages: [{ keys: { 0: { type: 'readout', read: { sim: 'frozen' } } } }] }, 'bad.json'), /sim state must be one of paused/);
+    const eP = new ProfileEngine({ redrawMs: 0, sim: simP, display: { image() {}, title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
+    eP.start();
+    simP.emit('connected');
+    simP.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
+    await new Promise(r => setTimeout(r, 30));
+    const w = () => eP.watches.get('sim:paused');
+    assert.ok(w(), 'watched on its page');
+    assert.strictEqual(w().value, undefined, 'unknown until the sim reports a pause change');
+    simP.emit('pause', 4); // active pause
+    assert.strictEqual(w().value, 1);
+    simP.emit('pause', 1); // menu
+    assert.strictEqual(w().value, 1);
+    simP.emit('pause', 0);
+    assert.strictEqual(w().value, 0);
+    simP.emit('pause', 2); // the pause key
+    assert.strictEqual(w().value, 1);
+    simP.emit('disconnected');
+    assert.deepStrictEqual(eP.simStates, {}, 'forgotten when the sim goes');
+  }
   // A press that only dismissed an announcement, whose release never came (the dock went away),
   // does not eat the next press's release: a held START must still be let go (review 2026-10-30).
   {

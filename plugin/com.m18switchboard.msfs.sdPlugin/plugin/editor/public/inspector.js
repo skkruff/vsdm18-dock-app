@@ -52,6 +52,9 @@ const HELP = {
   sendScale: 'Some controls are set in other units than they report. The DA62\'s panel light reads 0-100 but is set '
     + '0-1: with Sends × 0.01, a step of 10 from 50 sends 0.6. Steps, minimum, maximum and the value on the key stay in '
     + 'the units read. Empty or 1: sent as is. Test: "Set a value" 50 and press; if the control goes to full, try 0.5.',
+  simPaused: 'Whether the sim is paused: 1 in any pause (the pause key, active pause, the menu), else 0. The sim tells '
+    + 'the plugin only when this changes, so after the plugin connects the key shows clear (unknown) until the first '
+    + 'pause or unpause. MSFS has no event for active pause: use a keyboard shortcut to work it.',
   tapHold: 'With a hold action, a tap acts when you let go (before the hold time) and a hold acts at the hold time '
     + '(400 ms unless you change it), so the two never both happen. Without one, a press acts at once.',
   actsOn: 'What the press changes. An input event is a cockpit control (switch, button, knob): the usual choice. '

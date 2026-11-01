@@ -230,7 +230,10 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
       const extra = {};
       // Stopwatches are the dock's own: their value is always at hand.
       for (const key of Object.values(keys)) {
-        for (const src of keySources(key)) if (src.timer !== undefined) extra[sourceKey(src)] = engine.dockVars.value(src);
+        for (const src of keySources(key)) {
+          if (src.timer !== undefined) extra[sourceKey(src)] = engine.dockVars.value(src);
+          if (src.sim !== undefined) extra[sourceKey(src)] = engine.simStates[src.sim];
+        }
       }
       if (sim.connected) {
         for (const key of Object.values(keys)) {
@@ -243,7 +246,10 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
       const valueOf = src => parse(sources[sourceKey(src)] ?? extra[sourceKey(src)]);
       const images = {};
       for (const [slot, key] of Object.entries(keys)) {
-        const own = key.read && key.read.timer !== undefined && parse(values[slot]) === undefined ? engine.dockVars.value(key.read) : parse(values[slot]);
+        const typed = parse(values[slot]);
+        const own = typed !== undefined || !key.read ? typed
+          : key.read.timer !== undefined ? engine.dockVars.value(key.read)
+          : key.read.sim !== undefined ? engine.simStates[key.read.sim] : typed;
         images[slot] = engine.keyImage(key, own, null, valueOf);
       }
       return { images };

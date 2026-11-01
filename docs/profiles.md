@@ -116,6 +116,10 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
   ignore jumps over 60 s such as a new flight) and are saved in `dock-state.json` next to the
   profiles folder, so they survive restarts. Keys using the same name share one stopwatch.
 
+- `{ "sim": "paused" }`: 1 while the sim is paused (the pause key, active pause or the menu), else 0
+  (from the Pause_EX1 system event). The sim reports it only when it changes, so it is unknown
+  (clear) after the plugin connects until the first pause or unpause.
+
 The engine watches only the sources on the page being shown.
 
 ## Actions (`press`)

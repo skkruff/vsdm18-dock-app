@@ -47,6 +47,11 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-01, unit + browser tests only: "Sim paused" source (`{ "sim": "paused" }`, 1 in any
+  pause, from Pause_EX1 flags). No simvar or event reports active pause in the MSFS 2024 SDK
+  (catalog search); MOTION SIMULATION also drops in menus and RTC. Known gap as for stopwatches:
+  unknown until the first pause change after connecting. Also fixed a race in the editor test
+  (Learn positions could poll before the test set the starting position).
 - 2026-11-01, user report: the Pause key gave "unknown key". It has no plain scancode (an E1
   sequence), so it was not in the table. Now sent as virtual key 0x13 with scancode 0x45 (as
   AutoHotkey does); PrtSc added as extended 0x37. Unit tested only; whether MSFS takes this

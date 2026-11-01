@@ -12,9 +12,12 @@ const { migrateProfile } = require('./migrate');
 const KEY_TYPES = ['switch', 'button', 'rotary', 'readout', 'decor'];
 const LOOKS = ['on', 'armed', 'off', 'clear'];
 
+// Sim states the plugin keeps itself: paused (1 in any pause: menu, pause, active pause).
+const SIM_STATES = ['paused'];
 function sourceProblems(src) {
   if (!src || typeof src !== 'object') return ['is missing'];
   if (src.timer !== undefined) return src.timer ? [] : ['needs the stopwatch\'s name'];
+  if (src.sim !== undefined) return SIM_STATES.includes(src.sim) ? [] : [`sim state must be one of ${SIM_STATES.join(', ')}`];
   if (src.input || src.var) return [];
   return ['needs an input event, simvar or stopwatch'];
 }

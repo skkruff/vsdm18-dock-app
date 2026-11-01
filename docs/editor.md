@@ -75,6 +75,8 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     **Separator** line under the label (or a Separator layer in a custom face).
   - Step actions: **Wrap at the ends**. A dimmer is a Rotary: tap steps, hold repeats a smaller
     step ("Repeat while held", ms), counting from the value it last sent.
+  - **Sim paused** (a Source choice): 1 in any pause (pause key, active pause, menu), else 0;
+    unknown until the first pause change after the plugin connects.
   - **Dock stopwatch** (a Source choice): name (keys with the same name share one) and what to show
     (elapsed time, or running 1 / 0). **Stopwatch control** (an action): start / stop, reset,
     start, stop; the whole stopwatch on one key is tap start / stop, hold stop then reset. The library has a ready group: time, start/stop, reset.

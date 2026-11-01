@@ -126,7 +126,7 @@ function infoSection(key) {
   }
   // Sources used only by face layers live in the face designer; listed here so nothing is hidden.
   const layerSources = [key.face, ...Object.values(key.valueFaces || {}), ...Object.values(key.logicFaces || {})].filter(Boolean)
-    .flatMap(f => f.layers || []).filter(L => L.read).map(L => L.read.input || L.read.var || (L.read.timer && `stopwatch ${L.read.timer}`)).filter(Boolean);
+    .flatMap(f => f.layers || []).filter(L => L.read).map(L => L.read.input || L.read.var || (L.read.timer && `stopwatch ${L.read.timer}`) || (L.read.sim && 'sim paused')).filter(Boolean);
   if (layerSources.length) out.push(el('p', { class: 'muted' }, `Also read by face layers (edit in Looks like → face): ${[...new Set(layerSources)].join(', ')}`));
   return out;
 }

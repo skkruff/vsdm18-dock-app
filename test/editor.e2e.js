@@ -225,8 +225,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.fill(`${fld('look', 'Sublabel')} input`, 'GROUND');
     await page.keyboard.press('Tab');
     // Positions: Learn records each one as the control moves, a row per position.
+    h.sim.input('LIGHTING_TAXI_1', 0); // the starting position, before the first poll (was a race)
     await page.click(`${sec('look')} button:has-text("Learn positions")`);
-    h.sim.input('LIGHTING_TAXI_1', 0);
     await page.waitForSelector(`${sec('look')} .test-out:has-text("found: 0")`);
     h.sim.input('LIGHTING_TAXI_1', 1);
     await page.waitForSelector(`${sec('look')} .test-out:has-text("found: 0, 1")`);
@@ -409,6 +409,20 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.check(`${fld('press', 'Something else when held')} input`);
     await page.selectOption(`${sec('press')} .action-list >> nth=1 >> .field:has(> span:text-is("Action")) select`, 'timer');
     await page.selectOption(`${sec('press')} .action-list >> nth=1 >> .field:has(> span:text-is("Does")) select`, 'reset');
+    // Sim paused (user, 2026-11-01): a switch that is green while the sim is paused.
+    await page.click(slot(5));
+    await page.click('#inspector button:has-text("Add key")');
+    await page.selectOption('#inspector select >> nth=0', 'switch');
+    await page.selectOption(`${fld('info', 'Source')} select`, 'sim');
+    await page.selectOption(`${fld('press', 'Action')} select`, 'keys');
+    await page.fill('#inspector input[placeholder^="e.g. Ctrl+Shift+L"]', 'Pause');
+    h.sim.emit('pause', 4);
+    await save();
+    const pz = file().pages[file().pages.length - 1].keys['5'];
+    assert.deepStrictEqual([pz.read, pz.press], [{ sim: 'paused' }, { keys: 'Pause' }]);
+    await page.click(slot(5));
+    await page.waitForFunction(() => /b8f01c|#[0-9a-f]{6}/i.test(decodeURIComponent(document.querySelector('.slot[data-slot="5"] img').src)));
+    h.sim.emit('pause', 0);
     // Keypad: on a transponder readout the XPDR preset is the guess; Preview shows it on the dock picture.
     await page.click(slot(4));
     await page.click('#inspector button:has-text("Add key")');

@@ -30,6 +30,7 @@ const LOGO_SLOT = 7;
 
 function sourceKey(src) {
   if (src.timer !== undefined) return `timer:${src.timer}:${src.part || 'elapsed'}`;
+  if (src.sim !== undefined) return `sim:${src.sim}`;
   return src.input ? `input:${src.input}` : `var:${src.var}|${src.unit}`;
 }
 
@@ -229,6 +230,9 @@ class ProfileEngine {
     this.profile = null;
     this.pageIndex = 0;
     this.watches = new Map(); // sourceKey -> { src, value, error, unsub }
+    // Sim states the plugin keeps itself ({ sim: 'paused' } sources): unknown until the sim reports
+    // one (Pause_EX1 comes only on a change, not on connecting).
+    this.simStates = {};
     this.generation = 0; // bumps on every aircraft/page change so stale async work is dropped
   }
 
@@ -243,6 +247,7 @@ class ProfileEngine {
     this.sim.on('connected', () => { this.status = 'loading'; this._sway(); });
     this.sim.on('disconnected', () => {
       this.dockVars.simGone();
+      this.simStates = {};
       this.keypad = null;
       this._unwatchAll();
       this._stopHolds();
@@ -252,9 +257,20 @@ class ProfileEngine {
       this._sway();
     });
     this.sim.on('exception', e => this._onException(e));
-    this.sim.on('pause', flags => { this.dockVars.setPaused(flags !== 0); this.log('pause', { flags }); });
+    this.sim.on('pause', flags => {
+      this.dockVars.setPaused(flags !== 0);
+      this.log('pause', { flags });
+      this._setSimState('paused', flags !== 0 ? 1 : 0);
+    });
     this.sim.onAircraftChanged(a => this.setAircraft(a));
     this._sway();
+  }
+
+  _setSimState(name, value) {
+    this.simStates[name] = value;
+    for (const [k, w] of this.watches) {
+      if (w.src.sim === name && w.value !== value) { w.value = value; this._redrawSource(k); }
+    }
   }
 
   get page() { return this.profile ? this.profile.pages[this.pageIndex] : null; }
@@ -417,7 +433,9 @@ class ProfileEngine {
       this._redrawSourceSoon(k);
     };
     try {
-      if (src.timer !== undefined) {
+      if (src.sim !== undefined) {
+        w.value = this.simStates[src.sim]; // kept by the plugin; changes arrive in _setSimState
+      } else if (src.timer !== undefined) {
         w.value = this.dockVars.value(src); // kept by the plugin; changes arrive through dockVars
       } else if (src.input) {
         w.unsub = this.sim.subscribeInput([src.input], (n, v) => update(v));

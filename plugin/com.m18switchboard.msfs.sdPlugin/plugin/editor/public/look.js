@@ -49,7 +49,7 @@ const SAMPLE_KEYS = {
   2: { type: 'switch', label: 'STBY\nBATT', read: { input: 'X' }, states: { 0: 'off', 1: 'on' } },
   3: { type: 'readout', label: 'COM1', read: { var: 'X', unit: 'MHz' }, decimals: 3 },
   4: { type: 'button', label: '◀ MAG' },
-  5: { type: 'armable', label: 'APR', read: { var: 'X', unit: 'bool' }, armed: { var: 'Y', unit: 'bool' } },
+  5: { type: 'readout', label: 'APR', logic: { steps: [{ when: [{ read: { var: 'X', unit: 'bool' } }], look: 'on' }, { when: [{ read: { var: 'Y', unit: 'bool' } }], look: 'armed' }], otherwise: { look: 'clear' } } },
 };
 
 async function loadLook() {
@@ -62,7 +62,7 @@ async function loadLook() {
   $('#lookMeasured').textContent = m.barSource
     ? `Measured from your icons: bar from ${m.barSource}${m.readoutSource ? `, readout colour from ${m.readoutSource}` : ''}.`
     : 'Could not measure your icons (icon folder not found?); using built-in defaults.';
-  const { images } = await api('POST', '/api/render', { keys: SAMPLE_KEYS, values: { 0: 1, 1: 0, 2: undefined, 3: 124.85, 5: 'armed' } });
+  const { images } = await api('POST', '/api/render', { keys: SAMPLE_KEYS, values: { 0: 1, 1: 0, 2: undefined, 3: 124.85, 5: 'step 2' } });
   const box = $('#lookSamples');
   box.innerHTML = '';
   for (const i of Object.keys(SAMPLE_KEYS)) box.append(el('img', { src: images[i], alt: '' }));

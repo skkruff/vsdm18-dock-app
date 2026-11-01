@@ -25,9 +25,11 @@ per keypad key.
 brief Phase 3 done, beyond it in features); it is now the shipped C172 profile (tests use
 `test/fixtures/profiles`). Code review done 2026-10-30 (see `verified.md`); README written.
 2026-11-01: **key editor redesign** to the user's schema (`docs/key-editor-schema.md`: types
-Switch / Button / Rotary / Readout / Decorative, tap / hold, readout state logic, preview mode),
-before Phase 4 (user's decision). Then Phase 4 (second aircraft), Phase 4b (remaining polish,
-`docs/design-notes.md`), Phase 5.
+Switch / Button / Rotary / Readout / Decorative, tap / hold, readout state logic, preview mode)
+built and tested in the container (`plugin/migrate.js` converts old keys on read; editor in
+`editor/public/key-editor.js`); waiting for the user's dock test (`docs/editor-test.md` 11-14).
+Next: Phase 4 (second aircraft, using the new editor to find friction), Phase 4b (remaining
+polish, `docs/design-notes.md`), Phase 5.
 
 ## Profile content principles (user, 2026-10-27)
 
@@ -52,7 +54,8 @@ data folder is still `%APPDATA%\HotSpot\StreamDock`.
   - `plugin/dock.js`: dock layer, the only code that speaks the Stream Dock protocol.
   - `plugin/index.js`: entry point; wires dock, sim and engine; key coordinates to slots.
   - `plugin/engine.js`: profile engine (pages, watches, presses, status screens).
-  - `plugin/profiles.js`: profile loading, validation, aircraft matching.
+  - `plugin/profiles.js`: profile loading, validation, aircraft matching. `plugin/migrate.js`:
+    converts keys saved by earlier versions (armable, ramp, hold-to-reset) to the current model.
   - `plugin/render.js`: key images (library icons or generated SVG tiles).
   - `plugin/icons.js`: icon library lookup (naming scheme in `docs/icons.md`).
   - `plugin/png.js`: minimal PNG reader (finds an icon's content box for cropping).
@@ -71,7 +74,8 @@ data folder is still `%APPDATA%\HotSpot\StreamDock`.
   - `plugin/editor/server.js` + `editor/public/`: the editor (local web page, port 8765, this PC
     only: changes need the `X-Switchboard` header). The page is classic scripts sharing globals,
     loaded in order by `index.html`: `core.js` (state, helpers, save), `pages.js`, `library.js`,
-    `inspector.js` (key editor, `HELP` texts), `inspector-parts.js`, `browse.js`, `face.js`,
+    `inspector.js` (inspector, `HELP` texts), `inspector-parts.js`, `key-editor.js` (the key
+    editor: type, sections, state logic, tap / hold, save rules), `browse.js`, `face.js`,
     `look.js`, `main.js` (start-up).
   - `plugin/sim/simconnect.js`: sim layer, `SimBackend` implemented on node-simconnect.
   - `profiles/*.json`, `library.json`: shipped starting points (profiles copied to the user's

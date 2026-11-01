@@ -22,24 +22,38 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   value. Bar size and corners are fixed (corner 9.5). Saved in `settings.json` next to the
   profiles folder.
 - **Pages**: tabs (the first is the main page; "● on dock" marks the page the dock shows), add,
-  rename, reorder, delete, and "Show on dock".
+  rename, reorder, delete, and "Show on dock". **Preview on dock** shows the profile being
+  edited (saved or not) on the dock, with the preview values, cut off from the sim even when its
+  aircraft is loaded: presses on the dock never reach the sim (the round buttons page, keypads
+  open). Edits and the page you pick follow on the dock; keys not finished yet are left off, with
+  the reason. **Stop preview** goes back to the sim. To try presses against the sim, save and use
+  the profile with preview off.
 - **Dock picture**: drawn by the plugin itself, so it looks exactly like the dock. If the page is
   the one on the dock, keys show live sim values.
   - Click to select, Ctrl/Shift-click for several, drag to move/swap.
   - Ctrl+C / Ctrl+V copy and paste, also between pages and profiles. Delete removes.
 - **Inspector** (right): everything about the selected key.
-  - Type: switch (on/off look), switch (armable), readout (live value), button, decorative.
-  - **Decorative (no function)**: label, icon, sublabel and face only, for panel titles or
-    artwork. Choosing it removes the key's source, press action and per-value settings (after a
-    confirm), and the inspector hides those sections.
-  - **Switch (armable)**: for autopilot modes that arm before they engage. Instead of "Reads from
-    the sim" and "Look per value" it shows the look as three numbered steps checked top to bottom:
-    1 green (active) when a source is a value, 2 otherwise white (armed) when a second source is a
-    value, 3 otherwise clear or off. "+ or" under a step adds another source; any one of them is
-    enough (e.g. green on ILS capture or GPS approach active). Sublabels and faces are per step;
-    Preview picks a step.
-  - **ⓘ** next to a label explains it: hover for the text, click to keep it open. So far on the
-    armable key and "Acts on"; more to follow.
+  - **Type** (key editor redesign, 2026-11-01, the user's schema in `key-editor-schema.md`):
+    **Switch / toggle** (positions you can see; any number of them), **Button** (something you
+    push), **Rotary** (a dimmer or knob over a range: tap steps, hold ramps), **Readout /
+    annunciator** (shows the sim's value or a state), **Decorative** (looks only). Below it three
+    foldable sections: **Gets its information from**, **Looks like**, **When pressed**, then
+    Preview. Changing type keeps everything until you save (flip back and forth freely); settings
+    the new type doesn't use are listed and removed at save. Choices another one covers are
+    dimmed with the reason (e.g. the label under a PNG icon).
+  - **Decorative**: label, icon, sublabel and face only, for panel titles or artwork; the
+    information and press sections are hidden.
+  - **State logic** (readouts; replaces Switch (armable)): steps checked top to bottom, the first
+    with any of its conditions met decides the look (green, white, red, clear) and sublabel, else
+    "otherwise". Any number of steps; "+ or" adds a condition with its own source and value;
+    ↑ ↓ reorder. Faces and Preview are per step. Keys saved as Switch (armable) open as a readout
+    with two steps.
+  - **Positions / Per value** table: one row per sim value with its look, sublabel, the text shown
+    instead of the number (readouts) and an icon for the whole key. **Fill from the SDK** fills it
+    from the values the SDK lists for a simvar (e.g. transponder mode 0 off ... 4 alt);
+    **Learn positions** records the values while you move the control in the cockpit, then Done.
+    A switch with no press yet gets a cycle through what was found.
+  - **ⓘ** next to a label explains it: hover for the text, click to keep it open.
   - Label and icon (picker shows your library; switch icons use their on/off/clear versions).
   - Source: an input event or a simvar and unit.
     - **Learn**: click it, then move the control in the cockpit. If several controls change at
@@ -59,11 +73,11 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   - Value text per value (readouts): a word instead of the number (e.g. magneto 3 -> BOTH).
   - Decimals / padding for readouts; **Unit before / after** (e.g. QNH, %, RPM) and a
     **Separator** line under the label (or a Separator layer in a custom face).
-  - Step actions: **Wrap at the ends**, and **Hold to ramp** (tap steps once, hold keeps
-    stepping by "Ramp step"): one key can run a dimmer.
+  - Step actions: **Wrap at the ends**. A dimmer is a Rotary: tap steps, hold repeats a smaller
+    step ("Repeat while held", ms), counting from the value it last sent.
   - **Dock stopwatch** (a Source choice): name (keys with the same name share one) and what to show
-    (elapsed time, or running 1 / 0). **Stopwatch control** (an action): start / stop,
-    **start / stop; hold to reset** (the whole stopwatch on one key), reset, start, stop. The library has a ready group: time, start/stop, reset.
+    (elapsed time, or running 1 / 0). **Stopwatch control** (an action): start / stop, reset,
+    start, stop; the whole stopwatch on one key is tap start / stop, hold stop then reset. The library has a ready group: time, start/stop, reset.
   - **Open a keypad** (an action): a preset (transponder code, COM1/2 or NAV1/2 standby; guessed
     from what the key reads) or your own (digits, decimals, 0-7 only, set when all digits are in,
     and the event, simvar or input event it sets, as a number times a factor or as BCD).
@@ -82,11 +96,16 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     "While held" keeps the keys down while the dock key is held; "Bring MSFS to the front" (on by
     default) makes sure the keys go to the sim. **Send now** tries it. Shortcuts the browser keeps
     (Ctrl+W, Ctrl+T, Ctrl+N) can't be recorded: type them.
-  - When pressed: toggle/cycle, step (with min/max), hold (with release value and repeat for
-    spring-loaded positions), set, or a sim event. **Acts on** chooses what toggle / step / hold /
-    set change: an input event (a cockpit control), or a **simvar written directly** (Browse,
-    unit, and **Set** to write a value once and read it back: "kept" or "the sim did not keep
-    it"). Simvars marked [settable] in Browse are the ones the SDK says can be set.
+  - **When pressed**: toggle / cycle, step (min / max, wrap), set, hold a position while pressed
+    (spring-loaded, with release value and repeat), a sim event, a keyboard shortcut, a keypad or
+    a stopwatch control. **+ then** adds another action done after it (e.g. two softkeys).
+    **Something else when held**: a tap and a hold do different things. A tap acts when you let
+    go before the hold time (400 ms unless changed, "Hold for, ms"); the hold acts at the hold
+    time, so the two never both happen. A hold action can repeat while held. Without a hold
+    action a press acts at once. **Acts on** chooses what toggle / step / hold / set change: an
+    input event (a cockpit control), or a **simvar written directly** (Browse, unit, and **Set**
+    to write a value once and read it back: "kept" or "the sim did not keep it"). Simvars marked
+    [settable] in Browse are the ones the SDK says can be set.
   - **Face (optional)**: design the key's look yourself from layers drawn in order: a library
     icon (cropped to its content or whole, fitted into a box you place), your own text, live
     values (the key's own, or each from its own source), a state bar (green / red / outline) and
@@ -118,5 +137,8 @@ never touches this folder: shipped profiles are copied in only when you don't ha
 
 ## Saving rules
 
-A save is refused, with the reason, if the profile is invalid (e.g. a switch with no source). The
-file on disk is unchanged until it saves cleanly.
+A save is refused, with the reason, until every key has what its type needs: a switch, button or
+rotary something to do when pressed; a readout a source or state logic; a decorative key something
+on its face (label, icon, sublabel or face). The plugin also refuses invalid profiles (e.g. an event
+with no name). The file on disk is unchanged until it saves cleanly. Settings the key's type
+doesn't use are removed at save.

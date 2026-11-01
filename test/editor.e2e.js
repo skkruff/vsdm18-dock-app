@@ -207,135 +207,179 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await save();
     assert.strictEqual(file().pages[1].keys['9'].label, file().pages[1].keys['3'].label);
 
-    // Empty slot: add a key, make it a toggle on a learned input event.
+    // Empty slot: add a switch on a learned input event (key editor redesign, 2026-11-01: type,
+    // then the sections "gets its information from", "looks like", "when pressed").
+    const sec = n => `#inspector [data-section="${n}"]`;
+    const fld = (n, label) => `${sec(n)} .field:has(> span:text-is("${label}"))`;
     await page.click(slot(8));
     await page.click('#inspector button:has-text("Add key")');
     await page.selectOption('#inspector select >> nth=0', 'switch');
-    await page.selectOption('#inspector .field:has-text("Source") select', 'input');
-    await page.click('#inspector button:has-text("Learn")');
+    await page.selectOption(`${fld('info', 'Source')} select`, 'input');
+    await page.click(`${sec('info')} button:text-is("Learn")`);
     await page.waitForFunction(() => /LIGHTING_TAXI_1/.test(document.querySelector('#inspector input[list="inputList"]').value), null, { timeout: 6000 });
-    await page.selectOption('#inspector .field:has-text("Action") select', 'cycle');
-    await page.fill('#inspector .field:has-text("Sublabel") input >> nth=0', 'GROUND');
+    await page.selectOption(`${fld('press', 'Action')} select`, 'cycle');
+    await page.fill(`${fld('look', 'Sublabel')} input`, 'GROUND');
     await page.keyboard.press('Tab');
+    // Positions: Learn records each one as the control moves, a row per position.
+    await page.click(`${sec('look')} button:has-text("Learn positions")`);
+    h.sim.input('LIGHTING_TAXI_1', 0);
+    await page.waitForSelector(`${sec('look')} .test-out:has-text("found: 0")`);
+    h.sim.input('LIGHTING_TAXI_1', 1);
+    await page.waitForSelector(`${sec('look')} .test-out:has-text("found: 0, 1")`);
+    h.sim.input('LIGHTING_TAXI_1', 2);
+    await page.waitForSelector(`${sec('look')} .test-out:has-text("found: 0, 1, 2")`);
+    await page.click(`${sec('look')} button:has-text("Done")`);
+    assert.strictEqual(await page.locator(`${sec('look')} table.value-table tr`).count(), 5, 'header, three positions, + value');
     await save();
     const learned = file().pages[1].keys['8'];
     assert.deepStrictEqual(learned.read, { input: 'LIGHTING_TAXI_1' });
-    assert.deepStrictEqual(learned.press, { cycle: [0, 1] });
+    assert.deepStrictEqual(learned.press, { cycle: [0, 1] }, 'a press already set is kept');
+    assert.deepStrictEqual(learned.states, { 0: 'off', 1: 'on', 2: 'on' }, 'uncapped positions');
     assert.strictEqual(learned.sublabel, 'GROUND', 'sublabel on any key');
 
-    // Switch (armable): the ladder sets two sources; the armed preview shows a white bar.
-    const emptyAux = 8; // the key just learned becomes an armable one
-    await page.click(slot(emptyAux));
-    await page.selectOption('#inspector select >> nth=0', 'armable');
+    // Readout with state logic (replaces Switch (armable)): N steps, each with "or" conditions.
+    await page.click(slot(8));
+    await page.selectOption('#inspector select >> nth=0', 'readout');
+    await page.check(`${fld('info', 'State logic')} input`);
     await page.waitForSelector('#inspector .ladder');
-    await page.selectOption('#inspector .ladder .step >> nth=0 >> .field:has-text("Source") select', 'var');
-    await page.fill('#inspector .ladder .step >> nth=0 >> input[placeholder^="e.g. NAV"]', 'AUTOPILOT APPROACH ACTIVE');
-    await page.fill('#inspector .ladder .step >> nth=1 >> input[placeholder^="e.g. NAV"]', 'AUTOPILOT APPROACH ARM');
-    await page.click('#inspector .ladder .step >> nth=0 >> button.add-or');
-    await page.fill('#inspector .ladder .step >> nth=0 >> .or-source input[placeholder^="e.g. NAV"]', 'AUTOPILOT APPROACH CAPTURED');
-    await page.fill('#inspector .field:has-text("When armed") input', 'ARM');
-    await page.fill('#inspector input[placeholder="input event"]', 'LIGHTING_TAXI_1');
-    await page.selectOption('#inspector .field:has-text("Preview") select', 'armed');
-    // Drawn tile (no face): the armed preview shows the ARM sublabel.
-    await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
+    const step = n => `#inspector .ladder > .step >> nth=${n}`;
+    await page.selectOption(`${step(0)} >> .field:has(> span:text-is("Source")) select`, 'var');
+    await page.fill(`${step(0)} >> input[placeholder^="e.g. NAV"]`, 'AUTOPILOT APPROACH ACTIVE');
+    await page.click(`${step(0)} >> button.add-or`);
+    await page.selectOption(`${step(0)} >> .or-source >> nth=1 >> .field:has(> span:text-is("Source")) select`, 'var');
+    await page.fill(`${step(0)} >> .or-source >> nth=1 >> input[placeholder^="e.g. NAV"]`, 'AUTOPILOT APPROACH CAPTURED');
+    await page.click('#inspector .ladder > button:has-text("+ step")');
+    await page.selectOption(`${step(1)} >> .field:has(> span:text-is("Source")) select`, 'var');
+    await page.fill(`${step(1)} >> input[placeholder^="e.g. NAV"]`, 'AUTOPILOT APPROACH ARM');
+    await page.selectOption(`${step(1)} >> .step-head select`, 'armed');
+    await page.fill(`${step(1)} >> .step-head input[placeholder="sublabel"]`, 'ARM');
+    // A third step: more than the old armable's two.
+    await page.click('#inspector .ladder > button:has-text("+ step")');
+    await page.selectOption(`${step(2)} >> .field:has(> span:text-is("Source")) select`, 'var');
+    await page.fill(`${step(2)} >> input[placeholder^="e.g. NAV"]`, 'AUTOPILOT GLIDESLOPE ARM');
+    await page.selectOption(`${step(2)} >> .step-head select`, 'off');
+    await page.selectOption(`${fld('preview', 'Preview')} select`, 'step 2');
+    // Drawn tile (no face): step 2 shows the ARM sublabel and a white bar.
+    await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), 8);
+    await page.waitForFunction(s => /ffffff/i.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), 8);
     // With a custom face the sublabel needs a Sublabel layer; the editor offers to add it.
     await page.click('#inspector button:has-text("Design a custom face")');
-    await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
-    // A face made before the sublabel existed has no Sublabel layer: as if so, then the fix.
-    await page.evaluate(s => { const f = S.profile.pages[S.page].keys[s].face; f.layers = f.layers.filter(L => L.kind !== 'sublabel'); renderInspector(); renderGrid(); }, emptyAux);
-    await page.waitForFunction(s => !/aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
+    await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), 8);
+    await page.evaluate(s => { const f = S.profile.pages[S.page].keys[s].face; f.layers = f.layers.filter(L => L.kind !== 'sublabel'); renderInspector(); renderGrid(); }, 8);
+    await page.waitForFunction(s => !/aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), 8);
     await page.click('#inspector button:has-text("Add it to the face")');
-    await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
-    // Typing a sublabel adds the layer to a face that lacks it.
-    await page.evaluate(s => { const f = S.profile.pages[S.page].keys[s].face; f.layers = f.layers.filter(L => L.kind !== 'sublabel'); renderInspector(); renderGrid(); }, emptyAux);
-    await page.fill('#inspector .field:has-text("When armed") input', 'ARMD');
-    await page.waitForFunction(s => /aria-label="ARMD"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
-    await page.fill('#inspector .field:has-text("When armed") input', 'ARM');
-    await page.waitForFunction(s => /ffffff/i.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), emptyAux);
+    await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), 8);
     // The ⓘ pins its explanation open on click.
-    await page.click('#inspector .info[data-help="armable"]');
-    assert.ok(await page.isVisible('#inspector .info.open .info-text:has-text("armed")'));
+    await page.click('#inspector .info[data-help="logic"]');
+    assert.ok(await page.isVisible('#inspector .info.open .info-text'));
+    // The old switch settings are listed as unused, and go at save.
+    assert.ok(await page.isVisible('#inspector p:has-text("removed when you save")'));
     await save();
-    const ar = file().pages[1].keys[String(emptyAux)];
-    assert.strictEqual(ar.type, 'armable');
-    assert.strictEqual(ar.read.var, 'AUTOPILOT APPROACH ACTIVE');
-    assert.strictEqual(ar.armed.var, 'AUTOPILOT APPROACH ARM');
-    assert.deepStrictEqual(ar.sublabels, { armed: 'ARM' });
-    assert.deepStrictEqual(ar.activeOr, [{ read: { var: 'AUTOPILOT APPROACH CAPTURED', unit: 'bool' } }], '"or" source saved');
-    assert.strictEqual(ar.press.input, 'LIGHTING_TAXI_1');
+    const ar = file().pages[1].keys['8'];
+    assert.strictEqual(ar.type, 'readout');
+    assert.strictEqual(ar.logic.steps.length, 3);
+    assert.deepStrictEqual(ar.logic.steps[0].when.map(c => c.read.var), ['AUTOPILOT APPROACH ACTIVE', 'AUTOPILOT APPROACH CAPTURED'], '"or" condition saved');
+    assert.deepStrictEqual([ar.logic.steps[1].look, ar.logic.steps[1].sublabel], ['armed', 'ARM']);
+    assert.strictEqual(ar.logic.steps[2].look, 'off');
+    assert.strictEqual(ar.states, undefined, 'switch positions removed at save');
+    assert.deepStrictEqual(ar.press, { cycle: [0, 1] }, 'a readout may keep a press');
+    await page.click(slot(8));
 
     // A press can write a simvar instead (user, 2026-10-30): Acts on "Simvar", tried with Set.
-    await page.selectOption('#inspector .field:has-text("Acts on") select', 'var');
+    await page.selectOption(`${fld('press', 'Acts on')} select`, 'var');
     await page.fill('#inspector input[placeholder="e.g. TRANSPONDER STATE:1"]', 'TRANSPONDER STATE:1');
-    await page.fill('#inspector input[list="unitList"] >> nth=-1', 'number');
-    await page.fill('#inspector .field:has-text("Set now") input', '4');
-    await page.click('#inspector .field:has-text("Set now") button:has-text("Set")');
-    await page.waitForSelector('#inspector .field:has-text("Set now") .test-out:has-text("kept")');
+    await page.fill(`${fld('press', 'Unit')} input`, 'number');
+    await page.fill(`${fld('press', 'Set now')} input`, '4');
+    await page.click(`${fld('press', 'Set now')} button:has-text("Set")`);
+    await page.waitForSelector(`${fld('press', 'Set now')} .test-out:has-text("kept")`);
     assert.strictEqual(h.sim.simvars['TRANSPONDER STATE:1'], 4);
     await save();
     assert.deepStrictEqual(file().pages[1].keys['8'].press.var, { var: 'TRANSPONDER STATE:1', unit: 'number' });
     assert.strictEqual(file().pages[1].keys['8'].press.input, undefined, 'one target only');
     await page.fill('#inspector input[placeholder="e.g. TRANSPONDER STATE:1"]', 'TRANSPONDER CODE:1');
-    await page.click('#inspector .field:has-text("Set now") button:has-text("Set")');
-    await page.waitForSelector('#inspector .field:has-text("Set now") .test-out:has-text("did not keep")');
+    await page.click(`${fld('press', 'Set now')} button:has-text("Set")`);
+    await page.waitForSelector(`${fld('press', 'Set now')} .test-out:has-text("did not keep")`);
 
     // Choosing "Send a sim event" keeps that choice while the event name is still empty (user
     // report 2026-10-29: it fell back to Nothing), and saving without a name is refused.
-    await page.selectOption('#inspector .field:has-text("Action") select', 'event');
-    assert.strictEqual(await page.inputValue('#inspector .field:has-text("Action") select'), 'event');
-    assert.ok(await page.isVisible('#inspector .field:has-text("Event") input'));
+    await page.selectOption(`${fld('press', 'Action')} select`, 'event');
+    assert.strictEqual(await page.inputValue(`${fld('press', 'Action')} select`), 'event');
+    assert.ok(await page.isVisible(`${fld('press', 'Event')} input`));
     await page.click('#saveProfile');
     await page.waitForSelector('.status.bad:has-text("needs the event")');
-    await page.fill('#inspector .field:has-text("Event") input', 'AP_APR_HOLD');
+    await page.fill(`${fld('press', 'Event')} input`, 'AP_APR_HOLD');
+    // Tap / hold: a tap sends the event, a hold sends a list of two, after 600 ms.
+    await page.check(`${fld('press', 'Something else when held')} input`);
+    await page.fill(`${fld('press', 'Hold for, ms')} input`, '600');
+    await page.fill(`${sec('press')} .action-list >> nth=1 >> .field:has(> span:text-is("Event")) input`, 'AP_MASTER');
+    await page.click(`${sec('press')} .action-list >> nth=1 >> button:has-text("+ then")`);
+    await page.fill(`${sec('press')} .action-list >> nth=1 >> .action-item >> nth=1 >> .field:has(> span:text-is("Event")) input`, 'AP_PANEL_HEADING_HOLD');
     await save();
-    assert.deepStrictEqual(file().pages[1].keys['8'].press, { event: 'AP_APR_HOLD' });
+    assert.deepStrictEqual(file().pages[1].keys['8'].press, { tap: { event: 'AP_APR_HOLD' }, hold: [{ event: 'AP_MASTER' }, { event: 'AP_PANEL_HEADING_HOLD' }], holdMs: 600 });
+    // On the dock: a short press taps, a long one holds.
+    await sleep(300);
+    h.sim.sent.length = 0;
+    const kd = s => h.engine.keyDown(s);
+    const ku = s => h.engine.keyUp(s);
+    await h.engine.setPage(1);
+    await sleep(100); // the page announcement goes first
+    kd(8); await sleep(50); ku(8);
+    await sleep(50);
+    assert.deepStrictEqual(h.sim.sent.splice(0).map(x => x.event), ['AP_APR_HOLD'], 'tap');
+    kd(8); await sleep(700); ku(8);
+    await sleep(50);
+    assert.deepStrictEqual(h.sim.sent.splice(0).map(x => x.event), ['AP_MASTER', 'AP_PANEL_HEADING_HOLD'], 'hold');
+    await h.engine.setPage(0);
 
-    // Decorative key: choosing it drops the key's function (after a confirm) and hides those sections.
+    // Decorative key: the type hides the information and press sections; the rest goes at save.
     await page.click(slot(8));
     await page.selectOption('#inspector select >> nth=0', 'decor');
     await page.waitForSelector('#inspector .info[data-help="decor"]');
-    assert.ok(!(await page.isVisible('#inspector h4:has-text("When pressed")')), 'no press section');
-    assert.ok(!(await page.isVisible('#inspector h4:has-text("Reads from the sim")')), 'no source section');
-    await page.fill('#inspector .field:has-text("Sublabel") input', 'INTERIOR');
+    assert.ok(!(await page.isVisible(sec('press'))), 'no press section');
+    assert.ok(!(await page.isVisible(sec('info'))), 'no information section');
+    await page.fill(`${fld('look', 'Sublabel')} input`, 'INTERIOR');
     await save();
     const deco = file().pages[1].keys['8'];
     assert.strictEqual(deco.type, 'decor');
-    assert.deepStrictEqual([deco.read, deco.press, deco.sublabel], [undefined, undefined, 'INTERIOR']);
+    assert.deepStrictEqual([deco.read, deco.press, deco.logic, deco.sublabel], [undefined, undefined, undefined, 'INTERIOR']);
     await page.click(slot(8));
-    await page.selectOption('#inspector select >> nth=0', 'armable');
-    await page.selectOption('#inspector .ladder .step >> nth=0 >> .field:has-text("Source") select', 'input');
-    await page.fill('#inspector .ladder .step >> nth=0 >> input[placeholder^="e.g. ELECTRICAL"]', 'LIGHTING_TAXI_1');
-    await page.fill('#inspector .ladder .step >> nth=1 >> input[placeholder^="e.g. NAV"]', 'AUTOPILOT APPROACH ARM');
+    await page.selectOption('#inspector select >> nth=0', 'readout');
+    await page.selectOption(`${fld('info', 'Source')} select`, 'input');
+    await page.fill(`${sec('info')} input[placeholder^="e.g. ELECTRICAL"]`, 'LIGHTING_TAXI_1');
+    // Readout positions from the SDK's list for a simvar: the names replace the number.
+    await page.selectOption(`${fld('info', 'Source')} select`, 'var');
+    await page.fill(`${sec('info')} input[placeholder^="e.g. NAV"]`, 'TRANSPONDER STATE:1');
+    await page.keyboard.press('Tab');
+    await page.click(`${sec('look')} button:has-text("Fill from the SDK")`);
+    await page.waitForFunction(() => [...document.querySelectorAll('#inspector table.value-table input')].some(i => /STANDBY/i.test(i.value)), null, { timeout: 5000 });
     await save();
+    const xp = file().pages[1].keys['8'];
+    assert.ok(xp.text && Object.keys(xp.text).length >= 3, `positions filled from the SDK: ${JSON.stringify(xp.text)}`);
+    assert.strictEqual(xp.sublabel, 'INTERIOR', 'the sublabel stays: every type uses it');
 
-    // Dimmer page (user, 2026-10-30): readout with units and separator; one key steps, wraps and ramps.
+    // Dimmer page (user, 2026-10-30): a Rotary (a dimmer knob) with units and separator; a tap
+    // steps and wraps, a hold ramps.
     page.prompts = ['Dimmers'];
     await page.click('#addPage');
     await page.click(slot(0));
     await page.click('#inspector button:has-text("Add key")');
-    await page.selectOption('#inspector select >> nth=0', 'readout');
-    await page.selectOption('#inspector .field:has-text("Source") select', 'input');
+    await page.selectOption('#inspector select >> nth=0', 'rotary');
+    await page.selectOption(`${fld('info', 'Source')} select`, 'input');
     await page.fill('#inspector input[placeholder="e.g. ELECTRICAL_BATTERY_1"]', 'LIGHTING_TAXI_1');
-    await page.fill('#inspector .field:has-text("Unit after") input', '%');
-    await page.check('#inspector .field:has-text("Separator") input');
-    await page.selectOption('#inspector .field:has-text("Action") select', 'step');
-    await page.fill('#inspector .field:has(> span:text-is("Step")) input', '25');
-    await page.fill('#inspector .field:has-text("Minimum") input', '0');
-    await page.fill('#inspector .field:has-text("Maximum") input', '100');
-    await page.check('#inspector .field:has-text("Wrap at the ends") input');
-    await page.check('#inspector .field:has-text("Hold to ramp") input');
-    await page.fill('#inspector .field:has(> span:text-is("Ramp step")) input', '5');
+    await page.check(`${fld('look', 'Separator')} input`);
+    await page.fill(`${sec('press')} .action-list >> nth=0 >> .field:has(> span:text-is("Step")) input`, '25');
+    await page.fill(`${sec('press')} .action-list >> nth=1 >> .field:has(> span:text-is("Step")) input`, '5');
     await page.waitForFunction(() => /<rect[^>]*height="7"/.test(decodeURIComponent(document.querySelector('.slot[data-slot="0"] img').src)), null, { timeout: 5000 });
     await save();
     const dim = file().pages[file().pages.length - 1].keys['0'];
-    assert.deepStrictEqual([dim.suffix, dim.separator], ['%', true]);
-    assert.deepStrictEqual(dim.press, { step: 25, min: 0, max: 100, wrap: true, rampMs: 100, rampStep: 5 });
+    assert.deepStrictEqual([dim.type, dim.suffix, dim.separator], ['rotary', '%', true]);
+    assert.deepStrictEqual(dim.press, { tap: { step: 25, min: 0, max: 100, wrap: true }, hold: { step: 5, min: 0, max: 100, wrap: true, repeatMs: 100 } });
     await page.click('#inspector button:has-text("Design a custom face")');
     assert.ok(await page.isVisible('#inspector .layer:has-text("Separator")'), 'the custom face starts with the separator');
     // Keyboard shortcut (user, 2026-10-30): recorded from the keyboard, combinations included.
     await page.click(slot(1));
     await page.click('#inspector button:has-text("Add key")');
-    await page.selectOption('#inspector .field:has-text("Action") select', 'keys');
+    await page.selectOption(`${fld('press', 'Action')} select`, 'keys');
     await page.click('#inspector button:has-text("Record")');
     await page.keyboard.press('Control+Shift+KeyL');
     await page.waitForSelector('#inspector .test-out:has-text("= Ctrl+Shift+L")');
@@ -345,28 +389,29 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.fill('#inspector input[placeholder^="e.g. Ctrl+Shift+L"]', 'Alt+Banana');
     await page.waitForSelector('#inspector .test-out.bad:has-text("unknown key")');
     await page.fill('#inspector input[placeholder^="e.g. Ctrl+Shift+L"]', 'alt+f1');
-    await page.check('#inspector .field:has-text("While held") input');
+    await page.check(`${fld('press', 'While held')} input`);
     await save();
     assert.deepStrictEqual(file().pages[file().pages.length - 1].keys['1'].press, { keys: 'alt+f1', whileHeld: true });
 
-    // Stopwatch (user, 2026-10-30): a readout of it, and a key that starts / stops it.
+    // Stopwatch (user, 2026-10-30): a readout of it, and one key: tap starts / stops, hold resets.
     await page.click(slot(2));
     await page.click('#inspector button:has-text("Add key")');
     await page.selectOption('#inspector select >> nth=0', 'readout');
-    await page.selectOption('#inspector .field:has-text("Source") select', 'timer');
+    await page.selectOption(`${fld('info', 'Source')} select`, 'timer');
     await page.waitForFunction(() => /aria-label="0:00"/.test(decodeURIComponent(document.querySelector('.slot[data-slot="2"] img').src)), null, { timeout: 5000 });
     await page.click(slot(3));
     await page.click('#inspector button:has-text("Add key")');
-    await page.selectOption('#inspector .field:has-text("Action") select', 'timer');
-    await page.selectOption('#inspector .field:has-text("Does") select', 'toggle-hold');
-    await page.waitForSelector('#inspector .field:has-text("Hold for, ms")');
+    await page.selectOption(`${fld('press', 'Action')} select`, 'timer');
+    await page.check(`${fld('press', 'Something else when held')} input`);
+    await page.selectOption(`${sec('press')} .action-list >> nth=1 >> .field:has(> span:text-is("Action")) select`, 'timer');
+    await page.selectOption(`${sec('press')} .action-list >> nth=1 >> .field:has(> span:text-is("Does")) select`, 'reset');
     // Keypad: on a transponder readout the XPDR preset is the guess; Preview shows it on the dock picture.
     await page.click(slot(4));
     await page.click('#inspector button:has-text("Add key")');
     await page.selectOption('#inspector select >> nth=0', 'readout');
-    await page.selectOption('#inspector .field:has-text("Source") select', 'var');
+    await page.selectOption(`${fld('info', 'Source')} select`, 'var');
     await page.fill('#inspector input[placeholder="e.g. NAV ACTIVE FREQUENCY:1"]', 'TRANSPONDER CODE:1');
-    await page.selectOption('#inspector .field:has-text("Action") select', 'keypad');
+    await page.selectOption(`${fld('press', 'Action')} select`, 'keypad');
     assert.strictEqual(await page.inputValue('#inspector .field:has-text("Keypad for") select'), 'xpdr');
     await page.click('#inspector button:has-text("Show the keypad on the dock picture")');
     await page.waitForFunction(() => /aria-label="CANCEL"/.test(decodeURIComponent(document.querySelector('.slot[data-slot="0"] img').src)));
@@ -390,7 +435,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const dv = file().pages[file().pages.length - 1].keys;
     assert.deepStrictEqual(dv['2'].read, { timer: 'T1' });
     assert.strictEqual(dv['2'].format, 'duration', 'a stopwatch readout shows M:SS');
-    assert.deepStrictEqual(dv['3'].press, { timer: 'T1', action: 'toggle', holdReset: true }, 'start / stop, hold to reset');
+    assert.deepStrictEqual(dv['3'].press, { tap: { timer: 'T1', action: 'toggle' }, hold: { timer: 'T1', action: 'reset' } }, 'start / stop, hold to reset');
     assert.deepStrictEqual(dv['4'].press, { keypad: { title: 'ALT SEL', digits: 5, decimals: 0, apply: { event: 'AP_ALT_VAR_SET_ENGLISH' } } });
     // The keypad layout (user, 2026-10-30): one for every keypad, edited like a page.
     await page.click('.tab.tab-keypad');
@@ -418,18 +463,44 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.ok(!fs.existsSync(path.join(path.dirname(h.dir), 'keypad.json')), 'built-in again');
     await page.click('.tab:nth-child(2)');
 
-    // A save that fails validation is refused with a message, and the file is untouched.
+    // Save rules per type (user schema): a switch with nothing to do when pressed is refused,
+    // with the reason, and the file is untouched.
     await page.click(slot(8));
-    await page.click('#inspector details summary');
-    await page.fill('#inspector textarea.json', JSON.stringify({ type: 'switch', press: { cycle: [0, 1] } }));
+    await page.click('#inspector details:has(textarea.json) summary');
+    await page.fill('#inspector textarea.json', JSON.stringify({ type: 'switch', read: { input: 'LIGHTING_TAXI_1' } }));
     await page.click('#inspector button:has-text("Apply JSON")');
     await page.click('#saveProfile');
     await page.waitForSelector('.status.bad');
-    assert.match(await page.textContent('.status'), /needs read/);
-    assert.strictEqual(file().pages[1].keys['8'].type, 'armable', 'file untouched');
+    assert.match(await page.textContent('.status'), /key 8: a switch .* needs something to do when pressed/);
+    assert.strictEqual(file().pages[1].keys['8'].type, 'readout', 'file untouched');
+
+    // Preview on the dock (user schema): the profile being edited, siloed from the sim. A key the
+    // dock cannot draw yet (a readout with nothing to read) is left off, with the reason.
+    await page.click('#inspector details:has(textarea.json) summary');
+    await page.fill('#inspector textarea.json', JSON.stringify({ type: 'readout', label: 'HALF' }));
+    await page.click('#inspector button:has-text("Apply JSON")');
+    h.sim.sent.length = 0;
+    await page.click('#previewOnDock');
+    await page.waitForFunction(() => /Stop preview/.test(document.querySelector('#previewOnDock').textContent));
+    await page.waitForSelector('.status:has-text("without unfinished keys"):has-text("page 2, key 8")');
+    assert.ok(h.engine.preview, 'the dock is previewing');
+    assert.strictEqual(h.engine.preview.pageIndex, 1, 'the page being edited');
+    assert.ok(!h.engine.preview.profile.pages[1].keys['8'], 'the unfinished key is left off');
+    h.engine.keyDown(2); h.engine.keyUp(2);
+    await sleep(100);
+    assert.deepStrictEqual(h.sim.sent, [], 'presses do not reach the sim');
+    // Edits follow on the dock.
+    await page.click('#inspector details:has(textarea.json) summary');
+    await page.fill('#inspector textarea.json', JSON.stringify({ type: 'switch', label: 'TAXI', read: { input: 'LIGHTING_TAXI_1' }, press: { cycle: [0, 1] } }));
+    await page.click('#inspector button:has-text("Apply JSON")');
+    await sleep(500);
+    assert.strictEqual(h.engine.preview.profile.pages[1].keys['8'].label, 'TAXI', 'the edit is on the dock');
+    await page.click('#previewOnDock');
+    await page.waitForFunction(() => /Preview on dock/.test(document.querySelector('#previewOnDock').textContent));
+    assert.ok(!h.engine.preview, 'back to the sim');
 
     assert.deepStrictEqual(errors, [], 'no page errors');
-    console.log('editor e2e: PASS (edit+save+reload, drag swap, library, face designer incl. per-value faces and extra live values, save regression, learn candidates, catalogs, look, copy/paste, validation)');
+    console.log('editor e2e: PASS (edit+save+reload, drag swap, library, face designer, learn, catalogs, look, copy/paste; key editor: types, positions (learn, SDK), state logic, tap / hold on the dock, rotary, save rules, preview on dock)');
   } catch (e) {
     console.error('editor e2e: FAIL', e);
     await page.screenshot({ path: path.join(__dirname, '..', 'editor-e2e-failure.png'), fullPage: true });

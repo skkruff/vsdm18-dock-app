@@ -47,6 +47,18 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-01, unit + browser tests only (not yet on the dock or in the sim): key editor redesign
+  (`key-editor-schema.md`). Migration of armable, ramp, hold-to-reset and ramping readouts
+  (`migrate.js`); N-step state logic; tap / hold with a 400 ms default, action lists, repeating
+  holds and ramps; save rules per type; preview mode siloed from the sim (engine tests: no press
+  reaches the fake sim while previewing). Editor e2e drives the new sections, Learn positions,
+  Fill from the SDK, a 3-step logic key, tap / hold on the engine, a rotary, save rules and
+  Preview on dock. To check on the dock: the shipped C172's stopwatch (tap / hold) and dimmers
+  (rotary) behave as before; your Documents profile and library are converted when read and
+  written in the new form on the next save.
+- 2026-11-01, review: the editor's status poll (every 1.5 s) re-bound the Look panel's listeners
+  each time since the 2026-10-30 file split, so one font or colour change saved many times over
+  after a while. Fixed (bound once at start-up).
 - 2026-10-30, user (dock + sim): keyboard shortcuts work; armable annunciators, dimmers (step,
   wrap, ramp) and the customisation features work in flight with no blockers.
 - 2026-10-30, code review (unit + browser tests; all tests also run on Node 20.8.1, VSD Craft's

@@ -11,8 +11,9 @@ const COLORS = () => ({ label: lookValue('label', '#ffffff'), value: lookValue('
 
 // A starting face that looks like the key's automatic look, ready to adjust.
 const SUBLABEL_Y = () => Math.round(((S.look && S.look.style && S.look.style.bar) || { y: 93.4 }).y * 0.78);
-const hasSublabel = key => !!(key.sublabel || (key.sublabels && Object.values(key.sublabels).some(Boolean)));
-const facesOf = key => [key.face, ...Object.values(key.valueFaces || {})].filter(Boolean);
+const hasSublabel = key => !!(key.sublabel || (key.sublabels && Object.values(key.sublabels).some(Boolean))
+  || (key.logic && [...key.logic.steps, key.logic.otherwise || {}].some(s => s.sublabel)));
+const facesOf = key => [key.face, ...Object.values(key.valueFaces || {}), ...Object.values(key.logicFaces || {})].filter(Boolean);
 
 // Every new face carries a Sublabel layer, ready to move, placed where drawn tiles put the
 // sublabel (user, 2026-10-29). It draws nothing while the key has no sublabel.
@@ -24,14 +25,14 @@ function defaultFace(key) {
     return { layers: [{ kind: 'value', x: 72, y: key.role === 'title' || key.sublabel ? 50 : 72, size: big }, { kind: 'sublabel', x: 72, y: 100 }] };
   }
   const sub = y => ({ kind: 'sublabel', ...(y === undefined ? {} : { x: 72, y }) });
-  if (key.type === 'readout') {
+  if ((key.type === 'readout' || key.type === 'rotary') && !key.logic) {
     return key.icon
       ? { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: 62 }, sub(82), { kind: 'value', x: 72, y: 112, size: 40 }] }
       : key.separator
         ? { layers: [{ kind: 'text', text: label, x: 72, y: 28, size: 24 }, sub(50), { kind: 'separator', x: 72, y: hasSublabel(key) ? 66 : 46 }, { kind: 'value', x: 72, y: hasSublabel(key) ? 104 : 95, size: hasSublabel(key) ? 40 : 44 }] }
         : { layers: [{ kind: 'text', text: label, x: 72, y: 28, size: 24 }, sub(54), { kind: 'value', x: 72, y: 100, size: 42 }] };
   }
-  if (key.type === 'switch' || key.type === 'armable') {
+  if (key.type === 'switch' || key.logic) {
     return key.icon
       ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }, sub(76)] }
       : { layers: [hasSublabel(key) ? { kind: 'text', text: label, x: 72, y: 32, size: 26 } : { kind: 'text', text: label, x: 72, y: 45, size: 30 }, sub(), { kind: 'bar' }] };
@@ -77,16 +78,19 @@ function previewSources() {
 function faceDesigner(key, slot) {
   const box = el('div', { class: 'face' });
   if (faceTargetKey !== key) { faceTargetKey = key; faceTarget = 'default'; faceLayer = 0; }
-  const valueFaces = key.valueFaces || {};
+  // Faces per sim value (valueFaces), or per state logic step (logicFaces: '0', '1', ..., 'otherwise').
+  const logic = !!key.logic;
+  const mapName = logic ? 'logicFaces' : 'valueFaces';
+  const valueFaces = key[mapName] || {};
+  const stepName = k => (k === 'otherwise' ? 'otherwise' : `step ${Number(k) + 1}`);
   if (faceTarget !== 'default' && !valueFaces[faceTarget]) faceTarget = 'default';
-  editingValue = faceTarget === 'default' ? null : faceTarget;
+  editingValue = faceTarget === 'default' ? null : logic ? stepName(faceTarget) : faceTarget;
 
   // Which face: the default one, or one per sim value (e.g. a different look for each magneto
-  // position). Values without their own face use the default.
-  const armable = key.type === 'armable';
+  // position) or per state step. Values or steps without their own face use the default.
   const addFace = v => {
-    key.valueFaces = key.valueFaces || {};
-    key.valueFaces[v] = clone(key.face || defaultFace(key));
+    key[mapName] = key[mapName] || {};
+    key[mapName][v] = clone(key.face || defaultFace(key));
     faceTarget = v;
     faceLayer = 0;
     changed(); renderInspector();
@@ -94,13 +98,13 @@ function faceDesigner(key, slot) {
   const tabs = el('div', { class: 'face-tabs' },
     el('button', { class: faceTarget === 'default' ? 'active' : '', on: { click: () => { faceTarget = 'default'; faceLayer = 0; renderInspector(); } } },
       key.face ? 'Default face' : 'Default (automatic)'),
-    armable ? [
-      ...Object.keys(valueFaces).map(v => el('button', { class: faceTarget === v ? 'active' : '', on: { click: () => { faceTarget = v; faceLayer = 0; renderInspector(); } } }, `when ${v}`)),
-      ...['active', 'armed', 'otherwise'].filter(v => !valueFaces[v]).map(v => el('button', { title: `Design a separate face shown when the key is ${v}`, on: { click: () => addFace(v) } }, `+ face when ${v}`)),
+    logic ? [
+      ...Object.keys(valueFaces).map(v => el('button', { class: faceTarget === v ? 'active' : '', on: { click: () => { faceTarget = v; faceLayer = 0; renderInspector(); } } }, `when ${stepName(v)}`)),
+      ...[...key.logic.steps.map((s, i) => String(i)), 'otherwise'].filter(v => !valueFaces[v]).map(v => el('button', { title: `Design a separate face shown at ${stepName(v)}`, on: { click: () => addFace(v) } }, `+ face for ${stepName(v)}`)),
     ] : null,
-    ...(armable ? [] : Object.keys(valueFaces)).map(v => el('button', { class: faceTarget === v ? 'active' : '', on: { click: () => { faceTarget = v; faceLayer = 0; renderInspector(); } } },
+    ...(logic ? [] : Object.keys(valueFaces)).map(v => el('button', { class: faceTarget === v ? 'active' : '', on: { click: () => { faceTarget = v; faceLayer = 0; renderInspector(); } } },
       `value ${v}${key.text && key.text[v] ? ` (${key.text[v]})` : ''}`)),
-    armable || key.type === 'decor' || key.type === 'keypad' ? null : el('button', { title: 'Design a separate face shown when the sim value is this', on: { click: () => {
+    logic || key.type === 'decor' || key.type === 'keypad' ? null : el('button', { title: 'Design a separate face shown when the sim value is this', on: { click: () => {
       const v = prompt('Face for which sim value? (e.g. 0, 1, 3)', String(Object.keys(key.states || key.text || {})[0] ?? '0'));
       if (v === null || v.trim() === '') return;
       addFace(v.trim());
@@ -113,7 +117,7 @@ function faceDesigner(key, slot) {
       el('button', { on: { click: () => { key.face = defaultFace(key); faceLayer = 0; changed(); renderInspector(); } } }, 'Design a custom face'));
     return box;
   }
-  if (faceTarget !== 'default') box.append(el('p', { class: 'muted' }, armable ? `Shown while the key is ${faceTarget}.` : `Shown while the sim value is ${faceTarget}. The preview shows that value.`));
+  if (faceTarget !== 'default') box.append(el('p', { class: 'muted' }, logic ? `Shown at ${stepName(faceTarget)}.` : `Shown while the sim value is ${faceTarget}. The preview shows that value.`));
 
   const preview = el('img', { class: 'face-preview', alt: 'face preview', draggable: 'false' });
   // Only the newest request may update the picture: answers can arrive out of order while a
@@ -239,12 +243,13 @@ function faceDesigner(key, slot) {
       if (!confirm('Go back to the automatic look?')) return;
       delete key.face;
     } else {
-      if (!confirm(`Remove the face for value ${faceTarget}?`)) return;
-      delete key.valueFaces[faceTarget];
+      if (!confirm(`Remove the face for ${logic ? stepName(faceTarget) : `value ${faceTarget}`}?`)) return;
+      delete key[mapName][faceTarget];
+      if (!Object.keys(key[mapName]).length) delete key[mapName];
       faceTarget = 'default';
     }
     changed(); renderInspector();
-  } } }, faceTarget === 'default' ? 'Remove custom face' : `Remove face for value ${faceTarget}`));
+  } } }, faceTarget === 'default' ? 'Remove custom face' : `Remove face for ${logic ? stepName(faceTarget) : `value ${faceTarget}`}`));
   refresh();
   return box;
 }

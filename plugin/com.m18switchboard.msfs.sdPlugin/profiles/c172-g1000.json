@@ -1134,9 +1134,21 @@
           "format": "duration",
           "separator": true,
           "press": {
-            "timer": "T1",
-            "action": "toggle",
-            "holdReset": true
+            "tap": {
+              "timer": "T1",
+              "action": "toggle"
+            },
+            "hold": [
+              {
+                "timer": "T1",
+                "action": "stop"
+              },
+              {
+                "timer": "T1",
+                "action": "reset"
+              }
+            ],
+            "holdMs": 1000
           },
           "face": {
             "layers": [
@@ -1167,18 +1179,26 @@
           }
         },
         "3": {
-          "type": "readout",
+          "type": "rotary",
           "label": "Switches & Circuit Breakers Dimmer",
           "read": {
             "input": "LIGHTING_PANEL_1"
           },
           "press": {
-            "step": 25,
-            "min": 0,
-            "max": 100,
-            "rampMs": 100,
-            "rampStep": 5,
-            "wrap": true
+            "tap": {
+              "step": 25,
+              "min": 0,
+              "max": 100,
+              "wrap": true
+            },
+            "hold": {
+              "step": 5,
+              "min": 0,
+              "max": 100,
+              "wrap": true,
+              "repeatMs": 100
+            },
+            "holdMs": 400
           },
           "suffix": "%",
           "face": {
@@ -1205,18 +1225,26 @@
           }
         },
         "4": {
-          "type": "readout",
+          "type": "rotary",
           "label": "Standby Instruments Dimmer",
           "read": {
             "input": "LIGHTING_PANEL_2"
           },
           "press": {
-            "step": 25,
-            "min": 0,
-            "max": 100,
-            "rampMs": 100,
-            "rampStep": 5,
-            "wrap": true
+            "tap": {
+              "step": 25,
+              "min": 0,
+              "max": 100,
+              "wrap": true
+            },
+            "hold": {
+              "step": 5,
+              "min": 0,
+              "max": 100,
+              "wrap": true,
+              "repeatMs": 100
+            },
+            "holdMs": 400
           },
           "suffix": "%",
           "face": {
@@ -1259,18 +1287,26 @@
           }
         },
         "8": {
-          "type": "readout",
+          "type": "rotary",
           "label": "Pedestal Dimmer",
           "read": {
             "input": "LIGHTING_PEDESTRAL_1"
           },
           "press": {
-            "step": 25,
-            "min": 0,
-            "max": 100,
-            "rampMs": 100,
-            "rampStep": 5,
-            "wrap": true
+            "tap": {
+              "step": 25,
+              "min": 0,
+              "max": 100,
+              "wrap": true
+            },
+            "hold": {
+              "step": 5,
+              "min": 0,
+              "max": 100,
+              "wrap": true,
+              "repeatMs": 100
+            },
+            "holdMs": 400
           },
           "suffix": "%",
           "face": {
@@ -1297,18 +1333,26 @@
           }
         },
         "9": {
-          "type": "readout",
+          "type": "rotary",
           "label": "Avionics Dimmer",
           "read": {
             "input": "LIGHTING_POTENTIOMETER_5"
           },
           "press": {
-            "step": 25,
-            "min": 0,
-            "max": 100,
-            "rampMs": 100,
-            "rampStep": 5,
-            "wrap": true
+            "tap": {
+              "step": 25,
+              "min": 0,
+              "max": 100,
+              "wrap": true
+            },
+            "hold": {
+              "step": 5,
+              "min": 0,
+              "max": 100,
+              "wrap": true,
+              "repeatMs": 100
+            },
+            "holdMs": 400
           },
           "suffix": "%",
           "face": {
@@ -1379,18 +1423,26 @@
           }
         },
         "14": {
-          "type": "readout",
+          "type": "rotary",
           "label": "Cabin Light Dimmer",
           "read": {
             "input": "LIGHTING_CABIN_1"
           },
           "press": {
-            "step": 25,
-            "min": 0,
-            "max": 100,
-            "rampMs": 100,
-            "rampStep": 5,
-            "wrap": true
+            "tap": {
+              "step": 25,
+              "min": 0,
+              "max": 100,
+              "wrap": true
+            },
+            "hold": {
+              "step": 5,
+              "min": 0,
+              "max": 100,
+              "wrap": true,
+              "repeatMs": 100
+            },
+            "holdMs": 400
           },
           "suffix": "%",
           "face": {

@@ -36,31 +36,32 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
 
 | type | Shows | Needs |
 |---|---|---|
-| `switch` | library icon `<icon>_<state>_<theme>.png`, or a generated tile with a red/green bar | `read`, `states` |
-| `armable` | like a switch, with a third look: armed (white bar) | `read` (active source), `armed` |
-| `readout` | label and a live value; with `icon`, the top of that library icon above the value | `read` |
+| `switch` | library icon `<icon>_<state>_<theme>.png`, or a generated tile with a red/green bar | `press` (`read`, `states` for its look) |
 | `button` | stateless library icon `<icon>_<theme>.png` or the label | `press` |
+| `rotary` | like a readout (a dimmer's or knob's value) | `press` (usually a tap / hold step) |
+| `readout` | label and a live value, or a state from `logic`; with `icon`, the top of that library icon above the value | `read` or `logic` |
 | `decor` | looks only: icon, or label and `sublabel`, or a `face`; never reads or acts | nothing (no `read` or `press` allowed) |
 
 - **states** (switch): sim value to `on`, `off` or `clear`. `otherwise`: state for values not in
   the map. Unknown value (not yet read, sim reconnecting) shows `clear`.
-- **armable** (user, 2026-10-29): for modes that arm before they engage (APR, GS, NAV capture,
-  ALT). Checked top to bottom: **active** (green) when `read` is `activeIs` (default 1), else
-  **armed** (white, Look "Bar armed") when the `armed` source is `armedIs` (default 1), else
-  `otherwise` (`clear` default, or `off`). Unknown active value shows clear. Library icons have no
-  armed version: armed draws the icon's clear version with its bar filled in the armed colour.
-  `activeOr` / `armedOr`: more sources for a step, any one of which is enough, as
-  `[{ "read": { "var", "unit" }, "is": 1 }]` (`is` defaults to 1), e.g. ILS capture or GPS
-  approach active on one APR key.
-  `sublabels` and `valueFaces` are keyed by step (`active`, `armed`, `otherwise`), not by value.
-  A press usually needs `press.input` (the panel button), since the sources are simvars.
+- **logic** (readout; key editor redesign 2026-11-01, replaces the old `armable` type): steps
+  checked in order; the first with any condition met decides the look and sublabel, else
+  `otherwise`. Any number of steps. A condition is `{ "read": <source>, "is": 1 }` (`is` defaults
+  to 1). Unknown values do not count. `logicFaces` holds a face per step, keyed `"0"`, `"1"`, ...
+  and `"otherwise"`. Library icons have no armed version: armed draws the icon's clear version
+  with its bar filled in the armed colour.
   ```json
-  { "type": "armable", "label": "APR",
-    "read": { "var": "AUTOPILOT APPROACH ACTIVE", "unit": "bool" },
-    "armed": { "var": "AUTOPILOT APPROACH ARM", "unit": "bool" },
-    "sublabels": { "active": "LOC", "armed": "ARM" },
+  { "type": "readout", "label": "APR",
+    "logic": { "steps": [
+        { "when": [{ "read": { "var": "AUTOPILOT APPROACH ACTIVE", "unit": "bool" } }], "look": "on", "sublabel": "LOC" },
+        { "when": [{ "read": { "var": "AUTOPILOT APPROACH ARM", "unit": "bool" } }], "look": "armed", "sublabel": "ARM" } ],
+      "otherwise": { "look": "clear" } },
     "press": { "input": "<the APR button's input event>", "hold": 1, "release": 0 } }
   ```
+- **Older forms** are converted when read (profiles, library): `armable` (with `armed`,
+  `activeOr`, `armedOr`, `sublabels` / `valueFaces` per step) becomes a readout with `logic`;
+  a step with `rampMs` becomes tap / hold; a stopwatch with `holdReset` becomes tap / hold; a
+  readout whose hold ramps becomes a `rotary`. Files are written in the new form on the next save.
 - **text** (readout): sim value to a word shown instead of the number (e.g. magneto `3` -> `BOTH`).
 - **sublabel** (any type): a smaller line under the label on drawn tiles. **sublabels**: sim value
   to a sublabel (e.g. `{ "0": "ARM", "1": "OFF" }`); a value not listed shows `sublabel`. Older
@@ -92,7 +93,7 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
     sets decimals/pad/format); with `read` (`{ "input" }` or `{ "var", "unit" }`), its own source,
     so one key can show several values.
   - `{ "kind": "sublabel", "x", "y", "size", "color", "w" }`: the key's sublabel for its current
-    value (or armable step); defaults to where drawn tiles put it. With `read` (its own source),
+    value (or logic step); defaults to where drawn tiles put it. With `read` (its own source),
     `sublabels` (`{ value: text }`) and an optional fallback `sublabel`, it shows the text for
     that source's value instead, e.g. GPS / VLOC from `GPS DRIVES NAV1`.
   - `{ "kind": "bar", "x", "y", "w", "h", "r", "look" }`: green / red / outline by state, or
@@ -126,15 +127,27 @@ The key never changes on press; it changes when the sim reports the new value.
 | `{ "cycle": [0, 1] }` | sets the input event to the value after the current one in the list (a toggle); from a value not in the list, the next listed value above it |
 | `{ "step": 1, "max": 3 }` | current value plus step, held within min/max; nothing at the stop |
 | `{ "step": 25, "min": 0, "max": 100, "wrap": true }` | as step; at the stop, goes round to the other end |
-| `{ "step": 25, ..., "rampMs": 100, "rampStep": 5, "rampDelayMs": 400 }` | a tap steps once (on release); holding past rampDelayMs keeps stepping by rampStep every rampMs until released, stopping at min/max (with wrap: turning back) |
 | `{ "hold": 4, "release": 3, "repeatMs": 250 }` | sets 4 on key down and 3 on key up (spring-loaded positions). `repeatMs` re-sends 4 while held, for aircraft that drop the position otherwise |
 | `{ "set": 2 }` | sets a fixed value |
 | `{ "event": "PITOT_HEAT_TOGGLE" }` | sends a classic event, `value` optional |
 | `{ "event": "AVIONICS_MASTER_SET", "toggleValue": true }` | sends 1 if the read value is 0, else 0 |
 | `{ "timer": "T1", "action": "toggle" }` | a dock stopwatch: `toggle` (start / stop), `start`, `stop`, `reset` |
-| `{ "timer": "T1", "action": "toggle", "holdReset": true, "holdMs": 1000 }` | the whole stopwatch on one key: a tap starts / stops it (on release), holding for holdMs (default 1000) stops it and sets it to 0:00 |
 | `{ "keypad": "xpdr" }` | opens a keypad over the dock; the value typed is set on ENT, or as soon as all digits are in. Presets: `xpdr` (4 digits 0-7, XPNDR_SET as BCD; `vfr`: "1200", the code the VFR key sets, changeable e.g. to "7000"), `com1` / `com2` (6 digits, 3 decimals, COM_STBY_RADIO_SET_HZ / COM2_STBY_RADIO_SET_HZ), `nav1` / `nav2` (5 digits, 2 decimals, NAV1/2_STBY_SET_HZ). Your own: `{ "title", "digits", "decimals", "octal", "autoEnter": true, "apply": { "event" \| "var" + "unit" \| "input", "encode": "number" \| "bcd16", "scale" } }`; a preset can be given with overrides as `{ "preset": "com1", "title": "COM1" }`. Missing digits count as zeros (124.8 -> 124.800). A preset's pathway can be replaced on the key, e.g. `{ "preset": "xpdr", "apply": { "input": "XPDR_CODE" } }` (event / var / input replaces the preset's target; encode and scale fill in from the preset). The layout is the keypad layout below. CANCEL or a round button closes it |
 | `{ "keys": "Ctrl+Shift+L" }` | presses a keyboard shortcut (Windows), for things MSFS only has key bindings for (flashlight, views). Modifiers go down first (Ctrl, Shift, Alt, Win; RCtrl etc. for right-hand ones) and up last. `"whileHeld": true` keeps the keys down while the dock key is held. MSFS is brought to the front first unless `"focus": false`. Key names: letters, digits, F1-F24, Up/Down/Left/Right, Home, End, PgUp, PgDn, Insert, Delete, Esc, Enter, Tab, Space, Numpad0-9, NumpadAdd/Subtract/Multiply/Divide/Decimal/Enter, punctuation, or browser key codes (KeyL) |
+
+**Lists**: `[ action, action ]` does each in order on one press (e.g. two softkeys).
+
+**Tap / hold**: `{ "tap": <action or list>, "hold": <action or list>, "holdMs": 400 }`. The tap
+acts on release before `holdMs` (default 400); the hold acts once `holdMs` is reached, and the tap
+then doesn't. Without `tap`, a short press does nothing. A hold action with `repeatMs` repeats
+every that many ms while held; a repeating `step` ramps (counts from the value it last sent;
+with `wrap` it turns back at the ends). Examples:
+
+- dimmer: `{ "tap": { "step": 25, "min": 0, "max": 100, "wrap": true }, "hold": { "step": 5, "min": 0, "max": 100, "wrap": true, "repeatMs": 100 } }`
+- stopwatch on one key: `{ "tap": { "timer": "T1", "action": "toggle" }, "hold": [{ "timer": "T1", "action": "stop" }, { "timer": "T1", "action": "reset" }], "holdMs": 1000 }`
+
+A spring-loaded `{ "hold": 4, "release": 3 }` (a number) is not tap / hold: it holds a position
+while the key is down.
 
 cycle/step/hold/set act on `press.var` (a simvar written directly, e.g.
 `{ "var": "TRANSPONDER STATE:1", "unit": "number" }`), else `press.input`, else the key's

@@ -67,7 +67,7 @@ function renderTabs() {
     const onDock = S.live.profile === S.profile.id && S.live.pageIndex === i;
     tabs.append(el('div', {
       class: `tab ${i === S.page ? 'active' : ''}`,
-      on: { click: () => { S.page = i; S.selected.clear(); renderAll(); } },
+      on: { click: () => { S.page = i; S.selected.clear(); renderAll(); previewOnDockUpdate(); } },
     }, p.name || `Page ${i + 1}`, i === 0 ? el('span', { class: 'muted' }, ' (main)') : null,
     onDock ? el('span', { class: 'ondock' }, '● on dock') : null));
   });
@@ -137,6 +137,7 @@ function bindPages() {
   };
   $('#movePageLeft').addEventListener('click', () => move(-1));
   $('#movePageRight').addEventListener('click', () => move(1));
+  $('#previewOnDock').addEventListener('click', () => (S.previewing ? stopPreviewOnDock() : startPreviewOnDock()));
   $('#showOnDock').addEventListener('click', async () => {
     if (!notKeypad()) return;
     if (S.dirty) return status('Save first, then show it on the dock', 'bad');
@@ -163,7 +164,7 @@ async function renderGrid() {
 // A value that shows the key in its "on" look when nothing else is known.
 function defaultPreview(key) {
   if (!key) return undefined;
-  if (key.type === 'armable') return 'active';
+  if (key.logic) return 'step 1';
   const on = Object.entries(key.states || {}).find(([, s]) => s === 'on');
   if (on) return on[0];
   const firstText = Object.keys(key.text || key.valueIcons || {})[0];
@@ -221,4 +222,58 @@ function moveKey(from, to) {
   S.selected = new Set([to]);
   changed();
   renderInspector();
+}
+
+// ---------- preview mode ----------
+// The profile being edited, on the dock without the sim (user, 2026-11-01): siloed even when the
+// matching aircraft is loaded. Keys show the preview values; edits follow; nothing is sent.
+
+function previewPayload() {
+  const values = {};
+  S.profile.pages.forEach((pg, i) => {
+    values[i] = {};
+    for (const [slot, key] of Object.entries(pg.keys || {})) {
+      const typed = S.previewValues[`${i}:${slot}`];
+      const v = typed !== undefined && typed !== '' ? typed : defaultPreview(key);
+      if (v !== undefined) values[i][slot] = isNaN(Number(v)) ? v : Number(v);
+    }
+  });
+  return { profile: S.profile, pageIndex: S.page === KP ? 0 : S.page, values, sources: previewSources() };
+}
+
+async function startPreviewOnDock() {
+  try {
+    const r = await api('POST', '/api/preview', previewPayload());
+    S.previewing = true;
+    status(r.skipped.length ? `Preview on the dock, without unfinished keys: ${r.skipped.join('; ')}`
+      : 'Preview on the dock: nothing you press there reaches the sim. Stop preview to go back.', r.skipped.length ? 'bad' : 'good');
+  } catch (e) { status(`No preview: ${e.message}`, 'bad'); }
+  renderPreviewButton();
+}
+
+async function stopPreviewOnDock() {
+  try { await api('DELETE', '/api/preview'); } catch (e) { /* the plugin restarted */ }
+  S.previewing = false;
+  status('Preview stopped: the dock shows the sim again', 'good');
+  renderPreviewButton();
+}
+
+let previewTimer = null;
+function previewOnDockUpdate() {
+  if (!S.previewing) return;
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(async () => {
+    try {
+      const r = await api('PUT', '/api/preview', previewPayload());
+      const sig = r.skipped.join('; ');
+      if (sig && sig !== S.previewSkipped) status(`Not on the dock until finished: ${sig}`, 'bad');
+      S.previewSkipped = sig;
+    } catch (e) { status(`Preview: ${e.message}`, 'bad'); }
+  }, 250);
+}
+
+function renderPreviewButton() {
+  const b = $('#previewOnDock');
+  b.textContent = S.previewing ? 'Stop preview' : 'Preview on dock';
+  b.classList.toggle('primary', !!S.previewing);
 }

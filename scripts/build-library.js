@@ -5,7 +5,9 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..', 'plugin', 'com.m18switchboard.msfs.sdPlugin');
-const profiles = ['c172-g1000', 'generic'].map(id => JSON.parse(fs.readFileSync(path.join(root, 'profiles', `${id}.json`), 'utf8')));
+const { validate } = require(path.join(root, 'plugin', 'profiles'));
+// In the current model (validate migrates old forms), so the library ships the same.
+const profiles = ['c172-g1000', 'generic'].map(id => validate(JSON.parse(fs.readFileSync(path.join(root, 'profiles', `${id}.json`), 'utf8')), id));
 
 // Category from what the key reads or does.
 function category(key) {
@@ -106,7 +108,7 @@ items.push({
   notes: 'Shows dock stopwatch T1; a tap starts or stops it, holding for 1 s resets it. The bar is green while it runs.',
   shipped: true,
   keys: [{ dr: 0, dc: 0, key: { type: 'readout', label: 'TIMER', read: { timer: 'T1' }, format: 'duration', separator: true,
-    press: { timer: 'T1', action: 'toggle', holdReset: true } } }],
+    press: { tap: { timer: 'T1', action: 'toggle' }, hold: [{ timer: 'T1', action: 'stop' }, { timer: 'T1', action: 'reset' }], holdMs: 1000 } } }],
 });
 const keypadKey = (id, name, label, read, fmt, preset) => items.push({
   id, name, category: 'Radios', shipped: true,

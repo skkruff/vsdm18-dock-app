@@ -5,10 +5,22 @@
 //
 // Slots: 0-14 are the LCD keys (top-left first), 15-17 the round buttons (page prev / main /
 // next). display is { image(slot, uri), title(slot, text), alert(slot) }.
-const { matchProfile } = require('./profiles');
+const { matchProfile, isTapHold } = require('./profiles');
 const { tiles } = require('./render');
 const { DockVars, formatDuration } = require('./dockvars');
 const kp = require('./keypad');
+const { migrateKey } = require('./migrate');
+
+// Keys in the current model. Profiles are migrated when loaded; this catches an old-form key from
+// anywhere else (an editor page opened before an update, a pasted key). Cached per key object.
+const migrated = new WeakMap();
+function norm(key) {
+  if (!key || typeof key !== 'object') return key;
+  const old = key.type === 'armable' || (key.press && !Array.isArray(key.press) && (key.press.rampMs || key.press.holdReset));
+  if (!old) return key;
+  if (!migrated.has(key)) migrated.set(key, migrateKey(key));
+  return migrated.get(key);
+}
 
 const LCD_SLOTS = 15;
 const NAV = { 15: 'prev', 16: 'main', 17: 'next' };
@@ -39,30 +51,44 @@ function lookup(map, value) {
 
 // Every sim source a key uses: its own, plus value layers with their own source in its faces.
 function keySources(key) {
+  key = norm(key);
   const out = key.read ? [key.read] : [];
-  if (key.type === 'armable' && key.armed) out.push(key.armed);
-  if (key.type === 'armable') out.push(...armableOrSources(key));
   // A press that writes a simvar watches it too, so cycle and step know its current value.
-  if (key.press && key.press.var && key.press.var.var) out.push(key.press.var);
-  const faces = [key.face, ...Object.values(key.valueFaces || {})].filter(Boolean);
+  for (const a of pressActions(key.press)) if (a.var && a.var.var) out.push(a.var);
+  // Readout state logic: every condition's source.
+  for (const s of (key.logic && key.logic.steps) || []) for (const c of s.when || []) if (c.read) out.push(c.read);
+  const faces = [key.face, ...Object.values(key.valueFaces || {}), ...Object.values(key.logicFaces || {})].filter(Boolean);
   for (const f of faces) for (const L of f.layers || []) if ((L.kind === 'value' || L.kind === 'sublabel') && L.read) out.push(L.read);
-  return out;
+  // Each source once (a readout's own source is often a state logic condition too).
+  const seen = new Set();
+  return out.filter(s => { const k = sourceKey(s); if (seen.has(k)) return false; seen.add(k); return true; });
 }
 
-// Armable keys (user, 2026-10-29): a fixed ladder, checked top to bottom.
-//   active when read is activeIs (default 1), else armed when armed is armedIs (default 1), else
-//   otherwise. Unknown active value: clear, like any switch before the sim answers.
-//   activeOr / armedOr: more sources for a step, any one of which is enough, e.g. ILS capture or
-//   GPS approach active: [{ read: { var, unit }, is }] (is defaults to 1).
-// Returns 'active' | 'armed' | 'otherwise' | undefined.
-function armableStep(key, active, armed, valueOf = () => undefined) {
-  const any = (main, is, more) => (main !== undefined && same(main, is ?? 1))
-    || (more || []).some(o => o.read && same(valueOf(o.read), o.is ?? 1));
-  if (active === undefined && !(key.activeOr || []).some(o => o.read && valueOf(o.read) !== undefined)) return undefined;
-  if (any(active, key.activeIs, key.activeOr)) return 'active';
-  if (any(armed, key.armedIs, key.armedOr)) return 'armed';
-  return 'otherwise';
+// Readout state logic (generalised from the armable ladder, user 2026-11-01): steps checked top to
+// bottom, the first with any condition met wins, else otherwise. A condition is { read, is }
+// (is defaults to 1). Returns the step's index, 'otherwise', or undefined while nothing is known.
+// The editor previews a step by name: 'step 1', 'step 2', ..., 'otherwise'.
+function logicStep(logic, valueOf, preview) {
+  if (typeof preview === 'string') {
+    const m = preview.match(/^step (\d+)$/);
+    if (m) return Number(m[1]) - 1;
+    if (preview === 'otherwise') return 'otherwise';
+    if (preview === 'active') return 0; // the armable editor's step names
+    if (preview === 'armed') return 1;
+  }
+  const steps = logic.steps || [];
+  let known = false;
+  for (let i = 0; i < steps.length; i++) {
+    for (const c of steps[i].when || []) {
+      const v = valueOf(c.read);
+      if (v === undefined) continue;
+      known = true;
+      if (same(v, c.is ?? 1)) return i;
+    }
+  }
+  return known ? 'otherwise' : undefined;
 }
+
 // One key of the keypad layout (keypad.js), for an open keypad k = { spec, typed, now }. Keys
 // without a face or icon get the built-in look for their role; a label replaces a fixed role's
 // word, a face's live value layers show the role's text. Keys that do nothing now are dimmed.
@@ -95,23 +121,29 @@ function keypadKeyImage(engine, key, k) {
   return tiles.keypadKey(label, { role: role === 'digit' ? 'digit' : role, dim: !enabled, sublabel });
 }
 
-// How a press behaves on the dock, decided once per press (review 2026-10-30): the cases that
-// need key up as well as key down, and everything else (cycle, step, hold, set, event, stopwatch
-// actions), which _press handles.
+// How a press behaves on the dock (review 2026-10-30; tap / hold from the key editor redesign,
+// user 2026-11-01): a keypad, a keyboard shortcut (which can be held down with the key), tap /
+// hold, or a plain action (cycle, step, set, spring-loaded hold, event, stopwatch, or a list).
 function pressKind(p) {
-  if (p.keypad) return 'keypad';
-  if (p.keys) return 'keys';
-  if (p.timer !== undefined && p.holdReset) return 'timerHold';
-  if (p.step !== undefined && p.rampMs) return 'ramp';
+  if (isTapHold(p)) return 'taphold';
+  if (!Array.isArray(p) && p.keypad) return 'keypad';
+  if (!Array.isArray(p) && p.keys) return 'keys';
   return 'simple';
 }
 
-// What cycle / step / hold / set change: press.var (a simvar, user 2026-10-30), press.input, or
-// the key's own input event. A simvar is never written unless named in press.var.
-function pressTarget(key) {
-  const p = key.press || {};
-  if (p.var && p.var.var) return p.var;
-  const input = p.input || (key.read && key.read.input);
+// Every action in a press, lists and tap / hold opened up.
+function pressActions(p) {
+  if (!p) return [];
+  if (Array.isArray(p)) return p.flatMap(pressActions);
+  if (isTapHold(p)) return [...pressActions(p.tap), ...pressActions(p.hold)];
+  return [p];
+}
+
+// What cycle / step / hold / set change: the action's simvar (var, user 2026-10-30), its input
+// event, or the key's own input event. A simvar is never written unless an action names it.
+function actionTarget(key, a) {
+  if (a.var && a.var.var) return a.var;
+  const input = a.input || (key.read && key.read.input);
   return input ? { input } : null;
 }
 
@@ -127,15 +159,7 @@ function nextInCycle(list, current) {
   return above.length ? Math.min(...above) : list[0];
 }
 
-function armableOrSources(key) {
-  return [...(key.activeOr || []), ...(key.armedOr || [])].map(o => o.read).filter(Boolean);
-}
 const same = (a, b) => String(a) === String(b);
-const ARMABLE_STATE = { active: 'on', armed: 'armed' };
-const ARMABLE_STEPS = ['active', 'armed', 'otherwise'];
-function armableState(key, step) {
-  return step === undefined ? 'clear' : ARMABLE_STATE[step] || key.otherwise || 'clear';
-}
 
 // Sublabel: per-value text if there is one for this value, else the fixed sublabel. Switches made
 // before sublabels existed kept theirs in `text` ("word under the label"), still honoured.
@@ -191,13 +215,14 @@ class ProfileEngine {
     this.dockVars = dockVars || new DockVars();
     this.keypad = null; // { spec, typed, now } while a keypad covers the dock
     this.keypadLayout = kp.DEFAULT_LAYOUT;
+    this.preview = null; // { profile, pageIndex, values, sources } while preview mode shows a profile
     this.scene = null; // panel-wide picture shown instead of the keys (aircraft or page name)
     this.sceneTimer = null;
     this.slide = 0; // sideways offset of panel-wide text, animated (see _slide)
     this.slideTimer = null;
     this.holdTimers = new Map(); // slot -> interval re-sending a held position
     // slot -> what a press still in progress is doing, for its key up: { kind: 'ramp', ramping },
-    // { kind: 'keys', keys } (a shortcut held down), { kind: 'timerHold', reset }.
+    // { kind: 'keys', keys } (a shortcut held down), { kind: 'taphold', held }.
     this.pressing = new Map();
     this.swallowed = new Set(); // slots whose key down only dismissed an announcement
     this.status = 'offline'; // offline | loading | ready
@@ -458,6 +483,7 @@ class ProfileEngine {
   }
 
   _image(slot) {
+    if (this.preview) return this._previewImage(slot);
     if (this.status === 'offline') return tiles.scene({ ...this._statusScene('offline'), offset: this.slide }, slot);
     if (this.scene) return tiles.scene({ ...this.scene, offset: this.slide }, slot);
     if (this.status === 'loading') return tiles.scene({ ...this._statusScene('loading'), offset: this.slide }, slot);
@@ -474,9 +500,10 @@ class ProfileEngine {
   // Order: a custom face for this value, a library icon for this value, the key's custom face,
   // then the automatic look.
   keyImage(key, value, error, valueOf = () => undefined) {
+    key = norm(key);
     if (!key) return tiles.blank();
     if (error) return tiles.unavailable(key.label || '');
-    if (key.type === 'armable') return this._armableImage(key, value, valueOf);
+    if (key.logic) return this._logicImage(key, value, valueOf);
     // A keypad layout key outside an open keypad (the editor): shown with sample entry.
     if (key.type === 'keypad') return keypadKeyImage(this, key, { spec: kp.keypadSpec('com1'), typed: '1248', now: '121.500' });
     const valueFace = lookup(key.valueFaces, value);
@@ -487,7 +514,7 @@ class ProfileEngine {
       const state = value === undefined ? 'clear' : (lookup(key.states, value) || key.otherwise || 'clear');
       return this._faceImage(key, face, { value, valueOf, state, sublabel: sublabelFor(key, value), iconState: key.type === 'switch' ? state : null });
     }
-    if (key.type === 'readout') {
+    if (key.type === 'readout' || key.type === 'rotary') {
       const icon = this.renderer.icon(key.icon, key.iconState || null);
       return icon
         ? tiles.iconReadout(icon, formatValue(key, value), this.renderer.iconBox(key.icon, key.iconState || null), sublabelFor(key, value))
@@ -515,14 +542,17 @@ class ProfileEngine {
     return tiles.face(face, { iconFor, valueFor, state, sublabel: layerSublabel(sublabel, valueOf) });
   }
 
-  // Armable: faces and sublabels are per step (active / armed / otherwise), not per sim value.
-  _armableImage(key, value, valueOf) {
-    // The editor previews a step by name; sim values are numbers.
-    const step = ARMABLE_STEPS.includes(value) ? value : armableStep(key, value, key.armed ? valueOf(key.armed) : undefined, valueOf);
-    const state = armableState(key, step);
-    const face = (step && key.valueFaces && key.valueFaces[step]) || key.face;
-    const sublabel = step && key.sublabels && key.sublabels[step] !== undefined ? key.sublabels[step] : key.sublabel;
-    if (face) return this._faceImage(key, face, { value, valueOf, state, sublabel, iconState: state === 'armed' ? 'clear' : state });
+  // State logic: faces and sublabels per step (logicFaces: { index | 'otherwise': face }).
+  _logicImage(key, value, valueOf) {
+    const own = key.read ? sourceKey(key.read) : null;
+    const of = src => (own && sourceKey(src) === own && value !== undefined && typeof value !== 'string' ? value : valueOf(src));
+    const step = logicStep(key.logic, of, value);
+    const s = step === undefined ? null : step === 'otherwise' ? (key.logic.otherwise || {}) : (key.logic.steps[step] || {});
+    const state = !s ? 'clear' : s.look || (step === 'otherwise' ? 'clear' : 'on');
+    const sublabel = s && s.sublabel !== undefined ? s.sublabel : key.sublabel;
+    const face = (step !== undefined && key.logicFaces && key.logicFaces[step]) || key.face;
+    const shown = typeof value === 'string' && /^(step \d+|otherwise|active|armed)$/.test(value) ? undefined : value;
+    if (face) return this._faceImage(key, face, { value: shown, valueOf, state, sublabel, iconState: state === 'armed' ? 'clear' : state });
     if (state === 'armed') {
       const clear = this.renderer.icon(key.icon, 'clear');
       if (clear) return tiles.armedIcon(clear);
@@ -545,18 +575,15 @@ class ProfileEngine {
     // eat this press's release (review 2026-10-30).
     this.swallowed.delete(slot);
     if (this.keypad) { this.swallowed.add(slot); return this._keypadPress(slot); }
+    if (this.preview) return this._previewPress(slot);
     if (NAV[slot]) return this._nav(NAV[slot]);
     // A press while an announcement covers the keys just dismisses it: the keys were not visible.
     if (this.scene) { this.swallowed.add(slot); this._clearScene(); return this.redrawAll(); }
-    const key = this.status === 'ready' ? this.page.keys?.[slot] : null;
+    const key = norm(this.status === 'ready' ? this.page.keys?.[slot] : null);
     if (!key || !key.press) return;
     const p = key.press;
     try {
       switch (pressKind(p)) {
-        case 'keypad':
-          this._openKeypad(key);
-          this.swallowed.add(slot);
-          return;
         case 'keys': // a keyboard shortcut: tapped, or held down for as long as the key is
           if (!this.keyboard) throw new Error('no keyboard');
           if (p.whileHeld) {
@@ -565,33 +592,27 @@ class ProfileEngine {
           } else this.keyboard.tap(p.keys, { focus: p.focus !== false });
           this.log('press', { keys: p.keys });
           return;
-        case 'timerHold': { // stopwatch: a tap starts / stops (on release), holding resets
+        case 'taphold': {
+          // Without a hold action a tap acts at once; with one, a tap acts when let go before
+          // holdMs (default 400, the hold-to-ramp threshold proven in flight) and a hold at holdMs.
+          if (p.hold === undefined) return this._runAction(slot, key, p.tap);
           this._stopHold(slot);
-          const r = { kind: 'timerHold', reset: false };
+          const r = { kind: 'taphold', held: false };
           this.pressing.set(slot, r);
           this.holdTimers.set(slot, setTimeout(() => {
-            r.reset = true;
-            this.dockVars.press(p.timer, 'stop');
-            this.dockVars.press(p.timer, 'reset');
-            this.log('press', { timer: p.timer, action: 'hold reset' });
-          }, p.holdMs ?? 1000));
-          return;
-        }
-        case 'ramp': { // a step: a tap steps (on release), holding past rampDelayMs ramps
-          this._stopHold(slot);
-          const r = { kind: 'ramp', ramping: false };
-          this.pressing.set(slot, r);
-          this.holdTimers.set(slot, setTimeout(() => this._ramp(slot, key, r), p.rampDelayMs ?? 400));
+            r.held = true;
+            try { this._holdAction(slot, key, p.hold); } catch (e) { this.log('press failed', { slot, error: e.message }); this.display.alert(slot); }
+          }, p.holdMs ?? 400));
           return;
         }
         default:
-          this._press(key, 'down');
+          this._runAction(slot, key, p);
           // Some aircraft drop spring-loaded positions (e.g. START) after a moment unless the input
           // keeps arriving, like a "repeat input" binding. Re-send while the key is held.
-          if (p.hold !== undefined && p.repeatMs) {
+          if (!Array.isArray(p) && typeof p.hold === 'number' && p.repeatMs) {
             this._stopHold(slot);
             this.holdTimers.set(slot, setInterval(() => {
-              try { this._apply(pressTarget(key), p.hold); } catch (e) { this._stopHold(slot); }
+              try { this._apply(actionTarget(key, p), p.hold); } catch (e) { this._stopHold(slot); }
             }, p.repeatMs));
           }
       }
@@ -604,57 +625,137 @@ class ProfileEngine {
   keyUp(slot) {
     this._stopHold(slot);
     if (this.swallowed.delete(slot)) return; // its key down did nothing, so neither does key up
-    const key = this.status === 'ready' ? this.page?.keys?.[slot] : null;
+    if (this.preview) return;
+    const key = norm(this.status === 'ready' ? this.page?.keys?.[slot] : null);
     const pressing = this.pressing.get(slot);
     this.pressing.delete(slot);
     try {
       if (pressing && pressing.kind === 'keys') return this.keyboard.up(pressing.keys);
       if (!key || !key.press) return;
-      if (pressing && pressing.kind === 'timerHold') return pressing.reset ? undefined : this._press(key, 'down');
-      if (pressing && pressing.kind === 'ramp') return pressing.ramping ? undefined : this._press(key, 'down');
-      if (key.press.release !== undefined) this._press(key, 'up');
+      if (pressing && pressing.kind === 'taphold') {
+        if (!pressing.held && key.press.tap !== undefined) this._runAction(slot, key, key.press.tap);
+        return;
+      }
+      if (!Array.isArray(key.press) && key.press.release !== undefined) this._act(key, key.press, 'up');
     } catch (e) {
       this.log('release failed', { slot, error: e.message });
       this.display.alert(slot);
     }
   }
 
-  // Holding a step key: keep stepping by rampStep (default step) every rampMs, from the value the
+  // An action, or a list of actions done in order.
+  _runAction(slot, key, action) {
+    if (Array.isArray(action)) { for (const a of action) this._runAction(slot, key, a); return; }
+    if (action.keypad) { this._openKeypad(key, action.keypad); this.swallowed.add(slot); return; }
+    if (action.keys) {
+      if (!this.keyboard) throw new Error('no keyboard');
+      this.keyboard.tap(action.keys, { focus: action.focus !== false });
+      this.log('press', { keys: action.keys });
+      return;
+    }
+    this._act(key, action, 'down');
+  }
+
+  // A hold action, at holdMs. With repeatMs it repeats while the key is held: a repeated step is
+  // the ramp (counting from the value it last sent), anything else is simply sent again.
+  _holdAction(slot, key, action) {
+    if (!Array.isArray(action) && action.repeatMs) {
+      if (action.step !== undefined) return this._ramp(slot, key, action);
+      this.holdTimers.set(slot, setInterval(() => {
+        try { this._runAction(slot, key, action); } catch (e) { this._stopHold(slot); }
+      }, action.repeatMs));
+    }
+    this._runAction(slot, key, action);
+  }
+
+  // Holding a step key: keep stepping by the action's step every repeatMs, from the value the
   // ramp itself last sent (the sim's report lags). At min / max it stops, or with wrap turns back.
-  _ramp(slot, key, r) {
-    const p = key.press;
-    const target = pressTarget(key);
+  _ramp(slot, key, a) {
+    const target = actionTarget(key, a);
     const own = target && this.watches.get(sourceKey(target));
     let v = own && own.value !== undefined ? own.value : key.read ? this.watches.get(sourceKey(key.read))?.value : undefined;
     if (v === undefined || !target) return;
-    r.ramping = true;
-    let dir = Math.sign(p.step) || 1;
-    const size = Math.abs(p.rampStep ?? p.step) || 1;
+    let dir = Math.sign(a.step) || 1;
+    const size = Math.abs(a.step) || 1;
     v = Number(v);
     const clamp = n => {
-      if (p.max !== undefined && n >= p.max) { if (p.wrap) dir = -1; return p.max; }
-      if (p.min !== undefined && n <= p.min) { if (p.wrap) dir = 1; return p.min; }
+      if (a.max !== undefined && n >= a.max) { if (a.wrap) dir = -1; return a.max; }
+      if (a.min !== undefined && n <= a.min) { if (a.wrap) dir = 1; return a.min; }
       return n;
     };
     const tick = () => {
       let next = clamp(v + dir * size);
       // Held at the end it is already at: with wrap, turn back at once (review 2026-10-30).
-      if (next === v && p.wrap) next = clamp(v + dir * size);
+      if (next === v && a.wrap) next = clamp(v + dir * size);
       if (next === v) return this._stopHold(slot); // at a stop, nowhere to go
       v = next;
       try { this._apply(target, v); } catch (e) { this._stopHold(slot); }
     };
     // The timer first, so a first tick that finds nowhere to go can stop it (review 2026-10-30).
-    this.holdTimers.set(slot, setInterval(tick, p.rampMs));
+    this.holdTimers.set(slot, setInterval(tick, a.repeatMs));
     tick();
+  }
+
+  // ---------- preview mode ----------
+  // A profile shown on the dock without the sim (user, 2026-11-01): siloed even with the matching
+  // aircraft loaded. Keys show the editor's preview values; the round buttons page; a key that
+  // opens a keypad shows it; nothing reaches the sim. The sim's own state carries on underneath.
+
+  // values: { page index: { slot: value } }; sources: { sourceKey: value } (other sources).
+  startPreview({ profile, pageIndex = 0, values = {}, sources = {} }) {
+    const pages = (profile && profile.pages) || [];
+    if (!pages.length) throw new Error('nothing to preview');
+    this._stopHolds();
+    this.keypad = null;
+    this.preview = { profile, pageIndex: Math.min(pageIndex, pages.length - 1), values, sources };
+    this.preview.slotOf = key => Object.keys(this.preview.profile.pages[this.preview.pageIndex].keys || {}).find(s => this.preview.profile.pages[this.preview.pageIndex].keys[s] === key);
+    this.log('preview', { profile: profile.id, page: this.preview.pageIndex });
+    this.redrawAll();
+  }
+
+  // New preview values (the editor sends them as you edit), without restarting.
+  updatePreview({ profile, pageIndex, values, sources }) {
+    if (!this.preview) return;
+    Object.assign(this.preview, { ...(profile ? { profile } : {}), ...(pageIndex !== undefined ? { pageIndex } : {}), ...(values ? { values } : {}), ...(sources ? { sources } : {}) });
+    this.redrawAll();
+  }
+
+  stopPreview() {
+    if (!this.preview) return;
+    this.preview = null;
+    this.keypad = null;
+    this.log('preview', { stopped: true });
+    this.redrawAll();
+  }
+
+  _previewPress(slot) {
+    const pv = this.preview;
+    const n = pv.profile.pages.length;
+    if (NAV[slot]) {
+      pv.pageIndex = NAV[slot] === 'main' ? 0 : ((pv.pageIndex + (NAV[slot] === 'next' ? 1 : -1)) % n + n) % n;
+      return this.redrawAll();
+    }
+    const key = norm(pv.profile.pages[pv.pageIndex].keys?.[slot]);
+    // Only a keypad shows: it is the dock's own; every other action would reach the sim.
+    const keypad = key && pressActions(key.press).find(a => a.keypad);
+    if (keypad) { this.swallowed.add(slot); this._openKeypad(key, keypad.keypad); }
+  }
+
+  _previewImage(slot) {
+    if (this.keypad) return keypadKeyImage(this, this.keypadLayout[slot], this.keypad);
+    const pv = this.preview;
+    const key = pv.profile.pages[pv.pageIndex].keys?.[slot];
+    if (!key) return tiles.blank();
+    const v = (pv.values[pv.pageIndex] || {})[slot]; // values: { page: { slot: value } }
+    return this.keyImage(key, v === '' ? undefined : v, null, src => pv.sources[sourceKey(src)]);
   }
 
   // ---------- keypad ----------
 
-  _openKeypad(key) {
-    const spec = kp.keypadSpec(key.press.keypad);
-    const w = key.read && this.watches.get(sourceKey(key.read));
-    const now = w && w.value !== undefined ? formatValue(key, w.value) : '';
+  _openKeypad(key, keypad) {
+    const spec = kp.keypadSpec(keypad);
+    const value = this.preview ? (this.preview.values[this.preview.pageIndex] || {})[this.preview.slotOf(key)] : (key.read && this.watches.get(sourceKey(key.read)) || {}).value;
+    const now = value !== undefined ? formatValue(key, value) : '';
     this._stopHolds();
     this.keypad = { spec, typed: '', now };
     this.log('keypad', { title: spec.title });
@@ -680,7 +781,8 @@ class ProfileEngine {
 
   _enterKeypad() {
     const { spec, typed } = this.keypad;
-    try { this.applyKeypad(spec, typed); } catch (e) { this.log('keypad failed', { error: e.message }); }
+    // Preview mode is siloed from the sim (user, 2026-11-01): the keypad shows, nothing is sent.
+    if (!this.preview) { try { this.applyKeypad(spec, typed); } catch (e) { this.log('keypad failed', { error: e.message }); } }
     this._closeKeypad();
   }
 
@@ -723,38 +825,39 @@ class ProfileEngine {
     return this.setPage(this.pageIndex + (dir === 'next' ? 1 : -1));
   }
 
-  _press(key, phase) {
-    const p = key.press;
-    if (p.timer !== undefined) {
+  // One plain action: a stopwatch, an event, or a value set on its target (cycle, step,
+  // spring-loaded hold and its release, set).
+  _act(key, a, phase) {
+    if (a.timer !== undefined) {
       if (phase === 'up') return;
-      this.log('press', { timer: p.timer, action: p.action || 'toggle' });
-      return this.dockVars.press(p.timer, p.action || 'toggle');
+      this.log('press', { timer: a.timer, action: a.action || 'toggle' });
+      return this.dockVars.press(a.timer, a.action || 'toggle');
     }
-    const target = pressTarget(key);
+    const target = actionTarget(key, a);
     // The value to cycle or step from: the target's own, when it is watched, else the key's.
     const own = target && this.watches.get(sourceKey(target));
     const current = own && own.value !== undefined ? own.value : key.read ? this.watches.get(sourceKey(key.read))?.value : undefined;
     let value;
-    if (phase === 'up') value = p.release;
-    else if (p.event) {
-      value = p.toggleValue ? (current ? 0 : 1) : (p.value ?? 0);
-      this.log('press', { event: p.event, value });
-      return this.sim.send({ event: p.event, value });
-    } else if (p.cycle) {
-      value = nextInCycle(p.cycle, current);
-    } else if (p.step !== undefined) {
+    if (phase === 'up') value = a.release;
+    else if (a.event) {
+      value = a.toggleValue ? (current ? 0 : 1) : (a.value ?? 0);
+      this.log('press', { event: a.event, value });
+      return this.sim.send({ event: a.event, value });
+    } else if (a.cycle) {
+      value = nextInCycle(a.cycle, current);
+    } else if (a.step !== undefined) {
       if (current === undefined) throw new Error('no current value to step from');
       const now = Math.round(current);
-      value = now + p.step;
-      if (p.min !== undefined) value = Math.max(p.min, value);
-      if (p.max !== undefined) value = Math.min(p.max, value);
+      value = now + a.step;
+      if (a.min !== undefined) value = Math.max(a.min, value);
+      if (a.max !== undefined) value = Math.min(a.max, value);
       if (value === now) {
         // At the stop: with wrap, go round to the other end (min and max both needed).
-        if (!p.wrap || p.min === undefined || p.max === undefined) return;
-        value = p.step > 0 ? p.min : p.max;
+        if (!a.wrap || a.min === undefined || a.max === undefined) return;
+        value = a.step > 0 ? a.min : a.max;
       }
-    } else if (p.hold !== undefined) value = p.hold;
-    else if (p.set !== undefined) value = p.set;
+    } else if (typeof a.hold === 'number') value = a.hold;
+    else if (a.set !== undefined) value = a.set;
     else throw new Error('press has no action');
     this.log('press', { ...target, value, phase });
     this._apply(target, value);

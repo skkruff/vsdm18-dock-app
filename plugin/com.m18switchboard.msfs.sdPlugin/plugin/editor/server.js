@@ -9,6 +9,7 @@ const { sourceKey, keySources } = require('../engine');
 const { FONTS, style } = require('../render');
 const { parseShortcut, formatShortcut } = require('../keys');
 const { DEFAULT_LAYOUT, PRESETS, layoutProblems, keypadSpec } = require('../keypad');
+const { validate } = require('../profiles');
 
 const PUBLIC = path.join(__dirname, 'public');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
@@ -115,7 +116,23 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
       profilesDir: store.dir,
       theme: config.theme,
       iconDir: config.iconDir,
+      preview: engine.preview ? { profile: engine.preview.profile.id, pageIndex: engine.preview.pageIndex } : null,
     })],
+    // Preview mode (user, 2026-11-01): the profile being edited on the dock, siloed from the sim.
+    // { profile, pageIndex, values: { page: { slot: value } }, sources }; validated, unsaved is fine.
+    ['POST', /^\/api\/preview$/, async (m, req) => {
+      const { profile, pageIndex = 0, values = {}, sources = {} } = await readBody(req);
+      const { profile: p, skipped } = previewable(profile);
+      engine.startPreview({ profile: p, pageIndex, values, sources });
+      return { ok: true, skipped };
+    }],
+    ['PUT', /^\/api\/preview$/, async (m, req) => {
+      const { profile, pageIndex, values, sources } = await readBody(req);
+      const { profile: p, skipped } = profile ? previewable(profile) : {};
+      engine.updatePreview({ profile: p, pageIndex, values, sources });
+      return { ok: true, skipped: skipped || [] };
+    }],
+    ['DELETE', /^\/api\/preview$/, () => { engine.stopPreview(); return { ok: true }; }],
     ['GET', /^\/api\/profiles$/, () => ({ profiles: store.list(), errors: store.load().errors })],
     ['GET', /^\/api\/profiles\/([^/]+)$/, (m) => store.read(decodeURIComponent(m[1]))],
     ['PUT', /^\/api\/profiles\/([^/]+)$/, async (m, req) => {
@@ -328,6 +345,27 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
     },
     close() { server.close(); },
   };
+}
+
+// A profile being edited, made safe to preview: keys that are not finished yet (they would not
+// save either) are left off the dock instead of refusing the whole preview. Returns the keys left
+// off as "page N, key S: why".
+function previewable(profile) {
+  if (!profile || !Array.isArray(profile.pages) || !profile.pages.length) throw new Error('nothing to preview');
+  const skipped = [];
+  const pages = profile.pages.map((pg, i) => {
+    const keys = {};
+    for (const [slot, key] of Object.entries((pg && pg.keys) || {})) {
+      try {
+        validate({ id: 'preview', fallback: true, pages: [{ keys: { [slot]: key } }] }, 'preview');
+        keys[slot] = key;
+      } catch (e) {
+        skipped.push(`page ${i + 1}, key ${slot}: ${e.message.replace(/^preview: page 1 slot \d+: /, '')}`);
+      }
+    }
+    return { ...pg, keys };
+  });
+  return { profile: validate({ ...profile, id: profile.id || 'preview', fallback: true, pages }, 'preview'), skipped };
 }
 
 module.exports = { createEditorServer };

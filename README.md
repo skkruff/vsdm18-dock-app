@@ -9,17 +9,20 @@ Everything is set up in a local web editor: keys, pages, looks and a library of 
 
 ## What it does
 
-- **Keys that follow the sim**: switches with green / red / outline bars (or your own icons),
-  readouts (frequencies, times, percentages, with units), annunciators that show armed and active
-  modes, and decorative keys.
-- **Presses**: toggles, steps (with wrap and hold-to-ramp for dimmers), spring-loaded holds,
+- **Keys that follow the sim**: switches with any number of positions and green / red / outline
+  bars (or your own icons), buttons, rotaries (dimmers), readouts (frequencies, times,
+  percentages, with units), annunciators with state logic (e.g. armed / captured), and
+  decorative keys.
+- **Presses**: different actions on a tap and a hold, several actions on one press, toggles,
+  steps (with wrap; a held step ramps a dimmer), spring-loaded holds,
   sim events, input events (each aircraft's own cockpit controls), simvar writes, keyboard
   shortcuts (for things MSFS only has key bindings for), stopwatches, and keypads for transponder
   codes and radio frequencies (with a VFR key).
 - **Profiles per aircraft**, matched by the aircraft's folder, title or ATC model; a generic profile
   for anything else. A Cessna 172 G1000 (MSFS 2024) profile ships with it.
 - **The editor** (http://localhost:8765, or hold the middle round button): a picture of the dock
-  drawn exactly as the dock shows it, a key inspector, a face designer, Browse lists of every simvar
+  drawn exactly as the dock shows it, a key editor (type, then where it gets its information, how
+  it looks, what a press does), Preview on dock (cut off from the sim), a face designer, Browse lists of every simvar
   and key event in the MSFS 2024 SDK, Learn (move a control in the cockpit to pick it), a keypad
   layout, and the library.
 

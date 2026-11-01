@@ -24,8 +24,10 @@ per keypad key.
 2026-10-30: the user confirmed a fully working C172 switchboard (their profile in Documents;
 brief Phase 3 done, beyond it in features); it is now the shipped C172 profile (tests use
 `test/fixtures/profiles`). Code review done 2026-10-30 (see `verified.md`); README written.
-Next: Phase 4 (second aircraft), then Phase 4b (editor visual and QOL polish, backlog in
-`docs/design-notes.md`), then Phase 5.
+2026-11-01: **key editor redesign** to the user's schema (`docs/key-editor-schema.md`: types
+Switch / Button / Rotary / Readout / Decorative, tap / hold, readout state logic, preview mode),
+before Phase 4 (user's decision). Then Phase 4 (second aircraft), Phase 4b (remaining polish,
+`docs/design-notes.md`), Phase 5.
 
 ## Profile content principles (user, 2026-10-27)
 

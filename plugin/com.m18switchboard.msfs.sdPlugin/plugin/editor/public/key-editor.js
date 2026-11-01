@@ -501,6 +501,8 @@ function actsOn(key, a) {
         } catch (err) { res.textContent = err.message; res.className = 'test-out bad'; }
       } } }, 'Set'), res), 'Writes the value once to see if the sim keeps it. Simvars marked [settable] in Browse are the ones the SDK says can be set.'));
   }
+  out.push(field('Sends ×', input(a.scale, v => { const n = Number(v); if (v === '' || n === 1 || !(n > 0)) delete a.scale; else a.scale = n; changed(); },
+    { type: 'number', step: 'any', min: 0, placeholder: '1', class: 'narrow' }), 'For controls set in other units than they read: 0.01 when it reads 0-100 but is set 0-1', 'sendScale'));
   return out;
 }
 

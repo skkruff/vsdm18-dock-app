@@ -608,6 +608,33 @@ const text = uri => decodeURIComponent(uri);
     e8.keyUp(0);
     assert.deepStrictEqual(sim8.sets, [], 'nothing sent');
   }
+  // Sends × (user test 2026-11-01, DA62 panel light: reads 0-100, set 0-1): steps and limits in
+  // the units read, the value sent scaled, on a tap and on a ramp.
+  {
+    const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
+    const sim9 = new FakeSim({ DIM: 50 });
+    const press = { tap: { step: 10, min: 0, max: 100, wrap: true, scale: 0.01 }, hold: { step: 5, min: 0, max: 100, wrap: true, repeatMs: 20, scale: 0.01 }, holdMs: 30 };
+    const prof = { id: 's', fallback: true, pages: [{ name: 'P', keys: { 0: { type: 'rotary', read: { input: 'DIM' }, press } } }] };
+    assert.doesNotThrow(() => validate(prof, 's.json'));
+    assert.throws(() => validate({ ...prof, pages: [{ keys: { 0: { type: 'rotary', read: { input: 'DIM' }, press: { step: 1, scale: 0 } } } }] }, 'bad.json'), /sends ×/);
+    const e9 = new ProfileEngine({ redrawMs: 0, sim: sim9, display: { image() {}, title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
+    e9.start();
+    sim9.emit('connected');
+    sim9.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
+    await new Promise(r => setTimeout(r, 30));
+    sim9.input('DIM', 50);
+    e9.keyDown(0); e9.keyUp(0);
+    assert.deepStrictEqual(sim9.sets.splice(0), [['DIM', 0.6]], 'a tap from 50 sends 0.6');
+    sim9.input('DIM', 100);
+    e9.keyDown(0); e9.keyUp(0);
+    assert.deepStrictEqual(sim9.sets.splice(0), [['DIM', 0]], 'wraps at 100 (read units)');
+    sim9.input('DIM', 50);
+    e9.keyDown(0);
+    await new Promise(r => setTimeout(r, 70));
+    e9.keyUp(0);
+    const sent = sim9.sets.splice(0).map(x => x[1]);
+    assert.deepStrictEqual(sent.slice(0, 2), [0.55, 0.6], `a hold ramps in scaled values (${sent})`);
+  }
   // A press that only dismissed an announcement, whose release never came (the dock went away),
   // does not eat the next press's release: a held START must still be let go (review 2026-10-30).
   {

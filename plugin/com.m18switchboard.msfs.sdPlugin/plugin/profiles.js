@@ -66,6 +66,7 @@ function actionProblems(action, key) {
     out.push('cycle/step/hold/set need something to act on: an input event (read.input or press.input) or a simvar (press.var)');
   }
   if (a.repeatMs !== undefined && !(a.repeatMs >= 20)) out.push('repeat must be at least every 20 ms');
+  if (a.scale !== undefined && !(typeof a.scale === 'number' && a.scale > 0)) out.push('"sends ×" must be a number above 0');
   return out;
 }
 const LCD_SLOTS = 15;

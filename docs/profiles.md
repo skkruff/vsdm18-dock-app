@@ -149,6 +149,11 @@ with `wrap` it turns back at the ends). Examples:
 A spring-loaded `{ "hold": 4, "release": 3 }` (a number) is not tap / hold: it holds a position
 while the key is down.
 
+**Sends ×** (`"scale": 0.01` on a cycle / step / hold / set action): for controls set in other units
+than they report. The DA62's LIGHTING_PANEL_LIGHT_INTENSITY reads 0-100 but is set 0-1, so
+`{ "step": 10, "min": 0, "max": 100, "scale": 0.01 }` steps from 50 to 60 and sends 0.6. Steps,
+limits and the key's value stay in the units read; ramps are scaled the same way.
+
 cycle/step/hold/set act on `press.var` (a simvar written directly, e.g.
 `{ "var": "TRANSPONDER STATE:1", "unit": "number" }`), else `press.input`, else the key's
 `read.input`. A simvar is only written when named in `press.var`. The sim keeps writes only to

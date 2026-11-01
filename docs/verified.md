@@ -47,6 +47,9 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-01, user test (DA62, sim): LIGHTING_PANEL_LIGHT_INTENSITY reads 0-100 (75 when part
+  dimmed) but is set 0-1 (set 50: full; set 0.5: half). Added "Sends ×" (`scale`) to actions;
+  engine tests cover a tap and a ramp. Not yet tried on the dock.
 - 2026-11-01, user report (DA62): Learn always caught PROCEDURE_ELEVATOR_TRIM, which stays 0.
   Cause (from the code): Learn subscribes to every input event, and a newly subscribed event's
   first report counted as a change even when it only reported its current value. Fix: Learn

@@ -49,6 +49,9 @@ const HELP = {
   positions: 'One row per sim value: the look (bar), sublabel, the text shown instead of the number, or an icon that '
     + 'replaces the whole key. Leave a cell empty for the default. "Fill from the SDK" uses the values the SDK lists '
     + 'for a simvar; "Learn positions" records the values while you move the control in the cockpit.',
+  sendScale: 'Some controls are set in other units than they report. The DA62\'s panel light reads 0-100 but is set '
+    + '0-1: with Sends × 0.01, a step of 10 from 50 sends 0.6. Steps, minimum, maximum and the value on the key stay in '
+    + 'the units read. Empty or 1: sent as is. Test: "Set a value" 50 and press; if the control goes to full, try 0.5.',
   tapHold: 'With a hold action, a tap acts when you let go (before the hold time) and a hold acts at the hold time '
     + '(400 ms unless you change it), so the two never both happen. Without one, a press acts at once.',
   actsOn: 'What the press changes. An input event is a cockpit control (switch, button, knob): the usual choice. '

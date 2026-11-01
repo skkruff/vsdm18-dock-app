@@ -612,7 +612,7 @@ class ProfileEngine {
           if (!Array.isArray(p) && typeof p.hold === 'number' && p.repeatMs) {
             this._stopHold(slot);
             this.holdTimers.set(slot, setInterval(() => {
-              try { this._apply(actionTarget(key, p), p.hold); } catch (e) { this._stopHold(slot); }
+              try { this._apply(actionTarget(key, p), p.hold, p.scale); } catch (e) { this._stopHold(slot); }
             }, p.repeatMs));
           }
       }
@@ -689,7 +689,7 @@ class ProfileEngine {
       if (next === v && a.wrap) next = clamp(v + dir * size);
       if (next === v) return this._stopHold(slot); // at a stop, nowhere to go
       v = next;
-      try { this._apply(target, v); } catch (e) { this._stopHold(slot); }
+      try { this._apply(target, v, a.scale); } catch (e) { this._stopHold(slot); }
     };
     // The timer first, so a first tick that finds nowhere to go can stop it (review 2026-10-30).
     this.holdTimers.set(slot, setInterval(tick, a.repeatMs));
@@ -859,15 +859,24 @@ class ProfileEngine {
     } else if (typeof a.hold === 'number') value = a.hold;
     else if (a.set !== undefined) value = a.set;
     else throw new Error('press has no action');
-    this.log('press', { ...target, value, phase });
-    this._apply(target, value);
+    this.log('press', { ...target, value, ...(a.scale !== undefined ? { sent: sendValue(value, a.scale) } : {}), phase });
+    this._apply(target, value, a.scale);
   }
 
-  _apply(target, value) {
+  // scale: what the target takes per unit of what it reports, e.g. 0.01 for a dimmer that reads
+  // 0-100 but is set 0-1 (DA62 LIGHTING_PANEL_LIGHT_INTENSITY, user test 2026-11-01). Steps,
+  // limits and the key's value stay in the units read.
+  _apply(target, value, scale) {
+    value = sendValue(value, scale);
     if (!target) throw new Error('press has nothing to act on');
     if (target.var) return this.sim.setVar({ name: target.var, unit: target.unit || 'number' }, value);
     return this.sim.setInput(target.input, value);
   }
+}
+
+function sendValue(value, scale) {
+  if (scale === undefined || scale === 1 || typeof value !== 'number') return value;
+  return Math.round(value * scale * 1e6) / 1e6; // 1e6: no 0.35000000000000003
 }
 
 module.exports = { ProfileEngine, formatValue, sourceKey, keySources, LCD_SLOTS };

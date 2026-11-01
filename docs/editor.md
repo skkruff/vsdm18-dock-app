@@ -105,7 +105,9 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     action a press acts at once. **Acts on** chooses what toggle / step / hold / set change: an
     input event (a cockpit control), or a **simvar written directly** (Browse, unit, and **Set**
     to write a value once and read it back: "kept" or "the sim did not keep it"). Simvars marked
-    [settable] in Browse are the ones the SDK says can be set.
+    [settable] in Browse are the ones the SDK says can be set. **Sends ×** scales the value sent
+    for controls set in other units than they read (DA62 panel light: reads 0-100, set 0-1,
+    so 0.01); set it on both the tap and the hold.
   - **Face (optional)**: design the key's look yourself from layers drawn in order: a library
     icon (cropped to its content or whole, fitted into a box you place), your own text, live
     values (the key's own, or each from its own source), a state bar (green / red / outline) and

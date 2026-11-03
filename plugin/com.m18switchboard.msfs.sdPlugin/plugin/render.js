@@ -256,7 +256,7 @@ function placedIcon(uri, box, area, id, crop = 'auto') {
 }
 
 // Sublabels: a smaller line under the main label, in the sublabel colour (Look panel).
-const SUBLABEL_SIZE = 19;
+const SUBLABEL_SIZE = 25; // was 19 (user, 2026-11-03)
 
 const tiles = {
   // state: on | off | clear (unknown). sublabel: optional line under the label, e.g. ARM.
@@ -284,7 +284,7 @@ const tiles = {
       let next = 8 + lab.block + 6;
       let body = lines(label, 8 + lab.block / 2, { size: LABEL_SIZE, width: 130, height: 24 });
       if (separator) { body += separatorRect({ y: next + 2 }); next += 10; }
-      if (sublabel) { body += lines(sublabel, next + 8, { size: SUBLABEL_SIZE, color: style.dim }); next += 18; }
+      if (sublabel) { body += lines(sublabel, next + 10, { size: SUBLABEL_SIZE, color: style.dim }); next += 25; }
       return svgUri(body + lines(value, (next + style.bar.y) / 2, { size: 30, color: style.readout, width: 132 }) + bar(state));
     }
     if (!separator) {
@@ -298,7 +298,7 @@ const tiles = {
     const lab = textFit(label, { size: LABEL_SIZE, width: 130, height: 40 });
     let y = 10 + lab.block; // bottom of the label
     let body = lines(label, 10 + lab.block / 2, { size: LABEL_SIZE, width: 130, height: 40 });
-    if (sublabel) { body += lines(sublabel, y + 12, { size: SUBLABEL_SIZE, color: style.dim }); y += 20; }
+    if (sublabel) { body += lines(sublabel, y + 14, { size: SUBLABEL_SIZE, color: style.dim }); y += 28; }
     body += separatorRect({ y: y + 9 });
     y += 13;
     return svgUri(body + lines(value, (y + 140) / 2, { size: sublabel ? 40 : 44, color: style.readout, width: 132 }));

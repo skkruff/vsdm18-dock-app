@@ -187,3 +187,5 @@ table.value-table select, table.value-table input { width: 100%; }
 .level-fields > .layer-source, .level-fields > .level-bands { flex-basis: 100%; }
 .level-bands { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
 .level-bands > button.add-or { align-self: flex-start; }
+.layer-fields .centre-btns { align-self: flex-end; }
+.layer-fields .centre-btns button { font-size: 12px; padding: 3px 8px; }

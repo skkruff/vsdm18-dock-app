@@ -19,7 +19,7 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   text is drawn as shapes, so it looks the same in the editor and on the dock) and the colours of
   readouts, labels, sublabels, the state bar (on, off, armed) and the separator (the readout
   colour until set; ↺ goes back to it). Labels on automatic keys are drawn at size 40 where they
-  fit, smaller for two lines. Bar and readout colours are measured from your
+  fit, smaller for two lines; sublabels at 25. Bar and readout colours are measured from your
   icons at start-up (`master_battery` on/off/clear, `set_altimeter`); ↺ goes back to the measured
   value. Bar size and corners are fixed (corner 9.5). Saved in `settings.json` next to the
   profiles folder.
@@ -131,7 +131,9 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     source, and optional colour bands ("+ colour band": below or above a value, e.g. yellow below
     25, red below 10). "+ face for a value" adds a separate face shown for one sim value (e.g. per
     switch position). Drag on the big preview to move
-    the selected layer, or type positions (key units 0-144). Use it to put a PNG above a readout,
+    the selected layer, or type positions (key units 0-144). **↔ centre** / **↕ centre** on each
+    layer put it in the middle of the key. Icon layers have a **scale** (% of the key's width; the
+    icon's box keeps its shape and centre) instead of width and height. Use it to put a PNG above a readout,
     or make a clean text-only key when the library has no suitable PNG. "Remove custom face" goes
     back to the automatic look.
   - Preview value: type a value to see that look.

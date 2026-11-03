@@ -35,7 +35,7 @@ function defaultFace(key) {
   const block = h => fit(h) * (0.7 + (n - 1) * 1.02);
   // With a separator: label, separator and sublabel stacked and centred (render.js stacked()).
   const stacked = (top, bottom) => {
-    const sepH = 27, subH = subl ? 19 * 0.7 + 8 : 0;
+    const sepH = 27, subH = subl ? 25 * 0.7 + 8 : 0;
     const size = fit(bottom - top - sepH - subH);
     const lb = size * (0.7 + (n - 1) * 1.02);
     let y = top + (bottom - top - (lb + sepH + subH)) / 2;
@@ -43,7 +43,7 @@ function defaultFace(key) {
     y += lb + 12;
     out.push({ kind: 'separator', x: 72, y: Math.round(y + 3.5) });
     y += 15;
-    out.push(sub(Math.round(y + 8 + 6.65)));
+    out.push(sub(Math.round(y + 8 + 8.75)));
     return out;
   };
   const switchLabel = () => (key.separator ? stacked(10, barY - 8) : [centred(10, subl ? barY * 0.78 - 15 : barY - 10), sub()]);
@@ -60,8 +60,8 @@ function defaultFace(key) {
     let next = 8 + lb + 6;
     const layers = [{ kind: 'text', text: label, x: 72, y: Math.round(8 + lb / 2), size: fit(24) }];
     if (key.separator) { layers.push({ kind: 'separator', x: 72, y: Math.round(next + 2) }); next += 10; }
-    layers.push(sub(Math.round(next + 8)));
-    if (subl) next += 18;
+    layers.push(sub(Math.round(next + 10)));
+    if (subl) next += 25;
     return { layers: [...layers, { kind: 'value', x: 72, y: Math.round((next + barY) / 2), size: 30 }, ...bar] };
   }
   if ((key.type === 'readout' || key.type === 'rotary') && !key.logic) {
@@ -69,8 +69,8 @@ function defaultFace(key) {
     if (!key.separator) return { layers: [centred(10, subl ? 40 : 50), sub(54), { kind: 'value', x: 72, y: subl ? 102 : 96, size: subl ? 42 : 46 }] };
     const lb = block(40);
     let y = 10 + lb;
-    const layers = [{ kind: 'text', text: label, x: 72, y: Math.round(10 + lb / 2), size: fit(40) }, sub(Math.round(y + 12))];
-    if (subl) y += 20;
+    const layers = [{ kind: 'text', text: label, x: 72, y: Math.round(10 + lb / 2), size: fit(40) }, sub(Math.round(y + 14))];
+    if (subl) y += 28;
     layers.push({ kind: 'separator', x: 72, y: Math.round(y + 9) });
     y += 13;
     return { layers: [...layers, { kind: 'value', x: 72, y: Math.round((y + 140) / 2), size: subl ? 40 : 44 }] };
@@ -221,7 +221,7 @@ function faceDesigner(key, slot) {
         el('span', {}, L.icon || (key.icon ? `key's icon (${key.icon})` : 'choose an icon')),
         el('button', { on: { click: () => pickIcon('any', name => { if (name) L.icon = name; else delete L.icon; changed(); renderInspector(); }) } }, 'Choose…')),
       el('label', { class: 'mini' }, 'crop', select_([['auto', 'to content'], ['full', 'whole icon']], L.crop || 'auto', v => { L.crop = v; update(); })),
-      n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'));
+      n('x', 'x'), n('y', 'y'), iconScale(L, update));
     } else if (L.kind === 'text') {
       fields.push(el('label', { class: 'mini wide' }, 'text', el('textarea', { rows: 1, on: { input: e => { L.text = e.target.value; update(); } } }, L.text || '')),
         n('x', 'x'), n('y', 'y'), n('size', 'size'), n('w', 'max width'), color('color', COLORS().label));
@@ -239,7 +239,7 @@ function faceDesigner(key, slot) {
       if (own) srcBox.append(sourceEditor(L.read, r => { L.read = r; if (r && r.hint) { for (const k of ['decimals', 'pad', 'format']) if (r.hint[k] !== undefined && L[k] === undefined) L[k] = r.hint[k]; delete r.hint; } }));
       fields.push(srcBox);
     } else if (L.kind === 'sublabel') {
-      fields.push(n('x', 'x', { placeholder: 72 }), n('y', 'y', { placeholder: SUBLABEL_Y() }), n('size', 'size', { placeholder: 19 }), n('w', 'max width'), color('color', lookValue('dim', '#9aa0a8')));
+      fields.push(n('x', 'x', { placeholder: 72 }), n('y', 'y', { placeholder: SUBLABEL_Y() }), n('size', 'size', { placeholder: 25 }), n('w', 'max width'), color('color', lookValue('dim', '#9aa0a8')));
       // Like a live value: the key's sublabel, or text chosen by its own source's value (user,
       // 2026-10-30), e.g. a second line saying which mode another simvar is in.
       const own = !!L.read;
@@ -266,6 +266,10 @@ function faceDesigner(key, slot) {
     } else if (L.kind === 'level') {
       fields.push(levelFields(L, i, n, color, update));
     }
+    // One click puts the layer in the middle of the key, across or up and down (user, 2026-11-03).
+    fields.push(el('span', { class: 'inline centre-btns' },
+      el('button', { title: 'Centre across the key', on: { click: () => { centreLayer(L, 'x'); changed(); renderInspector(); } } }, '↔ centre'),
+      el('button', { title: 'Centre up and down the key', on: { click: () => { centreLayer(L, 'y'); changed(); renderInspector(); } } }, '↕ centre')));
     const move = d => {
       const j = i + d;
       if (j < 0 || j >= face.layers.length) return;
@@ -353,4 +357,30 @@ function levelFields(L, i, n, color, update) {
   if (bands.length) list.prepend(el('div', { class: 'muted' }, 'When the value is in a band, the band\'s colour fills the bar; in two, the tighter one wins. Otherwise the fill colour above.'));
   box.append(list);
   return box;
+}
+
+// Layers placed by their centre (text, values, sublabel, separator) centre at 72; boxes (icon, state
+// bar, level bar, box) by their size, with the defaults they draw with when unset.
+function centreLayer(L, axis) {
+  if (['text', 'value', 'sublabel', 'separator'].includes(L.kind)) { L[axis] = 72; return; }
+  const std = (S.look && S.look.style && S.look.style.bar) || { w: 101.3, h: 34.9 };
+  const size = axis === 'x' ? L.w ?? (L.kind === 'bar' || L.kind === 'level' ? std.w : 144) : L.h ?? (L.kind === 'bar' || L.kind === 'level' ? std.h : 144);
+  L[axis] = Math.round(((144 - size) / 2) * 10) / 10;
+}
+
+// An icon's size as one scale (% of the key's width), instead of its box's width and height
+// (user, 2026-11-03). The box keeps its shape and its centre.
+function iconScale(L, update) {
+  const w = Number(L.w ?? 144), h = Number(L.h ?? 144);
+  return el('label', { class: 'mini' }, 'scale %', input(Math.round((w / 144) * 100), v => {
+    const s = Number(v);
+    if (!(s > 0)) return;
+    const w = Number(L.w ?? 144), h = Number(L.h ?? 144); // as it is now, not when drawn
+    const nw = (144 * s) / 100;
+    const nh = h * (nw / w);
+    const cx = Number(L.x ?? 0) + w / 2, cy = Number(L.y ?? 0) + h / 2;
+    const r = n => Math.round(n * 10) / 10;
+    Object.assign(L, { w: r(nw), h: r(nh), x: r(cx - nw / 2), y: r(cy - nh / 2) });
+    update();
+  }, { type: 'number', min: 5, max: 300, step: 5 }));
 }

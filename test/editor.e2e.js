@@ -127,6 +127,28 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await save();
     assert.strictEqual(file().pages[1].keys['3'].face.layers[3].text, 'BARO 2', 'edit after save is kept');
 
+    // Icon scale (user, 2026-11-03): one % of the key's width; the box keeps its shape and centre.
+    // Centre buttons put a layer in the middle of the key.
+    {
+      const before = file().pages[1].keys['3'].face.layers[0];
+      await page.fill('#inspector .layer:has(strong:text-is("Icon")) label:has-text("scale %") input', '50');
+      await page.locator('#inspector .layer:has(strong:text-is("Icon")) button:has-text("↔ centre")').click();
+      await page.locator('#inspector .layer:has(strong:text-is("Text")) button:has-text("↕ centre")').click();
+      await save();
+      const L = file().pages[1].keys['3'].face.layers;
+      assert.strictEqual(L[0].w, 72, 'scale 50% = 72 wide');
+      assert.strictEqual(Math.round(L[0].h * 10) / 10, Math.round(before.h * (72 / before.w) * 10) / 10, 'same shape');
+      assert.strictEqual(L[0].x, 36, 'centred across');
+      assert.strictEqual(Math.round(L[0].y + L[0].h / 2), Math.round(before.y + before.h / 2), 'kept its centre up and down');
+      assert.strictEqual(L[3].y, 72, 'text centred up and down');
+      L[3].y = 26; // back where the later steps expect it
+      const prof = file(); prof.pages[1].keys['3'].face.layers = L;
+      fs.writeFileSync(path.join(h.dir, 'c172-g1000.json'), JSON.stringify(prof, null, 2));
+      await page.evaluate(() => loadFiles());
+      await page.click('.tab:nth-child(2)');
+      await page.click(slot(3));
+    }
+
     // A second live value on the same key, from its own simvar picked in the catalog.
     await page.click('#inspector button:has-text("+ Live value")');
     await page.click('#inspector .layer.active label:has-text("its own source") input');

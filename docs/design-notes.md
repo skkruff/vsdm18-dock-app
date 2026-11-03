@@ -149,5 +149,8 @@ shows up.
   functional settings (preset, title, send pathway) exposed (see "Keypad layout" above).
 - A long inspector: group sections (look, source, press, preview) so they can be folded.
 - ~~Dimmers: a level bar on the key (width follows the value).~~ Done 2026-11-03: Level bar face layer.
+- Press by state (idea, 2026-11-03): a press that does something different depending on a sim
+  state, e.g. a wheel that changes the selected VS in VS mode and pitch in pitch mode (the XCub's
+  AUTOPILOT_VS_SELECTOR). Would reuse the state logic's conditions to pick the action.
 - "Press these in order" actions (G1000 softkey sequences, e.g. XPDR then ALT).
 - Visual consistency: spacing, control sizes, dialogs, the dock picture's selection and drop marks.

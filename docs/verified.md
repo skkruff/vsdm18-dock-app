@@ -47,6 +47,11 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-03, user (sim, XCub) with plugin and explorer logs: AUTOPILOT_VS_SELECTOR is the
+  wheel's angle (0-350, 10 per click, wrapping). Writing it does not set the angle: the XCub turns
+  a write into a turn the other way, eight times as large (sent prev-10 -> prev+80, prev+10 ->
+  prev-80). The plugin sent the right values (prev +-10, after the watch fix). The wheel also
+  acts differently by autopilot mode. User's choice: model the autopilot push buttons only.
 - 2026-11-03, user report (XCub): a button stepping AUTOPILOT_VS_SELECTOR moved a fixed amount
   whatever the step. Cause found in code: a step or cycle on an input event the key did not read
   was not watched, so it stepped from the key's own displayed value. Fixed (engine test). Not yet

@@ -74,8 +74,8 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
 - **hideValue**, **stateBar** (readout, rotary; user 2026-11-03): the automatic look without the
   number (`"hideValue": true`), and / or with a state bar coloured by `states` / `otherwise` like a
   switch's (`"stateBar": true`). A custom face ignores them (it has its own layers).
-- **separator** (readout): `true` draws a line under the label, like the user's SET ALTIMETER
-  icon (64 x 7, corner 3.5, readout colour).
+- **separator** (readout): `true` draws a line under the label (64 x 7, corner 3.5, in the Look's
+  separator colour, which is the readout colour until set).
 - **valueIcons** (any type): sim value to a library icon name shown as the whole key, e.g.
   `{ "3": "magneto_both" }`. Values not listed fall back to the normal look.
 - **icon on a readout**: the icon's visible content is found automatically, scaled into the top

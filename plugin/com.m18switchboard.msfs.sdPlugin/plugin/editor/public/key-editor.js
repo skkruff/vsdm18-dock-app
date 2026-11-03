@@ -215,13 +215,17 @@ function lookSection(key, slot) {
     }
   }
   if (key.type === 'readout' || key.type === 'rotary') {
+    // What the automatic look draws (user, 2026-11-03): its own section, apart from how the value
+    // is written. A custom face has its own layers instead.
+    const tick = (name, on, set, note) => field(name, el('input', { type: 'checkbox', checked: on ? true : null, on: { change: e => { set(e.target.checked); changed(); renderInspector(); } } }), note);
+    const faced = key.face ? 'Not used: this key has a custom face (add or remove its layers there).' : '';
+    out.push(el('h4', {}, 'On the key'));
     if (!key.logic) {
-      // What the automatic look shows (user, 2026-11-03): the number, and a state bar coloured by
-      // the look per value above. A custom face has its own layers instead.
-      const tick = (name, on, set, note) => field(name, el('input', { type: 'checkbox', checked: on ? true : null, on: { change: e => { set(e.target.checked); changed(); renderInspector(); } } }), note);
-      const faced = key.face ? 'Not used: this key has a custom face (add or remove its layers there).' : '';
       out.push(dimmed(tick('Show the value', !key.hideValue, v => { if (v) delete key.hideValue; else key.hideValue = true; }, 'The number (or its text per value)'), faced));
       out.push(dimmed(tick('State bar', key.stateBar, v => { if (v) key.stateBar = true; else delete key.stateBar; }, 'A bar coloured by the look per value (green, white, red, clear)'), faced));
+    }
+    out.push(dimmed(tick('Separator', key.separator, v => { if (v) key.separator = true; else delete key.separator; }, 'A line under the label (its colour is in the Look panel)'), faced && 'Not used: this key has a custom face (add a Separator layer there).'));
+    if (!key.logic) {
       out.push(el('h4', {}, 'Value'));
       if (key.hideValue && !key.face) out.push(el('p', { class: 'muted' }, 'The value is hidden: these settings apply to faces that show it.'));
       out.push(field('Decimals', input(key.decimals, v => { if (v === '') delete key.decimals; else key.decimals = Number(v); changed(); }, { type: 'number', min: 0, max: 6 })));
@@ -230,10 +234,6 @@ function lookSection(key, slot) {
       out.push(field('Unit before', input(key.prefix, v => { if (v) key.prefix = v; else delete key.prefix; changed(); }, { placeholder: 'e.g. QNH' }), null, 'units'));
       out.push(field('Unit after', input(key.suffix, v => { if (v) key.suffix = v; else delete key.suffix; changed(); }, { placeholder: 'e.g. %, RPM, FPM' })));
     }
-    out.push(field('Separator', el('input', { type: 'checkbox', checked: key.separator ? true : null, on: { change: e => {
-      if (e.target.checked) key.separator = true; else delete key.separator;
-      changed();
-    } } }), 'A line under the label, like SET ALTIMETER. In a custom face, add a Separator layer instead.'));
   }
   out.push(el('h4', {}, 'Face (optional)'), faceDesigner(key, slot));
   return out;

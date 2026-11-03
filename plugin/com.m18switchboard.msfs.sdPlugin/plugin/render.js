@@ -107,14 +107,27 @@ function layout(f, line, size, cap) {
 
 // Lines of text centred on (x, y) at up to `size`, shrunk so the widest line fits `width`.
 // Capital letters are centred vertically, so a line sits where its y says on every renderer.
-function lines(text, y, { size = 26, color = style.label, x = 72, width = 130 } = {}) {
+// height (optional): the most the block of lines may take, top of the first capital to the
+// bottom of the last line, so two-line labels shrink to fit their space (user, 2026-11-03: labels
+// at 40 where they fit).
+const LABEL_SIZE = 40; // automatic key labels, where they fit (user, 2026-11-03)
+function textFit(text, { size = 26, width = 130, height } = {}) {
   const ls = String(text).split('\n');
   const f = font();
-  if (!f) return fallbackLines(ls, y, size, color, x, width);
+  if (!f) {
+    const longest = Math.max(...ls.map(l => l.length), 1);
+    const fit = Math.min(size, (width * 1.75) / longest, height ? height / (0.7 + (ls.length - 1) * 1.05) : Infinity);
+    return { ls, f, fit, step: fit * 1.05, cap: 0.7, block: fit * (0.7 + (ls.length - 1) * 1.05) };
+  }
   const cap = ((f.tables.os2 && f.tables.os2.sCapHeight) || f.unitsPerEm * 0.7) / f.unitsPerEm;
   const widest = Math.max(1, ...ls.map(l => layout(f, l, 1000, cap).width));
-  const fit = Math.max(4, Math.min(size, (width * 1000) / widest));
-  const step = fit * (cap + 0.32);
+  const perLine = cap + (ls.length - 1) * (cap + 0.32);
+  const fit = Math.max(4, Math.min(size, (width * 1000) / widest, height ? height / perLine : Infinity));
+  return { ls, f, fit, step: fit * (cap + 0.32), cap, block: fit * perLine };
+}
+function lines(text, y, { size = 26, color = style.label, x = 72, width = 130, height } = {}) {
+  const { ls, f, fit, step, cap } = textFit(text, { size, width, height });
+  if (!f) return fallbackLines(ls, y, fit, color, x, width);
   const y0 = y - ((ls.length - 1) * step) / 2;
   return ls.map((l, i) => {
     const lay = layout(f, l, fit, cap);
@@ -141,11 +154,11 @@ const PANEL = { cols: 5, rows: 3, key: 144, gap: 36 };
 
 const BAR_LOOKS = ['on', 'armed', 'off', 'clear'];
 
-// The separator line: measured from the user's SET ALTIMETER icon (2026-10-30), a rounded line
-// about 64 x 7 key units in the readout colour. Positioned by its centre.
+// The separator line: a rounded line about 64 x 7 key units, positioned by its centre, in the
+// Look's separator colour (the readout colour until one is set, user 2026-11-03).
 const SEPARATOR = { x: 72, w: 64, h: 7, r: 3.5 };
 function separatorRect({ x = SEPARATOR.x, y, w = SEPARATOR.w, h = SEPARATOR.h, r = SEPARATOR.r, color } = {}) {
-  return `<rect x="${(x - w / 2).toFixed(1)}" y="${(y - h / 2).toFixed(1)}" width="${w}" height="${h}" rx="${r}" fill="${esc(color || style.readout)}"/>`;
+  return `<rect x="${(x - w / 2).toFixed(1)}" y="${(y - h / 2).toFixed(1)}" width="${w}" height="${h}" rx="${r}" fill="${esc(color || style.separator || style.readout)}"/>`;
 }
 
 function bar(state, b = style.bar) {
@@ -235,11 +248,14 @@ const tiles = {
   // state: on | off | clear (unknown). sublabel: optional line under the label, e.g. ARM.
   switch(label, state, sublabel) {
     const top = style.bar.y;
-    return svgUri(lines(label, sublabel ? top * 0.34 : top * 0.48, { size: sublabel ? 26 : 30, width: 128 }) +
+    // The label in the space above the sublabel (or the bar), at LABEL_SIZE where it fits.
+    const bottom = sublabel ? top * 0.78 - 15 : top - 10;
+    return svgUri(lines(label, (10 + bottom) / 2, { size: LABEL_SIZE, width: 128, height: bottom - 10 }) +
       (sublabel ? lines(sublabel, top * 0.78, { size: SUBLABEL_SIZE, color: style.dim }) : '') + bar(state));
   },
   button(label, sublabel) {
-    return svgUri(lines(label, sublabel ? 58 : 72, { size: 34, width: 128 }) +
+    const bottom = sublabel ? 90 : 134;
+    return svgUri(lines(label, (10 + bottom) / 2, { size: LABEL_SIZE, width: 128, height: bottom - 10 }) +
       (sublabel ? lines(sublabel, 104, { size: SUBLABEL_SIZE, color: style.dim }) : ''));
   },
   // opts (user, 2026-11-03): showValue false hides the number; state draws the state bar under it.
@@ -248,22 +264,24 @@ const tiles = {
     if (!showValue) return withBar ? tiles.switch(label, state, sublabel) : tiles.button(label, sublabel);
     if (withBar) {
       // Label, separator and sublabel stacked from the top; the value centred above the bar.
-      let next = 34;
-      let body = lines(label, 22, { size: 22, width: 130 });
-      if (separator) { body += separatorRect({ y: 38 }); next = 46; }
+      const lab = textFit(label, { size: LABEL_SIZE, width: 130, height: 24 });
+      let next = 8 + lab.block + 6;
+      let body = lines(label, 8 + lab.block / 2, { size: LABEL_SIZE, width: 130, height: 24 });
+      if (separator) { body += separatorRect({ y: next + 2 }); next += 10; }
       if (sublabel) { body += lines(sublabel, next + 8, { size: SUBLABEL_SIZE, color: style.dim }); next += 18; }
       return svgUri(body + lines(value, (next + style.bar.y) / 2, { size: 30, color: style.readout, width: 132 }) + bar(state));
     }
     if (!separator) {
-      return svgUri(lines(label, 28, { size: 24, width: 130 }) +
-        (sublabel ? lines(sublabel, 52, { size: SUBLABEL_SIZE, color: style.dim }) : '') +
-        lines(value, sublabel ? 100 : 94, { size: sublabel ? 42 : 46, color: style.readout, width: 132 }));
+      const lb = sublabel ? 40 : 50; // the label's space: 10 down to lb
+      return svgUri(lines(label, (10 + lb) / 2, { size: LABEL_SIZE, width: 130, height: lb - 10 }) +
+        (sublabel ? lines(sublabel, 54, { size: SUBLABEL_SIZE, color: style.dim }) : '') +
+        lines(value, sublabel ? 102 : 96, { size: sublabel ? 42 : 46, color: style.readout, width: 132 }));
     }
-    // With a separator under the label (and sublabel), like the user's SET ALTIMETER icon: stack
-    // down from the label, the value centred in the space left.
-    const n = String(label).split('\n').length;
-    let y = 28 + (n - 1) * 12 + 9; // bottom of the label
-    let body = lines(label, 28, { size: 24, width: 130 });
+    // With a separator under the label (and sublabel): stack down from the label, the value
+    // centred in the space left.
+    const lab = textFit(label, { size: LABEL_SIZE, width: 130, height: 40 });
+    let y = 10 + lab.block; // bottom of the label
+    let body = lines(label, 10 + lab.block / 2, { size: LABEL_SIZE, width: 130, height: 40 });
     if (sublabel) { body += lines(sublabel, y + 12, { size: SUBLABEL_SIZE, color: style.dim }); y += 20; }
     body += separatorRect({ y: y + 9 });
     y += 13;

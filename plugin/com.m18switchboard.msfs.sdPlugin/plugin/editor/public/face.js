@@ -25,34 +25,51 @@ function defaultFace(key) {
     return { layers: [{ kind: 'value', x: 72, y: key.role === 'title' || key.sublabel ? 50 : 72, size: big }, { kind: 'sublabel', x: 72, y: 100 }] };
   }
   const sub = y => ({ kind: 'sublabel', ...(y === undefined ? {} : { x: 72, y }) });
+  const subl = hasSublabel(key);
+  const barY = ((S.look && S.look.style && S.look.style.bar) || { y: 93.4 }).y;
+  // The label as the automatic look draws it (render.js): size 40 where it fits the space between
+  // top and bottom (a capital is about 0.7 of the size; each further line adds 1.02).
+  const n = String(label).split('\n').length;
+  const fit = h => Math.max(8, Math.min(40, Math.floor(h / (0.7 + (n - 1) * 1.02))));
+  const centred = (top, bottom) => ({ kind: 'text', text: label, x: 72, y: Math.round((top + bottom) / 2), size: fit(bottom - top) });
+  const block = h => fit(h) * (0.7 + (n - 1) * 1.02);
+  const switchLabel = () => centred(10, subl ? barY * 0.78 - 15 : barY - 10);
+  const buttonLabel = () => centred(10, subl ? 90 : 134);
   if ((key.type === 'readout' || key.type === 'rotary') && !key.logic && (key.hideValue || key.stateBar)) {
     // As the automatic look draws it with the value hidden and / or a state bar.
     const bar = key.stateBar ? [{ kind: 'bar' }] : [];
     if (key.hideValue) {
       if (key.icon) return { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: key.stateBar ? 58 : 100 }, sub(key.stateBar ? 74 : 122), ...bar] };
-      return key.stateBar
-        ? { layers: [hasSublabel(key) ? { kind: 'text', text: label, x: 72, y: 32, size: 26 } : { kind: 'text', text: label, x: 72, y: 45, size: 30 }, sub(), ...bar] }
-        : { layers: [hasSublabel(key) ? { kind: 'text', text: label, x: 72, y: 58, size: 30 } : { kind: 'text', text: label, x: 72, y: 72, size: 34 }, sub(104)] };
+      return key.stateBar ? { layers: [switchLabel(), sub(), ...bar] } : { layers: [buttonLabel(), sub(104)] };
     }
-    if (key.icon) return { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 4, w: 132, h: 40 }, sub(48), { kind: 'value', x: 72, y: hasSublabel(key) ? 72 : 66, size: 30 }, ...bar] };
-    return { layers: [{ kind: 'text', text: label, x: 72, y: 22, size: 22 }, ...(key.separator ? [{ kind: 'separator', x: 72, y: 38 }] : []), sub(key.separator ? 54 : 42),
-      { kind: 'value', x: 72, y: hasSublabel(key) ? 70 : 62, size: 30 }, ...bar] };
+    if (key.icon) return { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 4, w: 132, h: 40 }, sub(48), { kind: 'value', x: 72, y: subl ? 72 : 66, size: 30 }, ...bar] };
+    const lb = block(24);
+    let next = 8 + lb + 6;
+    const layers = [{ kind: 'text', text: label, x: 72, y: Math.round(8 + lb / 2), size: fit(24) }];
+    if (key.separator) { layers.push({ kind: 'separator', x: 72, y: Math.round(next + 2) }); next += 10; }
+    layers.push(sub(Math.round(next + 8)));
+    if (subl) next += 18;
+    return { layers: [...layers, { kind: 'value', x: 72, y: Math.round((next + barY) / 2), size: 30 }, ...bar] };
   }
   if ((key.type === 'readout' || key.type === 'rotary') && !key.logic) {
-    return key.icon
-      ? { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: 62 }, sub(82), { kind: 'value', x: 72, y: 112, size: 40 }] }
-      : key.separator
-        ? { layers: [{ kind: 'text', text: label, x: 72, y: 28, size: 24 }, sub(50), { kind: 'separator', x: 72, y: hasSublabel(key) ? 66 : 46 }, { kind: 'value', x: 72, y: hasSublabel(key) ? 104 : 95, size: hasSublabel(key) ? 40 : 44 }] }
-        : { layers: [{ kind: 'text', text: label, x: 72, y: 28, size: 24 }, sub(54), { kind: 'value', x: 72, y: 100, size: 42 }] };
+    if (key.icon) return { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: 62 }, sub(82), { kind: 'value', x: 72, y: 112, size: 40 }] };
+    if (!key.separator) return { layers: [centred(10, subl ? 40 : 50), sub(54), { kind: 'value', x: 72, y: subl ? 102 : 96, size: subl ? 42 : 46 }] };
+    const lb = block(40);
+    let y = 10 + lb;
+    const layers = [{ kind: 'text', text: label, x: 72, y: Math.round(10 + lb / 2), size: fit(40) }, sub(Math.round(y + 12))];
+    if (subl) y += 20;
+    layers.push({ kind: 'separator', x: 72, y: Math.round(y + 9) });
+    y += 13;
+    return { layers: [...layers, { kind: 'value', x: 72, y: Math.round((y + 140) / 2), size: subl ? 40 : 44 }] };
   }
   if (key.type === 'switch' || key.logic) {
     return key.icon
       ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }, sub(76)] }
-      : { layers: [hasSublabel(key) ? { kind: 'text', text: label, x: 72, y: 32, size: 26 } : { kind: 'text', text: label, x: 72, y: 45, size: 30 }, sub(), { kind: 'bar' }] };
+      : { layers: [switchLabel(), sub(), { kind: 'bar' }] };
   }
   return key.icon
     ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }, sub(122)] }
-    : { layers: [hasSublabel(key) ? { kind: 'text', text: label, x: 72, y: 58, size: 30 } : { kind: 'text', text: label, x: 72, y: 72, size: 34 }, sub(104)] };
+    : { layers: [buttonLabel(), sub(104)] };
 }
 
 // A face made before the key had a sublabel gets the layer when a sublabel is typed.
@@ -62,7 +79,7 @@ function ensureSublabelLayer(key) {
 
 const NEW_LAYER = {
   icon: () => ({ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: 70 }),
-  text: () => ({ kind: 'text', text: 'TEXT', x: 72, y: 36, size: 26 }),
+  text: () => ({ kind: 'text', text: 'TEXT', x: 72, y: 36, size: 40 }),
   value: () => ({ kind: 'value', x: 72, y: 104, size: 40 }),
   sublabel: () => ({ kind: 'sublabel' }),
   bar: () => ({ kind: 'bar' }),
@@ -225,7 +242,7 @@ function faceDesigner(key, slot) {
       fields.push(srcBox);
     } else if (L.kind === 'separator') {
       fields.push(n('x', 'x', { placeholder: 72 }), n('y', 'y', { placeholder: 56 }), n('w', 'w', { placeholder: 64 }), n('h', 'h', { placeholder: 7 }), n('r', 'corner', { placeholder: 3.5 }),
-        color('color', lookValue('readout', '#4fc3f7')), el('span', { class: 'muted' }, 'Positioned by its centre.'));
+        color('color', lookValue('separator', lookValue('readout', '#4fc3f7'))), el('span', { class: 'muted' }, 'Positioned by its centre.'));
     } else if (L.kind === 'bar') {
       fields.push(el('label', { class: 'mini' }, 'shows', select_([['', 'follows the key\'s state'], ['on', 'green'], ['armed', 'white (armed)'], ['off', 'red'], ['clear', 'clear (outline)']],
         L.look || '', v => { if (v) L.look = v; else delete L.look; update(); })),

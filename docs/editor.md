@@ -17,7 +17,9 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   "Preview announcement" shows it on the dock picture.
 - **Look**: the font of all drawn text (7 bundled condensed fonts, default Barlow Condensed Bold;
   text is drawn as shapes, so it looks the same in the editor and on the dock) and the colours of
-  readouts, labels, sublabels and the state bar (on, off, armed). Bar and readout colours are measured from your
+  readouts, labels, sublabels, the state bar (on, off, armed) and the separator (the readout
+  colour until set; ↺ goes back to it). Labels on automatic keys are drawn at size 40 where they
+  fit, smaller for two lines. Bar and readout colours are measured from your
   icons at start-up (`master_battery` on/off/clear, `set_altimeter`); ↺ goes back to the measured
   value. Bar size and corners are fixed (corner 9.5). Saved in `settings.json` next to the
   profiles folder.
@@ -71,11 +73,11 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     (e.g. ARM / OFF on the standby battery). A per-value sublabel wins; the fixed one covers the
     rest.
   - Value text per value (readouts): a word instead of the number (e.g. magneto 3 -> BOTH).
-  - **Show the value** and **State bar** (readouts and rotaries): the automatic look with or
-    without the number, and with a bar coloured by the look per value (e.g. a COM receive
-    readout: label, OFF sublabel, green bar). Dimmed when the key has a custom face.
-  - Decimals / padding for readouts; **Unit before / after** (e.g. QNH, %, RPM) and a
-    **Separator** line under the label (or a Separator layer in a custom face).
+  - **On the key** (readouts and rotaries): **Show the value**, **State bar** (coloured by the
+    look per value, e.g. a COM receive readout: label, OFF sublabel, green bar) and
+    **Separator** (a line under the label). Dimmed when the key has a custom face, which has its
+    own layers.
+  - **Value**: decimals / padding, show as, **Unit before / after** (e.g. QNH, %, RPM).
   - Step actions: **Wrap at the ends**. A dimmer is a Rotary: tap steps, hold repeats a smaller
     step ("Repeat while held", ms), counting from the value it last sent.
   - **Sim paused** (a Source choice): 1 in any pause (pause key, active pause, menu), else 0;

@@ -47,6 +47,9 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-03, editor screenshots only: automatic key labels at size 40 where they fit (two-line
+  labels shrink to their space); new Text layers at 40; Look panel separator colour. Not yet seen
+  on the dock.
 - 2026-11-03, unit tests + editor screenshots: readout / rotary automatic look can hide the value
   and show a state bar from the look per value (before, the look per value only reached faces).
   Not yet seen on the dock.

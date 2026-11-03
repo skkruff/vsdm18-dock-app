@@ -75,7 +75,7 @@ function setType(key, v) {
 
 // Fields this type does not use; cleanUnused() removes them at save (user schema).
 const READOUT_ONLY = ['logic', 'logicFaces'];
-const FORMAT = ['decimals', 'pad', 'format', 'prefix', 'suffix', 'separator', 'text'];
+const FORMAT = ['decimals', 'pad', 'format', 'prefix', 'suffix', 'separator', 'text', 'hideValue', 'stateBar'];
 const LEGACY = ['armed', 'activeIs', 'armedIs', 'activeOr', 'armedOr'];
 const KEYPAD_ONLY = ['role', 'digit', 'vfr'];
 function unusedFields(key) {
@@ -210,13 +210,20 @@ function lookSection(key, slot) {
       : ['text', 'sublabel', 'look', 'icon'];
     out.push(el('h4', {}, key.type === 'switch' ? 'Positions' : 'Per value', info('positions')), valueTable(key, cols));
     out.push(fillValues(key));
-    if (key.type === 'switch' || key.type === 'button') {
+    if (key.type === 'switch' || key.type === 'button' || ((key.type === 'readout' || key.type === 'rotary') && key.stateBar)) {
       out.push(field('Other values', select_([['', 'clear (outline)'], ['on', 'green'], ['off', 'red'], ['armed', 'white (armed)']], key.otherwise || '', v => { if (v) key.otherwise = v; else delete key.otherwise; changed(); })));
     }
   }
   if (key.type === 'readout' || key.type === 'rotary') {
     if (!key.logic) {
+      // What the automatic look shows (user, 2026-11-03): the number, and a state bar coloured by
+      // the look per value above. A custom face has its own layers instead.
+      const tick = (name, on, set, note) => field(name, el('input', { type: 'checkbox', checked: on ? true : null, on: { change: e => { set(e.target.checked); changed(); renderInspector(); } } }), note);
+      const faced = key.face ? 'Not used: this key has a custom face (add or remove its layers there).' : '';
+      out.push(dimmed(tick('Show the value', !key.hideValue, v => { if (v) delete key.hideValue; else key.hideValue = true; }, 'The number (or its text per value)'), faced));
+      out.push(dimmed(tick('State bar', key.stateBar, v => { if (v) key.stateBar = true; else delete key.stateBar; }, 'A bar coloured by the look per value (green, white, red, clear)'), faced));
       out.push(el('h4', {}, 'Value'));
+      if (key.hideValue && !key.face) out.push(el('p', { class: 'muted' }, 'The value is hidden: these settings apply to faces that show it.'));
       out.push(field('Decimals', input(key.decimals, v => { if (v === '') delete key.decimals; else key.decimals = Number(v); changed(); }, { type: 'number', min: 0, max: 6 })));
       out.push(field('Pad to digits', input(key.pad, v => { if (v === '') delete key.pad; else key.pad = Number(v); changed(); }, { type: 'number', min: 0, max: 8 }), 'e.g. 4 shows 7 as 0007'));
       out.push(field('Show as', select_([['', 'Number'], ['time', 'Time HH:MM (from seconds)'], ['duration', 'Stopwatch M:SS (from seconds)']], key.format || '', v => { if (v) key.format = v; else delete key.format; changed(); })));

@@ -207,6 +207,21 @@ const text = uri => decodeURIComponent(uri);
   assert.match(two, /aria-label="124\.850"/);
   assert.match(two, /aria-label="110\.50"/, 'second value from its own source');
   assert.match(text(engine.keyImage(fk, 1)), /aria-label="ONE"/, 'face for value 1');
+  // Readout automatic look (user, 2026-11-03): hide the value, add a state bar from the look per value.
+  {
+    const { style } = require(path.join(pluginDir, 'plugin', 'render'));
+    const com = { type: 'readout', label: 'COM1', read: { var: 'COM RECEIVE:1', unit: 'bool' }, states: { 0: 'clear', 1: 'on' }, sublabels: { 0: 'OFF' } };
+    assert.match(text(engine.keyImage(com, 1)), /aria-label="1"/, 'shows the value by default');
+    assert.ok(!text(engine.keyImage(com, 1)).includes(`fill="${style.on}"`), 'no bar by default');
+    const barOnly = { ...com, hideValue: true, stateBar: true };
+    const on = text(engine.keyImage(barOnly, 1));
+    assert.ok(on.includes(`fill="${style.on}"`) && !/aria-label="1"/.test(on), 'green bar, no number');
+    assert.match(text(engine.keyImage(barOnly, 0)), /aria-label="OFF"/, 'sublabel per value kept');
+    assert.ok(!text(engine.keyImage(barOnly, 0)).includes(`fill="${style.on}"`), 'clear at 0');
+    const both = text(engine.keyImage({ ...com, stateBar: true }, 1));
+    assert.ok(both.includes(`fill="${style.on}"`) && /aria-label="1"/.test(both), 'value and bar');
+    assert.ok(!/aria-label="1"/.test(text(engine.keyImage({ ...com, hideValue: true }, 1))), 'label only');
+  }
   // Level bar (user, 2026-11-03): fill in proportion between min and max, direction, colour bands.
   {
     const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));

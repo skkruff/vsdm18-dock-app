@@ -533,10 +533,12 @@ class ProfileEngine {
       return this._faceImage(key, face, { value, valueOf, state, sublabel: sublabelFor(key, value), iconState: key.type === 'switch' ? state : null });
     }
     if (key.type === 'readout' || key.type === 'rotary') {
+      // Automatic look options (user, 2026-11-03): hide the number; a state bar from the look per value.
+      const opts = { showValue: !key.hideValue, state: key.stateBar ? (value === undefined ? 'clear' : (lookup(key.states, value) || key.otherwise || 'clear')) : undefined };
       const icon = this.renderer.icon(key.icon, key.iconState || null);
       return icon
-        ? tiles.iconReadout(icon, formatValue(key, value), this.renderer.iconBox(key.icon, key.iconState || null), sublabelFor(key, value))
-        : tiles.readout(key.label || '', formatValue(key, value), sublabelFor(key, value), key.separator);
+        ? tiles.iconReadout(icon, formatValue(key, value), this.renderer.iconBox(key.icon, key.iconState || null), sublabelFor(key, value), opts)
+        : tiles.readout(key.label || '', formatValue(key, value), sublabelFor(key, value), key.separator, opts);
     }
     // Decorative keys (user, 2026-10-30) look like a button without a press: icon, or label and sublabel.
     if (key.type === 'button' || key.type === 'decor') return this.renderer.icon(key.icon, null) || tiles.button(key.label || '', sublabelFor(key, value));

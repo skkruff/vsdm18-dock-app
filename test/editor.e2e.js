@@ -180,10 +180,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     // A report of an unchanged value (user report 2026-11-01, DA62: PROCEDURE_ELEVATOR_TRIM
     // reported 0 right after subscribing) is not a move and must not end the Learn.
     h.sim.input('ELECTRICAL_BATTERY_1', h.sim.inputValues.ELECTRICAL_BATTERY_1);
-    await sleep(1700);
+    await sleep(100); // short: the harness flips the taxi light every 4 s, which a long wait lets in
     h.sim.input('FUEL_PUMP_1', 1);
     h.sim.input('LIGHTING_BEACON_1', 0);
     await page.waitForSelector('dialog.browse:has-text("changed")', { timeout: 5000 });
+    assert.ok(!(await page.isVisible('dialog.browse .browse-row:has-text("ELECTRICAL_BATTERY_1")')), 'an unchanged report is not a candidate');
     await page.click('dialog.browse .browse-row:has-text("FUEL_PUMP_1")');
     await save();
     assert.deepStrictEqual(file().pages[1].keys['6'].read, { input: 'FUEL_PUMP_1' }, 'picked from the candidates');

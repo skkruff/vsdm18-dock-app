@@ -71,6 +71,9 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     (e.g. ARM / OFF on the standby battery). A per-value sublabel wins; the fixed one covers the
     rest.
   - Value text per value (readouts): a word instead of the number (e.g. magneto 3 -> BOTH).
+  - **Show the value** and **State bar** (readouts and rotaries): the automatic look with or
+    without the number, and with a bar coloured by the look per value (e.g. a COM receive
+    readout: label, OFF sublabel, green bar). Dimmed when the key has a custom face.
   - Decimals / padding for readouts; **Unit before / after** (e.g. QNH, %, RPM) and a
     **Separator** line under the label (or a Separator layer in a custom face).
   - Step actions: **Wrap at the ends**. A dimmer is a Rotary: tap steps, hold repeats a smaller

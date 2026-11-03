@@ -25,6 +25,19 @@ function defaultFace(key) {
     return { layers: [{ kind: 'value', x: 72, y: key.role === 'title' || key.sublabel ? 50 : 72, size: big }, { kind: 'sublabel', x: 72, y: 100 }] };
   }
   const sub = y => ({ kind: 'sublabel', ...(y === undefined ? {} : { x: 72, y }) });
+  if ((key.type === 'readout' || key.type === 'rotary') && !key.logic && (key.hideValue || key.stateBar)) {
+    // As the automatic look draws it with the value hidden and / or a state bar.
+    const bar = key.stateBar ? [{ kind: 'bar' }] : [];
+    if (key.hideValue) {
+      if (key.icon) return { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: key.stateBar ? 58 : 100 }, sub(key.stateBar ? 74 : 122), ...bar] };
+      return key.stateBar
+        ? { layers: [hasSublabel(key) ? { kind: 'text', text: label, x: 72, y: 32, size: 26 } : { kind: 'text', text: label, x: 72, y: 45, size: 30 }, sub(), ...bar] }
+        : { layers: [hasSublabel(key) ? { kind: 'text', text: label, x: 72, y: 58, size: 30 } : { kind: 'text', text: label, x: 72, y: 72, size: 34 }, sub(104)] };
+    }
+    if (key.icon) return { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 4, w: 132, h: 40 }, sub(48), { kind: 'value', x: 72, y: hasSublabel(key) ? 72 : 66, size: 30 }, ...bar] };
+    return { layers: [{ kind: 'text', text: label, x: 72, y: 22, size: 22 }, ...(key.separator ? [{ kind: 'separator', x: 72, y: 38 }] : []), sub(key.separator ? 54 : 42),
+      { kind: 'value', x: 72, y: hasSublabel(key) ? 70 : 62, size: 30 }, ...bar] };
+  }
   if ((key.type === 'readout' || key.type === 'rotary') && !key.logic) {
     return key.icon
       ? { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: 62 }, sub(82), { kind: 'value', x: 72, y: 112, size: 40 }] }

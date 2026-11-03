@@ -242,7 +242,18 @@ const tiles = {
     return svgUri(lines(label, sublabel ? 58 : 72, { size: 34, width: 128 }) +
       (sublabel ? lines(sublabel, 104, { size: SUBLABEL_SIZE, color: style.dim }) : ''));
   },
-  readout(label, value, sublabel, separator) {
+  // opts (user, 2026-11-03): showValue false hides the number; state draws the state bar under it.
+  readout(label, value, sublabel, separator, { showValue = true, state } = {}) {
+    const withBar = state !== undefined && state !== null;
+    if (!showValue) return withBar ? tiles.switch(label, state, sublabel) : tiles.button(label, sublabel);
+    if (withBar) {
+      // Label, separator and sublabel stacked from the top; the value centred above the bar.
+      let next = 34;
+      let body = lines(label, 22, { size: 22, width: 130 });
+      if (separator) { body += separatorRect({ y: 38 }); next = 46; }
+      if (sublabel) { body += lines(sublabel, next + 8, { size: SUBLABEL_SIZE, color: style.dim }); next += 18; }
+      return svgUri(body + lines(value, (next + style.bar.y) / 2, { size: 30, color: style.readout, width: 132 }) + bar(state));
+    }
     if (!separator) {
       return svgUri(lines(label, 28, { size: 24, width: 130 }) +
         (sublabel ? lines(sublabel, 52, { size: SUBLABEL_SIZE, color: style.dim }) : '') +
@@ -283,7 +294,21 @@ const tiles = {
   armedIcon(clearUri) {
     return svgUri(placedIcon(clearUri, null, { x: 0, y: 0, w: 144, h: 144 }, 'armed', 'full') + bar('armed'));
   },
-  iconReadout(iconUri, value, box, sublabel) {
+  iconReadout(iconUri, value, box, sublabel, { showValue = true, state } = {}) {
+    const withBar = state !== undefined && state !== null;
+    if (withBar || !showValue) {
+      const top = withBar ? style.bar.y - 6 : 138; // bottom of the space above the bar
+      let body = '';
+      if (showValue) {
+        body += placedIcon(iconUri, box, { x: 6, y: 4, w: 132, h: sublabel ? 34 : 42 }, 'top');
+        if (sublabel) body += lines(sublabel, 48, { size: SUBLABEL_SIZE, color: style.dim });
+        body += lines(value, sublabel ? 72 : 66, { size: 30, color: style.readout, width: 132 });
+      } else {
+        body += placedIcon(iconUri, box, { x: 6, y: 6, w: 132, h: top - (sublabel ? 32 : 6) }, 'top');
+        if (sublabel) body += lines(sublabel, top - 14, { size: SUBLABEL_SIZE, color: style.dim });
+      }
+      return svgUri(body + (withBar ? bar(state) : ''));
+    }
     return svgUri(placedIcon(iconUri, box, { x: 6, y: 6, w: 132, h: sublabel ? 56 : 70 }, 'top') +
       (sublabel ? lines(sublabel, 76, { size: SUBLABEL_SIZE, color: style.dim }) : '') +
       lines(value, sublabel ? 112 : 108, { size: sublabel ? 38 : 42, color: style.readout, width: 132 }));

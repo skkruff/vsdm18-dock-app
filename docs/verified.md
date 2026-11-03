@@ -47,6 +47,9 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-03, unit tests + editor screenshots: readout / rotary automatic look can hide the value
+  and show a state bar from the look per value (before, the look per value only reached faces).
+  Not yet seen on the dock.
 - 2026-11-03, user (sim, XCub): the G3X touch screen's COM 1 / COM 2 / MIC buttons change no
   input event (sim:explore prints nothing; presumably H: events); COM RECEIVE:n and COM
   TRANSMIT:n follow them. Writing COM RECEIVE directly does nothing. COM1_RECEIVE_SELECT with the

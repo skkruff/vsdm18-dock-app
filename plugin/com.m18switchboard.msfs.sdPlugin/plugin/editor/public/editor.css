@@ -179,3 +179,8 @@ table.value-table select, table.value-table input { width: 100%; }
 .action-item .step-head button { padding: 0 8px; }
 .action { display: flex; flex-direction: column; }
 .action-list > button.add-or { align-self: flex-start; }
+/* Level bar layer (2026-11-03) */
+.level-fields { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: flex-end; }
+.level-fields > .layer-source, .level-fields > .level-bands { flex-basis: 100%; }
+.level-bands { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.level-bands > button.add-or { align-self: flex-start; }

@@ -74,6 +74,19 @@ function actionProblems(action, key) {
 }
 const LCD_SLOTS = 15;
 
+function levelProblems(L) {
+  const out = [];
+  if (L.dir !== undefined && !['right', 'left', 'up', 'down'].includes(L.dir)) out.push('direction must be right, left, up or down');
+  for (const k of ['min', 'max']) if (L[k] !== undefined && typeof L[k] !== 'number') out.push(`${k} must be a number`);
+  if (typeof L.min === 'number' && typeof L.max === 'number' && L.min === L.max) out.push('needs min and max to differ');
+  if (L.bands !== undefined && !Array.isArray(L.bands)) out.push('bands must be a list');
+  for (const [i, b] of (Array.isArray(L.bands) ? L.bands : []).entries()) {
+    if ((typeof b.below === 'number') === (typeof b.above === 'number')) out.push(`band ${i + 1} needs either "below" or "above" a number`);
+    if (!b.color) out.push(`band ${i + 1} needs a colour`);
+  }
+  return out;
+}
+
 // Checks a profile and returns it in the current model (old forms migrated, migrate.js).
 function validate(profile, file) {
   const p = migrateProfile(profile);
@@ -104,9 +117,10 @@ function validate(profile, file) {
         if (!face) continue;
         if (!Array.isArray(face.layers)) { errors.push(`${where}: ${name} needs a layers list`); continue; }
         for (const L of face.layers) {
-          if (!['icon', 'text', 'value', 'sublabel', 'separator', 'bar', 'rect'].includes(L.kind)) errors.push(`${where}: ${name}: unknown layer ${L.kind}`);
+          if (!['icon', 'text', 'value', 'sublabel', 'separator', 'bar', 'rect', 'level'].includes(L.kind)) errors.push(`${where}: ${name}: unknown layer ${L.kind}`);
           if (L.kind === 'bar' && L.look !== undefined && !LOOKS.includes(L.look)) errors.push(`${where}: ${name}: bar look must be on, armed, off or clear`);
-          if ((L.kind === 'value' || L.kind === 'sublabel') && L.read) errors.push(...sourceProblems(L.read).map(m => `${where}: ${name}: ${L.kind} layer source ${m}`));
+          if (L.kind === 'level') errors.push(...levelProblems(L).map(m => `${where}: ${name}: level bar ${m}`));
+          if ((L.kind === 'value' || L.kind === 'sublabel' || L.kind === 'level') && L.read) errors.push(...sourceProblems(L.read).map(m => `${where}: ${name}: ${L.kind} layer source ${m}`));
         }
       }
       if (key.press) errors.push(...pressProblems(key.press, key).map(m => `${where}: ${m}`));

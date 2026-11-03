@@ -380,6 +380,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.deepStrictEqual(dim.press, { tap: { step: 25, min: 0, max: 100, wrap: true }, hold: { step: 5, min: 0, max: 100, wrap: true, repeatMs: 100 } });
     await page.click('#inspector button:has-text("Design a custom face")');
     assert.ok(await page.isVisible('#inspector .layer:has-text("Separator")'), 'the custom face starts with the separator');
+    // Level bar (user, 2026-11-03): upright, filling from the bottom, yellow below 25.
+    await page.click('#inspector button:has-text("+ Level bar")');
+    await page.selectOption('#inspector .layer.active label:has-text("direction") select', 'up');
+    await page.click('#inspector .layer.active button:has-text("+ colour band")');
+    await save();
+    const lvl = file().pages[file().pages.length - 1].keys['0'].face.layers.find(l => l.kind === 'level');
+    assert.deepStrictEqual(lvl, { kind: 'level', dir: 'up', min: 0, max: 100, x: 108, y: 14, w: 24, h: 116, bands: [{ below: 25, color: '#ffcc00' }] });
     // Keyboard shortcut (user, 2026-10-30): recorded from the keyboard, combinations included.
     await page.click(slot(1));
     await page.click('#inspector button:has-text("Add key")');

@@ -207,6 +207,28 @@ const text = uri => decodeURIComponent(uri);
   assert.match(two, /aria-label="124\.850"/);
   assert.match(two, /aria-label="110\.50"/, 'second value from its own source');
   assert.match(text(engine.keyImage(fk, 1)), /aria-label="ONE"/, 'face for value 1');
+  // Level bar (user, 2026-11-03): fill in proportion between min and max, direction, colour bands.
+  {
+    const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
+    const lv = (layer, v, valueOf) => text(engine.keyImage({ type: 'rotary', read: { input: 'DIM' }, press: { step: 1 }, face: { layers: [layer] } }, v, null, valueOf));
+    const fill = svg => { const m = svg.match(/<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" fill="([^"]+)" clip-path/); return m && { x: +m[1], y: +m[2], w: +m[3], h: +m[4], color: m[5] }; };
+    const box = { kind: 'level', x: 10, y: 100, w: 120, h: 30, color: '#00ff00' };
+    assert.deepStrictEqual(fill(lv(box, 50)), { x: 10, y: 100, w: 60, h: 30, color: '#00ff00' }, 'half, from the left');
+    assert.deepStrictEqual(fill(lv({ ...box, dir: 'left' }, 25)), { x: 100, y: 100, w: 30, h: 30, color: '#00ff00' }, 'a quarter, from the right');
+    const tall = { kind: 'level', dir: 'up', x: 110, y: 10, w: 20, h: 100, min: 0, max: 50, color: '#00ff00' };
+    assert.deepStrictEqual(fill(lv(tall, 10)), { x: 110, y: 90, w: 20, h: 20, color: '#00ff00' }, 'upright, from the bottom, own range');
+    assert.deepStrictEqual(fill(lv({ ...tall, dir: 'down' }, 60)), { x: 110, y: 10, w: 20, h: 100, color: '#00ff00' }, 'clamped to full');
+    assert.strictEqual(fill(lv(box, undefined)), null, 'unknown: outline only');
+    assert.strictEqual(fill(lv(box, 0)), null, 'empty: outline only');
+    const banded = { ...box, bands: [{ below: 25, color: '#ffcc00' }, { below: 10, color: '#ff0000' }, { above: 90, color: '#0000ff' }] };
+    assert.deepStrictEqual([60, 20, 5, 95].map(v => fill(lv(banded, v)).color), ['#00ff00', '#ffcc00', '#ff0000', '#0000ff'], 'the tightest band wins');
+    assert.strictEqual(fill(lv({ ...box, read: { var: 'FUEL TOTAL QUANTITY', unit: 'gallons' }, max: 56 }, 3, src => (src.var === 'FUEL TOTAL QUANTITY' ? 14 : undefined))).w, 30, 'its own source');
+    assert.deepStrictEqual(keySources({ read: { input: 'A' }, face: { layers: [{ kind: 'level', read: { var: 'B', unit: 'percent' } }] } }).map(x => x.input || x.var), ['A', 'B']);
+    const lp = layers => ({ id: 'l', fallback: true, pages: [{ keys: { 0: { type: 'readout', read: { input: 'A' }, face: { layers } } } }] });
+    assert.doesNotThrow(() => validate(lp([banded]), 'l.json'));
+    assert.throws(() => validate(lp([{ kind: 'level', dir: 'sideways' }]), 'l.json'), /direction must be/);
+    assert.throws(() => validate(lp([{ kind: 'level', bands: [{ color: '#fff' }] }]), 'l.json'), /band 1 needs either/);
+  }
   assert.strictEqual(formatValue({ format: 'time' }, 13 * 3600 + 7 * 60 + 30), '13:07');
   // Decorative keys: label and sublabel, or a face; no source, no press.
   {

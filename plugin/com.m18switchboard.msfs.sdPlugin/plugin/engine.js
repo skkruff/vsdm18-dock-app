@@ -59,7 +59,7 @@ function keySources(key) {
   // Readout state logic: every condition's source.
   for (const s of (key.logic && key.logic.steps) || []) for (const c of s.when || []) if (c.read) out.push(c.read);
   const faces = [key.face, ...Object.values(key.valueFaces || {}), ...Object.values(key.logicFaces || {})].filter(Boolean);
-  for (const f of faces) for (const L of f.layers || []) if ((L.kind === 'value' || L.kind === 'sublabel') && L.read) out.push(L.read);
+  for (const f of faces) for (const L of f.layers || []) if ((L.kind === 'value' || L.kind === 'sublabel' || L.kind === 'level') && L.read) out.push(L.read);
   // Each source once (a readout's own source is often a state logic condition too).
   const seen = new Set();
   return out.filter(s => { const k = sourceKey(s); if (seen.has(k)) return false; seen.add(k); return true; });
@@ -557,7 +557,9 @@ class ProfileEngine {
     const valueFor = L => (L.read
       ? formatValue(L, valueOf(L.read))
       : formatValue({ ...key, ...pick(L, ['decimals', 'pad', 'format', 'prefix', 'suffix']) }, value));
-    return tiles.face(face, { iconFor, valueFor, state, sublabel: layerSublabel(sublabel, valueOf) });
+    // A level bar fills by the number itself: the layer's own source, or the key's value.
+    const numberFor = L => { const v = L.read ? valueOf(L.read) : value; return v === undefined || v === null || v === '' ? undefined : Number(v); };
+    return tiles.face(face, { iconFor, valueFor, numberFor, state, sublabel: layerSublabel(sublabel, valueOf) });
   }
 
   // State logic: faces and sublabels per step (logicFaces: { index | 'otherwise': face }).

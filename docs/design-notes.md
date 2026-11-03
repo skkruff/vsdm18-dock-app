@@ -148,6 +148,6 @@ shows up.
 - Keypad layout: once settled, make it the built-in one and lock layout editing again; keep the
   functional settings (preset, title, send pathway) exposed (see "Keypad layout" above).
 - A long inspector: group sections (look, source, press, preview) so they can be folded.
-- Dimmers: a level bar on the key (width follows the value).
+- ~~Dimmers: a level bar on the key (width follows the value).~~ Done 2026-11-03: Level bar face layer.
 - "Press these in order" actions (G1000 softkey sequences, e.g. XPDR then ALT).
 - Visual consistency: spacing, control sizes, dialogs, the dock picture's selection and drop marks.

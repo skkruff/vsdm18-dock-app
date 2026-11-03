@@ -55,8 +55,12 @@ const NEW_LAYER = {
   bar: () => ({ kind: 'bar' }),
   separator: () => ({ kind: 'separator', x: 72, y: 56 }),
   rect: () => ({ kind: 'rect', x: 0, y: 0, w: 144, h: 40, color: '#1e2a3a' }),
+  level: () => ({ kind: 'level', dir: 'right', min: 0, max: 100 }),
 };
-const LAYER_NAMES = { icon: 'Icon', text: 'Text', value: 'Live value', sublabel: 'Sublabel', separator: 'Separator', bar: 'State bar', rect: 'Box' };
+const LAYER_NAMES = { icon: 'Icon', text: 'Text', value: 'Live value', sublabel: 'Sublabel', separator: 'Separator', bar: 'State bar', rect: 'Box', level: 'Level bar' };
+const LEVEL_DIRS = [['right', '→ fills left to right'], ['left', '← fills right to left'], ['up', '↑ fills bottom to top'], ['down', '↓ fills top to bottom']];
+// A vertical level bar needs a tall box: the right-hand edge of the key, unless placed already.
+const LEVEL_TALL = { x: 108, y: 14, w: 24, h: 116 };
 
 let faceLayer = 0; // which layer dragging on the preview moves
 let faceTarget = 'default'; // which face is being edited: 'default' or a sim value
@@ -139,7 +143,7 @@ function faceDesigner(key, slot) {
     const L = face.layers[faceLayer];
     if (!L) return;
     preview.setPointerCapture(e.pointerId);
-    const defaults = L.kind === 'bar' ? S.look.style.bar : L.kind === 'sublabel' ? { x: 72, y: SUBLABEL_Y() } : L.kind === 'separator' ? { x: 72, y: 56 } : { x: 0, y: 0 };
+    const defaults = L.kind === 'bar' || L.kind === 'level' ? S.look.style.bar : L.kind === 'sublabel' ? { x: 72, y: SUBLABEL_Y() } : L.kind === 'separator' ? { x: 72, y: 56 } : { x: 0, y: 0 };
     drag = { x: e.clientX, y: e.clientY, lx: Number(L.x ?? defaults.x) || 0, ly: Number(L.y ?? defaults.y) || 0, L };
   });
   preview.addEventListener('pointermove', e => {
@@ -162,7 +166,7 @@ function faceDesigner(key, slot) {
 
   face.layers.forEach((L, i) => {
     const n = (k, label, attrs = {}) => el('label', { class: 'mini' }, label,
-      input(L[k] ?? (L.kind === 'bar' ? S.look.style.bar[k] : ''), v => { if (v === '') delete L[k]; else L[k] = Number(v); update(); }, { type: 'number', ...attrs }));
+      input(L[k] ?? (L.kind === 'bar' || L.kind === 'level' ? S.look.style.bar[k] : ''), v => { if (v === '') delete L[k]; else L[k] = Number(v); update(); }, { type: 'number', ...attrs }));
     // Colour: empty follows the global look; "reset" goes back to it.
     const color = (k, d) => el('label', { class: 'mini' }, L[k] ? 'colour' : 'colour (look)',
       el('span', { class: 'inline' },
@@ -216,6 +220,8 @@ function faceDesigner(key, slot) {
         el('span', { class: 'muted' }, 'Empty fields use the bar measured from your icons.'));
     } else if (L.kind === 'rect') {
       fields.push(n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'), n('r', 'corner'), color('color', '#1e2a3a'));
+    } else if (L.kind === 'level') {
+      fields.push(levelFields(L, i, n, color, update));
     }
     const move = d => {
       const j = i + d;
@@ -231,7 +237,7 @@ function faceDesigner(key, slot) {
     el('div', { class: 'layer-head' },
       el('input', { type: 'radio', name: 'faceLayer', checked: i === faceLayer ? true : null, title: 'Drag moves this layer', on: { change: () => { faceLayer = i; renderInspector(); } } }),
       el('strong', {}, LAYER_NAMES[L.kind] || L.kind),
-      el('span', { class: 'muted' }, L.kind === 'bar' ? (L.look ? ` always ${{ on: 'green', armed: 'white', off: 'red', clear: 'clear' }[L.look]}` : ' green / red / outline by state') : L.kind === 'sublabel' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' per value / step') : L.kind === 'value' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' the key\'s value') : ''),
+      el('span', { class: 'muted' }, L.kind === 'level' ? ` ${L.read ? L.read.input || L.read.var || '(choose a source)' : 'the key\'s value'}, ${L.min ?? 0}-${L.max ?? 100}` : L.kind === 'bar' ? (L.look ? ` always ${{ on: 'green', armed: 'white', off: 'red', clear: 'clear' }[L.look]}` : ' green / red / outline by state') : L.kind === 'sublabel' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' per value / step') : L.kind === 'value' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' the key\'s value') : ''),
       el('span', { class: 'spacer' }),
       el('button', { title: 'Draw earlier (behind)', on: { click: () => move(-1) } }, '↑'),
       el('button', { title: 'Draw later (in front)', on: { click: () => move(1) } }, '↓'),
@@ -251,5 +257,57 @@ function faceDesigner(key, slot) {
     changed(); renderInspector();
   } } }, faceTarget === 'default' ? 'Remove custom face' : `Remove face for ${logic ? stepName(faceTarget) : `value ${faceTarget}`}`));
   refresh();
+  return box;
+}
+
+// Level bar (user, 2026-11-03): direction, range, fill and outline colours, the key's value or its
+// own source, and optional colour bands (e.g. fuel: yellow below 25, red below 10).
+function levelFields(L, i, n, color, update) {
+  const box = el('div', { class: 'level-fields' });
+  box.append(el('label', { class: 'mini' }, 'direction', select_(LEVEL_DIRS, L.dir || 'right', v => {
+    const wasTall = L.dir === 'up' || L.dir === 'down';
+    const tall = v === 'up' || v === 'down';
+    L.dir = v;
+    // Switching between across and upright: a box still at its default size turns with it.
+    if (tall && !wasTall && L.w === undefined && L.h === undefined) Object.assign(L, LEVEL_TALL);
+    if (!tall && wasTall && L.w === LEVEL_TALL.w && L.h === LEVEL_TALL.h) for (const k of ['x', 'y', 'w', 'h']) delete L[k];
+    changed(); renderInspector();
+  })),
+  n('min', 'empty at', { placeholder: 0 }), n('max', 'full at', { placeholder: 100 }),
+  n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'), n('r', 'corner'),
+  color('color', lookValue('on', '#b8f01c')), el('label', { class: 'mini' }, L.track ? 'outline' : 'outline (look)',
+    el('span', { class: 'inline' },
+      el('input', { type: 'color', value: L.track || lookValue('clearStroke', '#8a8f98'), on: { input: e => { L.track = e.target.value; update(); } } }),
+      L.track ? el('button', { title: 'Use the global look colour', on: { click: () => { delete L.track; changed(); renderInspector(); } } }, '↺') : null)));
+  // Its value: the key's own, or its own source (like a live value layer).
+  const own = !!L.read;
+  const srcBox = el('div', { class: 'layer-source' },
+    el('label', { class: 'row' }, el('input', { type: 'radio', name: `lsrc${i}`, checked: own ? null : true, on: { change: () => { delete L.read; changed(); renderInspector(); } } }), ' the key\'s value'),
+    el('label', { class: 'row' }, el('input', { type: 'radio', name: `lsrc${i}`, checked: own ? true : null, on: { change: () => { L.read = { var: '', unit: 'number' }; changed(); renderInspector(); } } }), ' its own source'));
+  if (own) srcBox.append(sourceEditor(L.read, r => { L.read = r || { var: '', unit: 'number' }; if (r) delete r.hint; }));
+  box.append(srcBox);
+  // Colour bands: hidden until the first one is added, so a plain bar stays plain.
+  const bands = Array.isArray(L.bands) ? L.bands : [];
+  const list = el('div', { class: 'level-bands' });
+  bands.forEach((b, j) => {
+    const side = typeof b.above === 'number' ? 'above' : 'below';
+    const at = b[side];
+    list.append(el('div', { class: 'inline' },
+      select_([['below', 'below'], ['above', 'above']], side, v => { const val = b[side]; delete b.below; delete b.above; b[v] = val; changed(); renderInspector(); }),
+      input(at, v => { delete b.below; delete b.above; b[side] = v === '' ? 0 : Number(v); update(); }, { type: 'number', class: 'narrow' }),
+      'fill',
+      el('input', { type: 'color', value: b.color || '#ffcc00', on: { input: e => { b.color = e.target.value; update(); } } }),
+      el('button', { title: 'Remove this band', on: { click: () => { bands.splice(j, 1); if (!bands.length) delete L.bands; changed(); renderInspector(); } } }, '✕')));
+  });
+  list.append(el('button', { class: 'add-or', title: 'A different fill colour below or above a value, e.g. yellow below 25', on: { click: () => {
+    L.bands = bands;
+    const range = (L.max ?? 100) - (L.min ?? 0);
+    const lowest = bands.filter(b => typeof b.below === 'number').map(b => b.below);
+    const next = lowest.length ? Math.round(Math.min(...lowest) * 0.4) : Math.round((L.min ?? 0) + range * 0.25);
+    bands.push({ below: next, color: lowest.length ? '#ff3b3b' : '#ffcc00' });
+    changed(); renderInspector();
+  } } }, '+ colour band'));
+  if (bands.length) list.prepend(el('div', { class: 'muted' }, 'When the value is in a band, the band\'s colour fills the bar; in two, the tighter one wins. Otherwise the fill colour above.'));
+  box.append(list);
   return box;
 }

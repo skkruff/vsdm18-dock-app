@@ -118,7 +118,11 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     source, plus text for other values. A State bar layer either follows the key's state or always shows green, white,
     red or clear ("shows"), e.g. a different bar on each per-value face of a readout. Every new face includes one, placed where drawn tiles put it; the designer
     shows "SUBLABEL" there until the key has one, so it can be moved. Typing a sublabel adds the
-    layer to an older face that lacks it. "+ face for a value" adds a separate face shown for one sim value (e.g. per
+    layer to an older face that lacks it. **Level bar** layer: a bar filled by the value, across or upright (direction: fills left to
+    right, right to left, bottom to top, top to bottom; turning it upright moves it to the key's
+    right edge), "empty at" / "full at", fill and outline colours, the key's value or its own
+    source, and optional colour bands ("+ colour band": below or above a value, e.g. yellow below
+    25, red below 10). "+ face for a value" adds a separate face shown for one sim value (e.g. per
     switch position). Drag on the big preview to move
     the selected layer, or type positions (key units 0-144). Use it to put a PNG above a readout,
     or make a clean text-only key when the library has no suitable PNG. "Remove custom face" goes

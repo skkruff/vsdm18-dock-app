@@ -102,6 +102,14 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
   - `{ "kind": "separator", "x", "y", "w", "h", "r", "color" }`: the separator line, centred on
     x, y (defaults 72, 56, 64 x 7, corner 3.5, readout colour).
   - `{ "kind": "rect", "x", "y", "w", "h", "r", "color" }`: a filled box.
+  - `{ "kind": "level", "x", "y", "w", "h", "r", "dir", "min", "max", "color", "track", "bands", "read" }`:
+    a level bar (user, 2026-11-03), an outline filled in proportion to the value between `min`
+    (empty, default 0) and `max` (full, default 100). `dir`: `right` (fills from the left, the
+    default), `left`, `up` (from the bottom), `down`. `color`: the fill (default the look's green),
+    `track`: the outline. `bands`: `[{ "below": 25, "color": "#ffcc00" }, { "below": 10, "color":
+    "#ff3b3b" }, { "above": 90, "color": … }]`; the tightest band the value is in sets the fill.
+    Without `read` it shows the key's value; with `read`, its own source (e.g. a fuel quantity on a
+    fuel pump key). Position defaults to the standard bar; an unknown value shows the outline only.
   Layers without a `color` follow the global look (editor Look panel). A text-only key with no
   sim source is a `button` with a face.
 

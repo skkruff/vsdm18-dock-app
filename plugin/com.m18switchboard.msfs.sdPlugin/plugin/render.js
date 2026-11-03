@@ -156,6 +156,36 @@ function bar(state, b = style.bar) {
     `fill="none" stroke="${style.clearStroke}" stroke-width="${sw}"/>`;
 }
 
+// A level bar (user, 2026-11-03): an outline filled in proportion to the value between min and
+// max, from one end (dir: right = fills from the left towards the right, left, up, down). The fill
+// colour is the layer's colour, or a band's: bands [{ below, color } | { above, color }], the
+// tightest band the value is in wins (e.g. fuel: yellow below 25, red below 10). An unknown value
+// shows the empty outline.
+const LEVEL_DIRS = ['right', 'left', 'up', 'down'];
+function levelColor(L, v) {
+  const bands = Array.isArray(L.bands) ? L.bands : [];
+  const below = bands.filter(b => typeof b.below === 'number' && v < b.below).sort((a, b) => a.below - b.below)[0];
+  const above = bands.filter(b => typeof b.above === 'number' && v > b.above).sort((a, b) => b.above - a.above)[0];
+  return (below || above || {}).color || L.color || style.on;
+}
+function level(L, v, b, id) {
+  const sw = style.clearWidth;
+  const track = `<rect x="${b.x + sw / 2}" y="${b.y + sw / 2}" width="${Math.max(0, b.w - sw)}" height="${Math.max(0, b.h - sw)}" rx="${Math.max(0, b.r - sw / 2)}" ` +
+    `fill="none" stroke="${esc(L.track || style.clearStroke)}" stroke-width="${sw}"/>`;
+  if (typeof v !== 'number' || Number.isNaN(v)) return track;
+  const min = num(L.min, 0), max = num(L.max, 100);
+  const f = max === min ? 0 : Math.max(0, Math.min(1, (v - min) / (max - min)));
+  if (f === 0) return track;
+  const dir = LEVEL_DIRS.includes(L.dir) ? L.dir : 'right';
+  const fw = dir === 'right' || dir === 'left' ? b.w * f : b.w;
+  const fh = dir === 'up' || dir === 'down' ? b.h * f : b.h;
+  const fx = dir === 'left' ? b.x + b.w - fw : b.x;
+  const fy = dir === 'up' ? b.y + b.h - fh : b.y;
+  // The fill is clipped to the bar's rounded shape, so a part-filled bar keeps round ends.
+  return `<defs><clipPath id="${id}"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.r}"/></clipPath></defs>` +
+    `<rect x="${fx}" y="${fy}" width="${fw}" height="${fh}" fill="${esc(levelColor(L, v))}" clip-path="url(#${id})"/>` + track;
+}
+
 // Fits an icon (box: its content box, or null for the whole image) into an area, clipped to it.
 function placedIcon(uri, box, area, id, crop = 'auto') {
   const full = { x: 0, y: 0, w: box ? box.width : 512, h: box ? box.height : 512 };
@@ -239,12 +269,14 @@ const tiles = {
   //                                                                or always look (on|armed|off|clear)
   //   { kind: 'separator', x, y, w, h, r, color }                 a rounded line, centred on (x, y)
   //   { kind: 'rect', x, y, w, h, r, color }
-  // ctx: { iconFor(name) -> { uri, box } | null, valueFor(layer) -> string, state }
+  //   { kind: 'level', x, y, w, h, r, dir, min, max, color, track, bands, read? }
+  //                                                                a bar filled by the value: see level()
+  // ctx: { iconFor(name) -> { uri, box } | null, valueFor(layer) -> string, numberFor(layer), state }
   face(face, ctx) {
     let body = '';
     (face.layers || []).forEach((L, n) => {
       // A bar without its own position sits where the standard bar does.
-      const d = L.kind === 'bar' ? style.bar : { x: 0, y: 0, w: 144, h: 144 };
+      const d = L.kind === 'bar' || L.kind === 'level' ? style.bar : { x: 0, y: 0, w: 144, h: 144 };
       const x = num(L.x, d.x), y = num(L.y, d.y), w = num(L.w, d.w), h = num(L.h, d.h);
       if (L.kind === 'icon') {
         const ic = ctx.iconFor(L.icon);
@@ -265,6 +297,8 @@ const tiles = {
         body += separatorRect({ x: num(L.x, SEPARATOR.x), y: num(L.y, 56), w: num(L.w, SEPARATOR.w), h: num(L.h, SEPARATOR.h), r: num(L.r, SEPARATOR.r), color: L.color });
       } else if (L.kind === 'rect') {
         body += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${num(L.r, 0)}" fill="${esc(L.color || '#333333')}"/>`;
+      } else if (L.kind === 'level') {
+        body += level(L, ctx.numberFor ? ctx.numberFor(L) : undefined, { x, y, w, h, r: num(L.r, style.bar.r) }, `lv${n}`);
       }
     });
     // dim: a keypad key that does nothing right now (keypad.js).

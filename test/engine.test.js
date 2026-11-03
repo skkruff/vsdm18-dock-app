@@ -211,13 +211,29 @@ const text = uri => decodeURIComponent(uri);
   {
     const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
     const lv = (layer, v, valueOf) => text(engine.keyImage({ type: 'rotary', read: { input: 'DIM' }, press: { step: 1 }, face: { layers: [layer] } }, v, null, valueOf));
-    const fill = svg => { const m = svg.match(/<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" fill="([^"]+)" clip-path/); return m && { x: +m[1], y: +m[2], w: +m[3], h: +m[4], color: m[5] }; };
+    // The fill is a polygon (the dock ignores clip paths): its bounding box, rounded, and colour.
+    const fill = svg => {
+      const m = svg.match(/<path d="(M[^"]+)" fill="([^"]+)"\/>/);
+      if (!m) return null;
+      const pts = [...m[1].matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map(q => [+q[1], +q[2]]);
+      const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+      const r = n => Math.round(n * 10) / 10;
+      return { x: r(Math.min(...xs)), y: r(Math.min(...ys)), w: r(Math.max(...xs) - Math.min(...xs)), h: r(Math.max(...ys) - Math.min(...ys)), color: m[2] };
+    };
     const box = { kind: 'level', x: 10, y: 100, w: 120, h: 30, color: '#00ff00' };
     assert.deepStrictEqual(fill(lv(box, 50)), { x: 10, y: 100, w: 60, h: 30, color: '#00ff00' }, 'half, from the left');
     assert.deepStrictEqual(fill(lv({ ...box, dir: 'left' }, 25)), { x: 100, y: 100, w: 30, h: 30, color: '#00ff00' }, 'a quarter, from the right');
     const tall = { kind: 'level', dir: 'up', x: 110, y: 10, w: 20, h: 100, min: 0, max: 50, color: '#00ff00' };
     assert.deepStrictEqual(fill(lv(tall, 10)), { x: 110, y: 90, w: 20, h: 20, color: '#00ff00' }, 'upright, from the bottom, own range');
     assert.deepStrictEqual(fill(lv({ ...tall, dir: 'down' }, 60)), { x: 110, y: 10, w: 20, h: 100, color: '#00ff00' }, 'clamped to full');
+    // No corner sticks out of the rounded bar: every point of a part fill lies inside its shape.
+    {
+      const svg = lv({ ...box, r: 15 }, 50);
+      const pts = [...svg.match(/<path d="(M[^"]+)"/)[1].matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map(q => [+q[1], +q[2]]);
+      const inside = ([px, py]) => { const cx = Math.min(Math.max(px, 10 + 15), 130 - 15), cy = Math.min(Math.max(py, 100 + 15), 130 - 15); return Math.hypot(px - cx, py - cy) <= 15.01; };
+      assert.ok(pts.every(inside), 'fill stays inside the round ends');
+      assert.ok(!/clip-path/.test(svg), 'no clip path');
+    }
     assert.strictEqual(fill(lv(box, undefined)), null, 'unknown: outline only');
     assert.strictEqual(fill(lv(box, 0)), null, 'empty: outline only');
     const banded = { ...box, bands: [{ below: 25, color: '#ffcc00' }, { below: 10, color: '#ff0000' }, { above: 90, color: '#0000ff' }] };

@@ -168,7 +168,7 @@ function levelColor(L, v) {
   const above = bands.filter(b => typeof b.above === 'number' && v > b.above).sort((a, b) => b.above - a.above)[0];
   return (below || above || {}).color || L.color || style.on;
 }
-function level(L, v, b, id) {
+function level(L, v, b) {
   const sw = style.clearWidth;
   const track = `<rect x="${b.x + sw / 2}" y="${b.y + sw / 2}" width="${Math.max(0, b.w - sw)}" height="${Math.max(0, b.h - sw)}" rx="${Math.max(0, b.r - sw / 2)}" ` +
     `fill="none" stroke="${esc(L.track || style.clearStroke)}" stroke-width="${sw}"/>`;
@@ -177,13 +177,43 @@ function level(L, v, b, id) {
   const f = max === min ? 0 : Math.max(0, Math.min(1, (v - min) / (max - min)));
   if (f === 0) return track;
   const dir = LEVEL_DIRS.includes(L.dir) ? L.dir : 'right';
-  const fw = dir === 'right' || dir === 'left' ? b.w * f : b.w;
-  const fh = dir === 'up' || dir === 'down' ? b.h * f : b.h;
-  const fx = dir === 'left' ? b.x + b.w - fw : b.x;
-  const fy = dir === 'up' ? b.y + b.h - fh : b.y;
-  // The fill is clipped to the bar's rounded shape, so a part-filled bar keeps round ends.
-  return `<defs><clipPath id="${id}"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.r}"/></clipPath></defs>` +
-    `<rect x="${fx}" y="${fy}" width="${fw}" height="${fh}" fill="${esc(levelColor(L, v))}" clip-path="url(#${id})"/>` + track;
+  // The fill is the bar's rounded shape cut at the level, drawn as a polygon. Not a clip path:
+  // VSD Craft's renderer ignores clip-path, so the square fill showed past the round ends
+  // (user, on the dock, 2026-11-03).
+  const keep = {
+    right: p => p[0] <= b.x + b.w * f, left: p => p[0] >= b.x + b.w * (1 - f),
+    up: p => p[1] >= b.y + b.h * (1 - f), down: p => p[1] <= b.y + b.h * f,
+  }[dir];
+  const cut = dir === 'right' || dir === 'left'
+    ? (a, c) => { const X = dir === 'right' ? b.x + b.w * f : b.x + b.w * (1 - f); const t = (X - a[0]) / (c[0] - a[0]); return [X, a[1] + t * (c[1] - a[1])]; }
+    : (a, c) => { const Y = dir === 'down' ? b.y + b.h * f : b.y + b.h * (1 - f); const t = (Y - a[1]) / (c[1] - a[1]); return [a[0] + t * (c[0] - a[0]), Y]; };
+  const shape = clipPolygon(roundedRectPoints(b), keep, cut);
+  if (shape.length < 3) return track;
+  const d = shape.map((p, i) => `${i ? 'L' : 'M'}${round2(p[0])} ${round2(p[1])}`).join('') + 'Z';
+  return `<path d="${d}" fill="${esc(levelColor(L, v))}"/>` + track;
+}
+const round2 = n => Math.round(n * 100) / 100;
+// A rounded rectangle as a polygon (each corner as a quarter circle of 8 segments).
+function roundedRectPoints({ x, y, w, h, r }) {
+  const rr = Math.max(0, Math.min(r || 0, w / 2, h / 2));
+  const pts = [];
+  const corner = (cx, cy, from) => { for (let i = 0; i <= 8; i++) { const a = (from + i * 90 / 8) * Math.PI / 180; pts.push([cx + rr * Math.cos(a), cy + rr * Math.sin(a)]); } };
+  corner(x + w - rr, y + rr, -90); // top right
+  corner(x + w - rr, y + h - rr, 0); // bottom right
+  corner(x + rr, y + h - rr, 90); // bottom left
+  corner(x + rr, y + rr, 180); // top left
+  return pts;
+}
+// Sutherland-Hodgman against one straight edge: keep(p) says which side stays, cut(a, b) where
+// the edge crosses a-b.
+function clipPolygon(pts, keep, cut) {
+  const out = [];
+  pts.forEach((c, i) => {
+    const a = pts[(i + pts.length - 1) % pts.length];
+    const ka = keep(a), kc = keep(c);
+    if (kc) { if (!ka) out.push(cut(a, c)); out.push(c); } else if (ka) out.push(cut(a, c));
+  });
+  return out;
 }
 
 // Fits an icon (box: its content box, or null for the whole image) into an area, clipped to it.
@@ -298,7 +328,7 @@ const tiles = {
       } else if (L.kind === 'rect') {
         body += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${num(L.r, 0)}" fill="${esc(L.color || '#333333')}"/>`;
       } else if (L.kind === 'level') {
-        body += level(L, ctx.numberFor ? ctx.numberFor(L) : undefined, { x, y, w, h, r: num(L.r, style.bar.r) }, `lv${n}`);
+        body += level(L, ctx.numberFor ? ctx.numberFor(L) : undefined, { x, y, w, h, r: num(L.r, style.bar.r) });
       }
     });
     // dim: a keypad key that does nothing right now (keypad.js).

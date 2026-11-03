@@ -47,11 +47,16 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-03, user (dock): VSD Craft's renderer ignores SVG clip-path: the level bar's fill
+  showed square past the rounded outline on the dock (fine in the editor's browser). Fixed: the
+  fill is now the rounded shape cut at the level, drawn as a polygon (engine test checks every
+  point lies inside the round ends). Note: icon layers' cropping also uses a clip path, so on the
+  dock an icon is not cut at its box; this shows only where an icon's visible parts reach past
+  the box (not seen so far, as icon margins are transparent).
 - 2026-11-03, unit + browser tests only: Level bar face layer (direction, range, colours, own
   source, colour bands). Engine tests check the fill geometry per direction, clamping, unknown /
   empty values, band choice and validation; the editor test adds one upright with a band. Not yet
-  seen on the dock: whether VSD Craft's renderer honours the clip path that keeps the fill's
-  rounded ends (icon cropping uses the same clipPath and works on the dock).
+  seen on the dock (see the entry above: it did not honour the clip path).
 - 2026-11-01, unit + browser tests only: "Sim paused" source (`{ "sim": "paused" }`, 1 in any
   pause, from Pause_EX1 flags). No simvar or event reports active pause in the MSFS 2024 SDK
   (catalog search); MOTION SIMULATION also drops in menus and RTC. Known gap as for stopwatches:

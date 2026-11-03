@@ -47,6 +47,10 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-03, user report: the same simvar read two values (FUEL LEFT QUANTITY 0.0369 vs 9.75).
+  Cause: units, "number" vs "gallons"; SimConnect gives a dimensionless request the SI base unit
+  (cubic metres: 9.7508 gal x 0.003785 = 0.0369). Now a typed simvar name the SDK knows fills in
+  its unit while the unit is still the default "number" (browser test).
 - 2026-11-03, user (dock): VSD Craft's renderer ignores SVG clip-path: the level bar's fill
   showed square past the rounded outline on the dock (fine in the editor's browser). Fixed: the
   fill is now the rounded shape cut at the level, drawn as a polygon (engine test checks every

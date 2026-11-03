@@ -223,15 +223,39 @@ function sourceEditor(read, onChange, { allowNone = false, unit = 'number' } = {
       el('button', { title: 'Search this aircraft\'s input events, with their current values', on: { click: () => browse('inputs', c => set({ input: c.name })) } }, 'Browse…'))));
   } else if (kind === 'var') {
     const testOut = el('span', { class: 'muted' });
+    const unitInput = input(read.unit, v => { read.unit = v; changed(); }, { list: 'unitList' });
+    // A typed name the SDK knows brings its unit while the unit is still the default: "number"
+    // gives a value in the SI base unit (FUEL LEFT QUANTITY in cubic metres, not gallons; user
+    // report 2026-11-03).
+    const nameInput = input(read.var, v => { read.var = v; changed(); }, { placeholder: 'e.g. NAV ACTIVE FREQUENCY:1' });
+    nameInput.addEventListener('change', async () => {
+      if (read.unit && read.unit !== 'number') return;
+      const c = await catalogSimvar(read.var);
+      if (!c || !c.unit || c.unit === read.unit) return;
+      read.unit = c.unit;
+      unitInput.value = c.unit;
+      testOut.textContent = `unit from the SDK: ${c.unit}`;
+      changed();
+    });
     box.append(field('Simvar', el('div', { class: 'inline' },
-      input(read.var, v => { read.var = v; changed(); }, { placeholder: 'e.g. NAV ACTIVE FREQUENCY:1' }),
+      nameInput,
       el('button', { title: 'Search common simvars', on: { click: () => browse('simvars', c => set({ var: c.name, unit: c.unit, hint: c })) } }, 'Browse…'))));
     box.append(field('Unit', el('div', { class: 'inline' },
-      input(read.unit, v => { read.unit = v; changed(); }, { list: 'unitList' }),
+      unitInput,
       el('button', { title: 'Read it from the sim once', on: { click: async () => {
         testOut.textContent = 'reading…';
         try { testOut.textContent = `= ${(await api('POST', '/api/test-var', { var: read.var, unit: read.unit })).value}`; } catch (e) { testOut.textContent = e.message; }
       } } }, 'Test'), testOut)));
   }
   return box;
+}
+
+// The catalog entry for a simvar name as typed: exact, or without its index (":1").
+async function catalogSimvar(name) {
+  if (!name) return null;
+  browseCache.simvars = browseCache.simvars || await api('GET', '/api/catalog/simvars');
+  const n = name.trim().toUpperCase();
+  const base = n.replace(/:\d+$/, '');
+  return browseCache.simvars.find(x => x.name.toUpperCase() === n)
+    || browseCache.simvars.find(x => x.name.toUpperCase().replace(/:\d+$/, '') === base) || null;
 }

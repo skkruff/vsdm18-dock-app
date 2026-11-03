@@ -47,6 +47,12 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-03, user (sim, XCub): the G3X touch screen's COM 1 / COM 2 / MIC buttons change no
+  input event (sim:explore prints nothing; presumably H: events); COM RECEIVE:n and COM
+  TRANSMIT:n follow them. Writing COM RECEIVE directly does nothing. COM1_RECEIVE_SELECT with the
+  opposite value works while COM2 MIC is on; with COM1 MIC on it turns the COM1 receiver off
+  (not possible on the real panel) and it will not come back on. User's choice: COM keys on the
+  XCub are readouts only; the touch screen sets them.
 - 2026-11-03, user (sim, CubCrafters XCub): tanks filled to 23 gal in the EFB read 21.5 in
   FUEL LEFT QUANTITY (usable fuel; 1.5 gal per tank unusable), while FUELSYSTEM TANK TOTAL
   QUANTITY:1 / :2 (left / right) read the full 23 like the EFB. The user's key: a level bar on

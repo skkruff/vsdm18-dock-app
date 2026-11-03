@@ -716,6 +716,26 @@ const text = uri => decodeURIComponent(uri);
     const sent = sim9.sets.splice(0).map(x => x[1]);
     assert.deepStrictEqual(sent.slice(0, 2), [0.55, 0.6], `a hold ramps in scaled values (${sent})`);
   }
+  // A step on an input event the key does not show steps from that input's own value (user report
+  // 2026-11-03, XCub AUTOPILOT_VS_SELECTOR stepped by a button showing the vertical speed).
+  {
+    const simW = new FakeSim({ WHEEL: 40 });
+    simW.simvars = simW.simvars || {};
+    const prof = { id: 'w', fallback: true, pages: [{ name: 'P', keys: {
+      0: { type: 'button', label: 'VS UP', read: { var: 'VERTICAL SPEED', unit: 'feet per minute' }, press: { step: 10, min: 0, max: 350, wrap: true, input: 'WHEEL' } },
+    } }] };
+    const eW = new ProfileEngine({ redrawMs: 0, sim: simW, display: { image() {}, title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
+    eW.start();
+    simW.emit('connected');
+    simW.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
+    await new Promise(r => setTimeout(r, 30));
+    assert.ok(eW.watches.has('input:WHEEL'), 'the stepped input is watched');
+    eW.keyDown(0); eW.keyUp(0);
+    assert.deepStrictEqual(simW.sets.splice(0), [['WHEEL', 50]], 'from the wheel\'s 40, not the key\'s value');
+    simW.input('WHEEL', 350);
+    eW.keyDown(0); eW.keyUp(0);
+    assert.deepStrictEqual(simW.sets.splice(0), [['WHEEL', 0]], 'wraps at 350');
+  }
   // Sim paused (user, 2026-11-01): 1 in any pause, from Pause_EX1; unknown until reported.
   {
     const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));

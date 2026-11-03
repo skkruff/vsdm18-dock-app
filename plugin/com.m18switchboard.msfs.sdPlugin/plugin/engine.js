@@ -56,6 +56,10 @@ function keySources(key) {
   const out = key.read ? [key.read] : [];
   // A press that writes a simvar watches it too, so cycle and step know its current value.
   for (const a of pressActions(key.press)) if (a.var && a.var.var) out.push(a.var);
+  // So does a step or cycle on an input event other than the key's own: it steps from that
+  // input's value, not from what the key shows (user report 2026-11-03: a button showing one
+  // value stepping the XCub's AUTOPILOT_VS_SELECTOR jumped by a fixed amount).
+  for (const a of pressActions(key.press)) if (a.input && (a.step !== undefined || a.cycle) && !(key.read && key.read.input === a.input)) out.push({ input: a.input });
   // Readout state logic: every condition's source.
   for (const s of (key.logic && key.logic.steps) || []) for (const c of s.when || []) if (c.read) out.push(c.read);
   const faces = [key.face, ...Object.values(key.valueFaces || {}), ...Object.values(key.logicFaces || {})].filter(Boolean);

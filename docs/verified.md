@@ -47,6 +47,10 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-03, user report (XCub): a button stepping AUTOPILOT_VS_SELECTOR moved a fixed amount
+  whatever the step. Cause found in code: a step or cycle on an input event the key did not read
+  was not watched, so it stepped from the key's own displayed value. Fixed (engine test). Not yet
+  confirmed in the sim that this was the user's case (it is if the key reads another source).
 - 2026-11-03, unit + editor tests: Revert changes per key (back to the saved version, button
   dim without changes, a deleted key restorable from its empty slot); rotary Level bar on the
   automatic look. Not yet seen on the dock.

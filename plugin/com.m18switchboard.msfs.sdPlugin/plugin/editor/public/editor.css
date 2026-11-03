@@ -28,7 +28,8 @@ header { display: flex; align-items: center; gap: 16px; padding: 10px 16px; back
 .sim-status { margin-left: auto; color: var(--dim); font-size: 13px; }
 .sim-status .on { color: var(--good); }
 
-main { display: grid; grid-template-columns: minmax(640px, auto) minmax(560px, 1fr); gap: 16px; padding: 16px; align-items: start; }
+/* The inspector stops at 800 px (long lines were hard to read); both columns stay left (user, 2026-11-03). */
+main { display: grid; grid-template-columns: minmax(640px, auto) minmax(560px, 800px); justify-content: start; gap: 16px; padding: 16px; align-items: start; }
 .left, .right { display: flex; flex-direction: column; gap: 14px; }
 details { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
 summary { cursor: pointer; color: var(--dim); }
@@ -62,6 +63,8 @@ legend { color: var(--dim); font-size: 12px; }
 #inspector h4 { margin: 14px 0 6px; font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
 .field { display: grid; grid-template-columns: 110px 1fr; gap: 8px; align-items: center; margin: 6px 0; }
 .field > span { color: var(--dim); font-size: 12px; }
+/* A checkbox sits right by its label, not centred in the control column. */
+.field > input[type=checkbox], .field > input[type=radio] { justify-self: start; margin-left: 0; }
 .field .inline { display: flex; gap: 6px; align-items: center; }
 .field .inline input { flex: 1; min-width: 0; }
 .map-table { width: 100%; border-collapse: collapse; }

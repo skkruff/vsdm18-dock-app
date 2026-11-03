@@ -77,7 +77,9 @@ legend { color: var(--dim); font-size: 12px; }
 textarea.json { width: 100%; min-height: 220px; font: 12px/1.35 ui-monospace, Consolas, monospace; }
 .preview-big { width: 144px; height: 144px; border-radius: 8px; background: #000; display: block; margin: 6px 0; }
 
-#libraryPanel { max-width: 690px; }
+/* In the right column, beside the dock picture, so keys drag straight across (user, 2026-11-03).
+   Its list scrolls on its own so the key editor below stays in reach. */
+#libraryList { max-height: 42vh; overflow-y: auto; }
 .lib-tools { display: flex; gap: 8px; margin: 8px 0; }
 .lib-tools input { flex: 1; }
 .lib-cat { padding: 4px 8px; margin: 6px 0; background: var(--panel2); }

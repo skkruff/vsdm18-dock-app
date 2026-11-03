@@ -139,7 +139,8 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   - Preview value: type a value to see that look.
   - Advanced: the key as JSON.
   - An empty key shows **Add key** (and Paste when something is copied).
-- **Library**: reusable keys and groups of keys, searchable, by category. It ships with every key
+- **Library** (top of the right column, beside the dock picture, so keys drag straight across;
+  its list scrolls on its own): reusable keys and groups of keys, searchable, by category. It ships with every key
   built so far (each C172 and generic key, plus groups: magneto set, fuel selector, exterior
   lights row). Save any key or selection with "Save to library": a name, and a category from the
   list of existing ones or "New category…". **Groups** fills itself: every item of more than one

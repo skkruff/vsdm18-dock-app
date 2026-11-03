@@ -47,6 +47,10 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-03, user (sim, CubCrafters XCub): tanks filled to 23 gal in the EFB read 21.5 in
+  FUEL LEFT QUANTITY (usable fuel; 1.5 gal per tank unusable), while FUELSYSTEM TANK TOTAL
+  QUANTITY:1 / :2 (left / right) read the full 23 like the EFB. The user's key: a level bar on
+  FUEL LEFT QUANTITY, full at 21.5 (usable), and a readout on FUELSYSTEM TANK TOTAL QUANTITY:1.
 - 2026-11-03, user report: the same simvar read two values (FUEL LEFT QUANTITY 0.0369 vs 9.75).
   Cause: units, "number" vs "gallons"; SimConnect gives a dimensionless request the SI base unit
   (cubic metres: 9.7508 gal x 0.003785 = 0.0369). Now a typed simvar name the SDK knows fills in

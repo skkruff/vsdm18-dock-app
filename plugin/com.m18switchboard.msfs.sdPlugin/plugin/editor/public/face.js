@@ -48,18 +48,20 @@ function defaultFace(key) {
   };
   const switchLabel = () => (key.separator ? stacked(10, barY - 8) : [centred(10, subl ? barY * 0.78 - 15 : barY - 10), sub()]);
   const buttonLabel = () => (key.separator ? stacked(10, 134) : [centred(10, subl ? 90 : 134), sub(104)]);
-  if ((key.type === 'readout' || key.type === 'rotary') && !key.logic && (key.hideValue || key.stateBar)) {
-    // As the automatic look draws it with the value hidden and / or a state bar.
-    const bar = key.stateBar ? [{ kind: 'bar' }] : [];
+  const levelBar = key.type === 'rotary' && key.levelBar;
+  if ((key.type === 'readout' || key.type === 'rotary') && !key.logic && (key.hideValue || key.stateBar || levelBar)) {
+    // As the automatic look draws it with the value hidden and / or a state bar (or a rotary's
+    // level bar in its place).
+    const bar = levelBar ? [{ kind: 'level', ...levelRangeOf(key) }] : key.stateBar ? [{ kind: 'bar' }] : [];
     if (key.hideValue) {
-      if (key.icon) return { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: key.stateBar ? 58 : 100 }, sub(key.stateBar ? 74 : 122), ...bar] };
-      return key.stateBar ? { layers: [...switchLabel(), ...bar] } : { layers: buttonLabel() };
+      if (key.icon) return { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: bar.length ? 58 : 100 }, sub(bar.length ? 74 : 122), ...bar] };
+      return bar.length ? { layers: [...switchLabel(), ...bar] } : { layers: buttonLabel() };
     }
     if (key.icon) return { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 4, w: 132, h: 40 }, sub(48), { kind: 'value', x: 72, y: subl ? 72 : 66, size: 30 }, ...bar] };
     const lb = block(24);
     let next = 8 + lb + 6;
     const layers = [{ kind: 'text', text: label, x: 72, y: Math.round(8 + lb / 2), size: fit(24) }];
-    if (key.separator) { layers.push({ kind: 'separator', x: 72, y: Math.round(next + 2) }); next += 10; }
+    if (key.separator) { layers.push({ kind: 'separator', x: 72, y: Math.round(next + 10) }); next += 18; }
     layers.push(sub(Math.round(next + 10)));
     if (subl) next += 25;
     return { layers: [...layers, { kind: 'value', x: 72, y: Math.round((next + barY) / 2), size: 30 }, ...bar] };

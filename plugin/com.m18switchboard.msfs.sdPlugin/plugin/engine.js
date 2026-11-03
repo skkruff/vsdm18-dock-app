@@ -133,6 +133,15 @@ function pressKind(p) {
 }
 
 // Every action in a press, lists and tap / hold opened up.
+// A rotary's range for its level bar: the minimum and maximum its step actions keep to (0-100
+// when they set none).
+function levelRange(key) {
+  const steps = pressActions(key.press).filter(a => a && a.step !== undefined);
+  const min = steps.map(a => a.min).find(n => typeof n === 'number');
+  const max = steps.map(a => a.max).find(n => typeof n === 'number');
+  return { min: min ?? 0, max: max ?? 100 };
+}
+
 function pressActions(p) {
   if (!p) return [];
   if (Array.isArray(p)) return p.flatMap(pressActions);
@@ -535,6 +544,8 @@ class ProfileEngine {
     if (key.type === 'readout' || key.type === 'rotary') {
       // Automatic look options (user, 2026-11-03): hide the number; a state bar from the look per value.
       const opts = { showValue: !key.hideValue, state: key.stateBar ? (value === undefined ? 'clear' : (lookup(key.states, value) || key.otherwise || 'clear')) : undefined };
+      // A rotary's level bar takes the state bar's place, filled between its step's limits.
+      if (key.type === 'rotary' && key.levelBar) opts.state = { level: { ...levelRange(key), value: value === undefined || value === '' ? undefined : Number(value) } };
       const icon = this.renderer.icon(key.icon, key.iconState || null);
       return icon
         ? tiles.iconReadout(icon, formatValue(key, value), this.renderer.iconBox(key.icon, key.iconState || null), sublabelFor(key, value), opts)
@@ -901,4 +912,4 @@ function sendValue(value, scale) {
   return Math.round(value * scale * 1e6) / 1e6; // 1e6: no 0.35000000000000003
 }
 
-module.exports = { ProfileEngine, formatValue, sourceKey, keySources, LCD_SLOTS };
+module.exports = { ProfileEngine, formatValue, sourceKey, keySources, levelRange, LCD_SLOTS };

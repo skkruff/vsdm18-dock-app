@@ -99,6 +99,7 @@ function renderTabs() {
 async function loadKeypad() {
   const r = await api('GET', '/api/keypad');
   S.keypad = { name: 'Keypad', keys: clone(r.keys), builtIn: r.builtIn, problems: r.problems, presets: r.presets };
+  S.savedKeypad = clone(r.keys);
 }
 
 function bindPages() {

@@ -71,6 +71,8 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
   -> 75%, `"suffix": "RPM"` -> 2400 RPM, `"prefix": "QNH"` -> QNH 1013. A unit starting with a
   letter or digit gets a space. Not added to words from `text`. Value layers without their own
   source use the key's units unless they set their own.
+- **levelBar** (rotary; user 2026-11-03): `true` draws a level bar in the state bar's place,
+  filled by the value between the `min` and `max` of the key's step actions (0-100 without them).
 - **hideValue**, **stateBar** (readout, rotary; user 2026-11-03): the automatic look without the
   number (`"hideValue": true`), and / or with a state bar coloured by `states` / `otherwise` like a
   switch's (`"stateBar": true`). A custom face ignores them (it has its own layers).

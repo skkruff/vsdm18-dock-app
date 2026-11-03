@@ -175,7 +175,10 @@ function separatorRect({ x = SEPARATOR.x, y, w = SEPARATOR.w, h = SEPARATOR.h, r
   return `<rect x="${(x - w / 2).toFixed(1)}" y="${(y - h / 2).toFixed(1)}" width="${w}" height="${h}" rx="${r}" fill="${esc(color || style.separator || style.readout)}"/>`;
 }
 
+// state: on / off / armed / clear, or { level: { min, max, value } } for a level bar in the bar's
+// place (a rotary's automatic look, user 2026-11-03).
 function bar(state, b = style.bar) {
+  if (state && typeof state === 'object' && state.level) return level(state.level, state.level.value, b);
   const fill = style[state === 'on' || state === 'off' || state === 'armed' ? state : null];
   if (fill) return `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.r}" fill="${fill}"/>`;
   const sw = style.clearWidth;
@@ -283,7 +286,7 @@ const tiles = {
       const lab = textFit(label, { size: LABEL_SIZE, width: 130, height: 24 });
       let next = 8 + lab.block + 6;
       let body = lines(label, 8 + lab.block / 2, { size: LABEL_SIZE, width: 130, height: 24 });
-      if (separator) { body += separatorRect({ y: next + 2 }); next += 10; }
+      if (separator) { body += separatorRect({ y: next + 10 }); next += 18; }
       if (sublabel) { body += lines(sublabel, next + 10, { size: SUBLABEL_SIZE, color: style.dim }); next += 25; }
       return svgUri(body + lines(value, (next + style.bar.y) / 2, { size: 30, color: style.readout, width: 132 }) + bar(state));
     }

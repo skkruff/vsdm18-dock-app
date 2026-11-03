@@ -86,6 +86,7 @@ function unusedFields(key) {
   // State logic decides the look: the per-value tables and number format are not shown.
   if (key.type === 'readout' && key.logic) out.push(...['states', 'otherwise', 'sublabels', 'valueIcons', 'valueFaces', ...FORMAT].filter(f => key[f] !== undefined && f !== 'separator'));
   if (key.type === 'keypad' && key.separator !== undefined) out.push('separator');
+  if (key.type !== 'rotary' && key.levelBar !== undefined) out.push('levelBar');
   if (key.type === 'decor' || key.type === 'keypad') out.push(...['read', 'press', 'states', 'otherwise', 'sublabels', 'valueIcons', 'valueFaces'].filter(f => key[f] !== undefined));
   return [...new Set(out)];
 }
@@ -233,7 +234,13 @@ function lookSection(key, slot) {
     out.push(el('h4', {}, 'On the key'));
     if (!key.logic) {
       out.push(dimmed(tick('Show the value', !key.hideValue, v => { if (v) delete key.hideValue; else key.hideValue = true; }, 'The number (or its text per value)'), faced));
-      out.push(dimmed(tick('State bar', key.stateBar, v => { if (v) key.stateBar = true; else delete key.stateBar; }, 'A bar coloured by the look per value (green, white, red, clear)'), faced));
+      if (key.type === 'rotary') {
+        const range = levelRangeOf(key);
+        out.push(dimmed(tick('Level bar', key.levelBar, v => { if (v) key.levelBar = true; else delete key.levelBar; },
+          `A bar filled by the value, from ${range.min} (empty) to ${range.max} (full): the step's minimum and maximum`), faced));
+      }
+      out.push(dimmed(tick('State bar', key.stateBar, v => { if (v) key.stateBar = true; else delete key.stateBar; }, 'A bar coloured by the look per value (green, white, red, clear)'),
+        faced || (key.type === 'rotary' && key.levelBar ? 'Not shown: the level bar takes its place.' : '')));
     }
     out.push(dimmed(tick('Separator', key.separator, v => { if (v) key.separator = true; else delete key.separator; }, 'A line under the label (its colour is in the Look panel)'), faced && 'Not used: this key has a custom face (add a Separator layer there).'));
     if (!key.logic) {
@@ -554,4 +561,15 @@ function keypadKeyEditor(box, key, slot) {
   }
   box.append(section('look', 'Looks like', ...lookSection(key, slot)));
   inspectorTail(box, key, slot);
+}
+
+// The range a rotary's level bar shows (engine.js levelRange): its step actions' min and max.
+function levelRangeOf(key) {
+  const acts = [];
+  const walk = p => { if (!p) return; if (Array.isArray(p)) return p.forEach(walk); if (isTapHoldPress(p)) { walk(p.tap); walk(p.hold); return; } acts.push(p); };
+  walk(key.press);
+  const steps = acts.filter(a => a.step !== undefined);
+  const min = steps.map(a => a.min).find(n => typeof n === 'number');
+  const max = steps.map(a => a.max).find(n => typeof n === 'number');
+  return { min: min ?? 0, max: max ?? 100 };
 }

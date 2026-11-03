@@ -222,6 +222,22 @@ const text = uri => decodeURIComponent(uri);
     assert.ok(both.includes(`fill="${style.on}"`) && /aria-label="1"/.test(both), 'value and bar');
     assert.ok(!/aria-label="1"/.test(text(engine.keyImage({ ...com, hideValue: true }, 1))), 'label only');
   }
+  // Rotary level bar (user, 2026-11-03): in the bar's place, filled between the step's min and max.
+  {
+    const { levelRange } = require(path.join(pluginDir, 'plugin', 'engine'));
+    const rot = { type: 'rotary', label: 'PANEL', read: { input: 'DIM' }, suffix: '%', levelBar: true,
+      press: { tap: { step: 10, min: 0, max: 80, wrap: true }, hold: { step: 5, min: 0, max: 80, repeatMs: 100 } } };
+    assert.deepStrictEqual(levelRange(rot), { min: 0, max: 80 });
+    assert.deepStrictEqual(levelRange({ press: { cycle: [0, 1] } }), { min: 0, max: 100 }, 'no step: 0-100');
+    const svg = text(engine.keyImage(rot, 40));
+    const m = svg.match(/<path d="(M[^"]+)" fill="[^"]+"\/>/);
+    assert.ok(m, 'a filled level bar');
+    const xs = [...m[1].matchAll(/[ML]([\d.]+) [\d.]+/g)].map(q => +q[1]);
+    const { style } = require(path.join(pluginDir, 'plugin', 'render'));
+    assert.ok(Math.abs(Math.max(...xs) - (style.bar.x + style.bar.w / 2)) < 0.6, 'half full at 40 of 0-80');
+    assert.match(svg, /aria-label="40%"/, 'with the value');
+    assert.ok(!/<path d="M[^"]+" fill="[^"]+"\/>/.test(text(engine.keyImage({ ...rot, levelBar: false }, 40))), 'off: no level bar');
+  }
   // Separator on any key type (user, 2026-11-03).
   {
     const { style } = require(path.join(pluginDir, 'plugin', 'render'));

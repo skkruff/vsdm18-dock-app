@@ -171,8 +171,11 @@ function inspectorTail(box, key, slot) {
     try { keys()[slot] = JSON.parse(ta.value); changed(); renderInspector(); } catch (e) { status(`JSON error: ${e.message}`, 'bad'); }
   } } }, 'Apply JSON'));
   box.append(raw);
+  const dirty = keyChanged(slot);
   box.append(el('p', {}, el('button', { on: { click: saveToLibrary } }, 'Save to library'), ' ',
-    el('button', { on: { click: deleteSel } }, 'Delete this key')));
+    el('button', { on: { click: deleteSel } }, 'Delete this key'), ' ',
+    el('button', { id: 'revertKey', disabled: dirty ? null : true, title: dirty ? 'Undo every change to this key since the last save' : 'No changes to this key since the last save',
+      on: { click: () => revertKey(slot) } }, 'Revert changes')));
 }
 
 // Learn: the user moves a control; everything that changed in the next moment comes back. One

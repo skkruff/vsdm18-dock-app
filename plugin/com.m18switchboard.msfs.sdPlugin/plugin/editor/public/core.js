@@ -75,6 +75,16 @@ function changed() {
   if (S.page === KP) { S.kpDirty = true; setDirty(S.dirty); } else setDirty(true);
   renderGrid();
   previewOnDockUpdate(); // pages.js: a preview on the dock follows the edits
+  updateRevertButton();
+}
+
+// Revert changes lights up as soon as the key differs from its saved version, and goes dim on save.
+function updateRevertButton() {
+  const rb = $('#revertKey');
+  if (!rb || S.selected.size !== 1) return;
+  const d = keyChanged([...S.selected][0]);
+  rb.disabled = !d;
+  rb.title = d ? 'Undo every change to this key since the last save' : 'No changes to this key since the last save';
 }
 
 // ---------- loading ----------
@@ -96,6 +106,7 @@ async function openFile(file) {
   if (S.dirty && !confirm('Discard unsaved changes?')) { $('#profileSelect').value = S.file; return; }
   S.file = file;
   S.profile = await api('GET', `/api/profiles/${encodeURIComponent(file)}`);
+  S.saved = clone(S.profile); // as on disk: what Revert changes goes back to
   S.page = S.sim.activeProfile === S.profile.id ? Math.min(S.sim.pageIndex || 0, S.profile.pages.length - 1) : 0;
   S.selected.clear();
   $('#profileSelect').value = file;
@@ -128,7 +139,9 @@ async function save() {
     try {
       clean({ pages: [S.keypad] });
       const r = await api('PUT', '/api/keypad', { keys: S.keypad.keys });
+      S.savedKeypad = clone(S.keypad.keys);
       S.kpDirty = false;
+      updateRevertButton();
       S.keypad.builtIn = false;
       S.keypad.problems = r.problems;
       setDirty(S.dirty);
@@ -153,7 +166,9 @@ async function save() {
     for (const pg of S.profile.pages) for (const key of Object.values(pg.keys || {})) cleanUnused(key);
     clean(S.profile);
     await api('PUT', `/api/profiles/${encodeURIComponent(S.file)}`, S.profile);
+    S.saved = clone(S.profile);
     setDirty(false);
+    updateRevertButton();
     status('Saved. The dock picks it up within a second.', 'good');
     loadFilesQuiet();
   } catch (e) {
@@ -196,4 +211,47 @@ async function pollState() {
 
 function isLivePage() {
   return S.profile && S.live.profile === S.profile.id && S.live.pageIndex === S.page && !S.dirty;
+}
+
+// ---------- revert ----------
+// Revert changes (user, 2026-11-03): a key back to how it was when last saved (or loaded).
+
+// The saved version of the key in this slot of the page being edited (undefined: none saved).
+function savedKey(slot) {
+  if (S.page === KP) return S.savedKeypad ? S.savedKeypad[slot] : undefined;
+  if (!S.saved) return undefined;
+  const now = S.profile.pages[S.page];
+  // The same page in the saved copy: by position, unless pages were added or moved since.
+  const pg = S.saved.pages.length === S.profile.pages.length ? S.saved.pages[S.page] : S.saved.pages.find(p => p.name === now.name);
+  return pg && pg.keys ? pg.keys[slot] : undefined;
+}
+// Compared as they would be saved (unused settings and empty tables removed).
+function savedForm(key) {
+  if (!key) return '';
+  const p = { pages: [{ keys: { x: clone(key) } }] };
+  if (typeof cleanUnused === 'function') cleanUnused(p.pages[0].keys.x);
+  clean(p);
+  return JSON.stringify(p.pages[0].keys.x);
+}
+function keyChanged(slot) {
+  return savedForm(keys()[slot]) !== savedForm(savedKey(slot));
+}
+function revertKey(slot) {
+  const was = savedKey(slot);
+  if (was) keys()[slot] = clone(was); else delete keys()[slot];
+  // Nothing else changed since the save: no longer unsaved.
+  const same = S.page === KP
+    ? savedForm({ k: S.keypad.keys }) === savedForm({ k: S.savedKeypad })
+    : JSON.stringify(cleanedProfile(S.profile)) === JSON.stringify(cleanedProfile(S.saved));
+  if (S.page === KP) { S.kpDirty = !same; setDirty(S.dirty); } else setDirty(!same);
+  renderGrid();
+  previewOnDockUpdate();
+  renderInspector();
+  status(was ? `Key ${slot} is back as it was saved` : `Key ${slot} removed: it was not there when saved`, 'good');
+}
+function cleanedProfile(p) {
+  const c = clone(p);
+  for (const pg of c.pages || []) for (const k of Object.values(pg.keys || {})) if (typeof cleanUnused === 'function') cleanUnused(k);
+  clean(c);
+  return c;
 }

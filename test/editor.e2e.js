@@ -403,6 +403,22 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const dim = file().pages[file().pages.length - 1].keys['0'];
     assert.deepStrictEqual([dim.type, dim.suffix, dim.separator], ['rotary', '%', true]);
     assert.deepStrictEqual(dim.press, { tap: { step: 25, min: 0, max: 100, wrap: true }, hold: { step: 5, min: 0, max: 100, wrap: true, repeatMs: 100 } });
+    // Level bar on a rotary (user, 2026-11-03): an On the key option; the state bar steps aside.
+    await page.check(`${fld('look', 'Level bar')} input`);
+    await page.waitForSelector(`${sec('look')} .dim-note:has-text("the level bar takes its place")`);
+    await page.fill(`${fld('preview', 'Preview value')} input`, '50');
+    await page.waitForFunction(() => /<path d="M[^"]+" fill="[^"]+"\/>/.test(decodeURIComponent(document.querySelector('.slot[data-slot="0"] img').src)));
+    await save();
+    assert.strictEqual(file().pages[file().pages.length - 1].keys['0'].levelBar, true);
+    // Revert changes (user, 2026-11-03): back to the saved key; lights up only after an edit.
+    assert.ok(await page.isDisabled('#revertKey'), 'nothing to revert right after saving');
+    await page.uncheck(`${fld('look', 'Level bar')} input`);
+    await page.fill(`${fld('look', 'Label')} textarea`, 'CHANGED');
+    assert.ok(!(await page.isDisabled('#revertKey')), 'an edit enables it');
+    await page.click('#revertKey');
+    assert.strictEqual(await page.inputValue(`${fld('look', 'Label')} textarea`), 'NEW', 'label back');
+    assert.ok(await page.isChecked(`${fld('look', 'Level bar')} input`), 'level bar back');
+    assert.ok(!(await page.isVisible('#dirty')), 'nothing left unsaved');
     await page.click('#inspector button:has-text("Design a custom face")');
     assert.ok(await page.isVisible('#inspector .layer:has-text("Separator")'), 'the custom face starts with the separator');
     // Level bar (user, 2026-11-03): upright, filling from the bottom, yellow below 25.
@@ -410,7 +426,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.selectOption('#inspector .layer.active label:has-text("direction") select', 'up');
     await page.click('#inspector .layer.active button:has-text("+ colour band")');
     await save();
-    const lvl = file().pages[file().pages.length - 1].keys['0'].face.layers.find(l => l.kind === 'level');
+    const lvl = file().pages[file().pages.length - 1].keys['0'].face.layers.filter(l => l.kind === 'level').pop(); // the one added (the face starts with the key's own)
     assert.deepStrictEqual(lvl, { kind: 'level', dir: 'up', min: 0, max: 100, x: 108, y: 14, w: 24, h: 116, bands: [{ below: 25, color: '#ffcc00' }] });
     // Keyboard shortcut (user, 2026-10-30): recorded from the keyboard, combinations included.
     await page.click(slot(1));

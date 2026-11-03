@@ -159,7 +159,9 @@ function renderInspector() {
     box.append(el('h3', {}, `Key ${slot}: empty`),
       el('div', { class: 'inline' },
         el('button', { class: 'primary', on: { click: () => { keys()[slot] = S.page === KP ? { type: 'keypad', role: 'digit', digit: '1' } : { type: 'button', label: 'NEW' }; changed(); renderInspector(); } } }, 'Add key'),
-        S.clipboard ? el('button', { on: { click: paste } }, 'Paste') : null));
+        S.clipboard ? el('button', { on: { click: paste } }, 'Paste') : null,
+        // A key deleted since the last save comes back with Revert changes.
+        savedKey(slot) ? el('button', { title: 'Bring back the key saved here', on: { click: () => revertKey(slot) } }, 'Revert changes') : null));
     return;
   }
 

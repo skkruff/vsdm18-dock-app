@@ -73,7 +73,10 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     (e.g. ARM / OFF on the standby battery). A per-value sublabel wins; the fixed one covers the
     rest.
   - Value text per value (readouts): a word instead of the number (e.g. magneto 3 -> BOTH).
-  - **On the key** (readouts and rotaries): **Show the value**, **State bar** (coloured by the
+  - **Revert changes** (under the key editor): the key back to how it was when last saved; dim
+    while it has no changes. On an empty slot it brings back a key deleted since the save.
+  - **On the key** (readouts and rotaries): **Show the value**, **Level bar** (rotaries: filled
+    by the value between the step's minimum and maximum, in the state bar's place), **State bar** (coloured by the
     look per value, e.g. a COM receive readout: label, OFF sublabel, green bar) and
     **Separator** (a line under the label). Dimmed when the key has a custom face, which has its
     own layers.

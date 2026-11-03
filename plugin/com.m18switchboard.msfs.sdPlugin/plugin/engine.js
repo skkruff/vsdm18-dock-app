@@ -541,9 +541,9 @@ class ProfileEngine {
         : tiles.readout(key.label || '', formatValue(key, value), sublabelFor(key, value), key.separator, opts);
     }
     // Decorative keys (user, 2026-10-30) look like a button without a press: icon, or label and sublabel.
-    if (key.type === 'button' || key.type === 'decor') return this.renderer.icon(key.icon, null) || tiles.button(key.label || '', sublabelFor(key, value));
+    if (key.type === 'button' || key.type === 'decor') return this.renderer.icon(key.icon, null) || tiles.button(key.label || '', sublabelFor(key, value), key.separator);
     const state = value === undefined ? 'clear' : (lookup(key.states, value) || key.otherwise || 'clear');
-    return this.renderer.icon(key.icon, state) || tiles.switch(key.label || '', state, sublabelFor(key, value));
+    return this.renderer.icon(key.icon, state) || tiles.switch(key.label || '', state, sublabelFor(key, value), key.separator);
   }
 
   // A custom face. An icon layer without a name uses the key's own icon in iconState (its on / off
@@ -579,7 +579,7 @@ class ProfileEngine {
       const clear = this.renderer.icon(key.icon, 'clear');
       if (clear) return tiles.armedIcon(clear);
     }
-    return this.renderer.icon(key.icon, state) || tiles.switch(key.label || '', state, sublabel);
+    return this.renderer.icon(key.icon, state) || tiles.switch(key.label || '', state, sublabel, key.separator);
   }
 
   _stopHolds() {

@@ -75,7 +75,7 @@ function setType(key, v) {
 
 // Fields this type does not use; cleanUnused() removes them at save (user schema).
 const READOUT_ONLY = ['logic', 'logicFaces'];
-const FORMAT = ['decimals', 'pad', 'format', 'prefix', 'suffix', 'separator', 'text', 'hideValue', 'stateBar'];
+const FORMAT = ['decimals', 'pad', 'format', 'prefix', 'suffix', 'text', 'hideValue', 'stateBar'];
 const LEGACY = ['armed', 'activeIs', 'armedIs', 'activeOr', 'armedOr'];
 const KEYPAD_ONLY = ['role', 'digit', 'vfr'];
 function unusedFields(key) {
@@ -85,6 +85,7 @@ function unusedFields(key) {
   if (!['readout', 'rotary'].includes(key.type)) out.push(...FORMAT.filter(f => key[f] !== undefined && !(f === 'text' && key.type === 'switch')));
   // State logic decides the look: the per-value tables and number format are not shown.
   if (key.type === 'readout' && key.logic) out.push(...['states', 'otherwise', 'sublabels', 'valueIcons', 'valueFaces', ...FORMAT].filter(f => key[f] !== undefined && f !== 'separator'));
+  if (key.type === 'keypad' && key.separator !== undefined) out.push('separator');
   if (key.type === 'decor' || key.type === 'keypad') out.push(...['read', 'press', 'states', 'otherwise', 'sublabels', 'valueIcons', 'valueFaces'].filter(f => key[f] !== undefined));
   return [...new Set(out)];
 }
@@ -198,6 +199,16 @@ function lookSection(key, slot) {
   if (missing.length && (key.sublabel || (key.sublabels && Object.keys(key.sublabels).length))) {
     out.push(el('p', { class: 'warn' }, 'This key has a custom face, which shows the sublabel only where it has a Sublabel layer. ',
       el('button', { on: { click: () => { for (const f of missing) f.layers.push(NEW_LAYER.sublabel()); changed(); renderInspector(); } } }, 'Add it to the face')));
+  }
+  // A separator on any type (user, 2026-11-03); readouts and rotaries have it with their other
+  // switches below.
+  if (key.type !== 'readout' && key.type !== 'rotary' && key.type !== 'keypad') {
+    const why = key.face ? 'Not used: this key has a custom face (add a Separator layer there).'
+      : key.icon ? 'Not shown: the PNG icon fills the key. A custom face can add a Separator layer.' : '';
+    out.push(el('h4', {}, 'On the key'), dimmed(field('Separator', el('input', { type: 'checkbox', checked: key.separator ? true : null, on: { change: e => {
+      if (e.target.checked) key.separator = true; else delete key.separator;
+      changed(); renderInspector();
+    } } }), 'A line under the label (its colour is in the Look panel)'), why));
   }
   if (key.type === 'keypad' || key.type === 'decor') {
     out.push(el('h4', {}, 'Face (optional)'), faceDesigner(key, slot));

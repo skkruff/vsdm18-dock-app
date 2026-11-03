@@ -77,6 +77,8 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     look per value, e.g. a COM receive readout: label, OFF sublabel, green bar) and
     **Separator** (a line under the label). Dimmed when the key has a custom face, which has its
     own layers.
+  - **On the key** on switches, buttons and decorative keys: **Separator**, a line under the label
+    (dimmed when a PNG icon fills the key or the key has a custom face).
   - **Value**: decimals / padding, show as, **Unit before / after** (e.g. QNH, %, RPM).
   - Step actions: **Wrap at the ends**. A dimmer is a Rotary: tap steps, hold repeats a smaller
     step ("Repeat while held", ms), counting from the value it last sent.

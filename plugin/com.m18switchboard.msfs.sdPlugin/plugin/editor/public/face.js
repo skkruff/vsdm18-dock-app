@@ -33,14 +33,27 @@ function defaultFace(key) {
   const fit = h => Math.max(8, Math.min(40, Math.floor(h / (0.7 + (n - 1) * 1.02))));
   const centred = (top, bottom) => ({ kind: 'text', text: label, x: 72, y: Math.round((top + bottom) / 2), size: fit(bottom - top) });
   const block = h => fit(h) * (0.7 + (n - 1) * 1.02);
-  const switchLabel = () => centred(10, subl ? barY * 0.78 - 15 : barY - 10);
-  const buttonLabel = () => centred(10, subl ? 90 : 134);
+  // With a separator: label, separator and sublabel stacked and centred (render.js stacked()).
+  const stacked = (top, bottom) => {
+    const sepH = 27, subH = subl ? 19 * 0.7 + 8 : 0;
+    const size = fit(bottom - top - sepH - subH);
+    const lb = size * (0.7 + (n - 1) * 1.02);
+    let y = top + (bottom - top - (lb + sepH + subH)) / 2;
+    const out = [{ kind: 'text', text: label, x: 72, y: Math.round(y + lb / 2), size }];
+    y += lb + 12;
+    out.push({ kind: 'separator', x: 72, y: Math.round(y + 3.5) });
+    y += 15;
+    out.push(sub(Math.round(y + 8 + 6.65)));
+    return out;
+  };
+  const switchLabel = () => (key.separator ? stacked(10, barY - 8) : [centred(10, subl ? barY * 0.78 - 15 : barY - 10), sub()]);
+  const buttonLabel = () => (key.separator ? stacked(10, 134) : [centred(10, subl ? 90 : 134), sub(104)]);
   if ((key.type === 'readout' || key.type === 'rotary') && !key.logic && (key.hideValue || key.stateBar)) {
     // As the automatic look draws it with the value hidden and / or a state bar.
     const bar = key.stateBar ? [{ kind: 'bar' }] : [];
     if (key.hideValue) {
       if (key.icon) return { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 6, w: 132, h: key.stateBar ? 58 : 100 }, sub(key.stateBar ? 74 : 122), ...bar] };
-      return key.stateBar ? { layers: [switchLabel(), sub(), ...bar] } : { layers: [buttonLabel(), sub(104)] };
+      return key.stateBar ? { layers: [...switchLabel(), ...bar] } : { layers: buttonLabel() };
     }
     if (key.icon) return { layers: [{ kind: 'icon', crop: 'auto', x: 6, y: 4, w: 132, h: 40 }, sub(48), { kind: 'value', x: 72, y: subl ? 72 : 66, size: 30 }, ...bar] };
     const lb = block(24);
@@ -65,11 +78,11 @@ function defaultFace(key) {
   if (key.type === 'switch' || key.logic) {
     return key.icon
       ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }, sub(76)] }
-      : { layers: [switchLabel(), sub(), { kind: 'bar' }] };
+      : { layers: [...switchLabel(), { kind: 'bar' }] };
   }
   return key.icon
     ? { layers: [{ kind: 'icon', crop: 'full', x: 0, y: 0, w: 144, h: 144 }, sub(122)] }
-    : { layers: [buttonLabel(), sub(104)] };
+    : { layers: buttonLabel() };
 }
 
 // A face made before the key had a sublabel gets the layer when a sublabel is typed.

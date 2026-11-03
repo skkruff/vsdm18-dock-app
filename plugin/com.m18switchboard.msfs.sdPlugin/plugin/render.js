@@ -110,6 +110,20 @@ function layout(f, line, size, cap) {
 // height (optional): the most the block of lines may take, top of the first capital to the
 // bottom of the last line, so two-line labels shrink to fit their space (user, 2026-11-03: labels
 // at 40 where they fit).
+// Label, separator and sublabel stacked and centred between top and bottom (switches and buttons
+// with a separator, user 2026-11-03); the label takes what space the others leave.
+function stacked(label, sublabel, top, bottom) {
+  const sepH = 7 + 20; // the line, a gap of 12 above (so it does not read as an underline) and 8 below
+  const subH = sublabel ? SUBLABEL_SIZE * 0.7 + 8 : 0;
+  const lab = textFit(label, { size: LABEL_SIZE, width: 128, height: bottom - top - sepH - subH });
+  let y = top + (bottom - top - (lab.block + sepH + subH)) / 2;
+  let body = lines(label, y + lab.block / 2, { size: LABEL_SIZE, width: 128, height: lab.block + 0.01 });
+  y += lab.block + 12;
+  body += separatorRect({ y: y + 3.5 });
+  y += 15;
+  if (sublabel) body += lines(sublabel, y + 8 + (SUBLABEL_SIZE * 0.7) / 2, { size: SUBLABEL_SIZE, color: style.dim });
+  return body;
+}
 const LABEL_SIZE = 40; // automatic key labels, where they fit (user, 2026-11-03)
 function textFit(text, { size = 26, width = 130, height } = {}) {
   const ls = String(text).split('\n');
@@ -246,14 +260,16 @@ const SUBLABEL_SIZE = 19;
 
 const tiles = {
   // state: on | off | clear (unknown). sublabel: optional line under the label, e.g. ARM.
-  switch(label, state, sublabel) {
+  switch(label, state, sublabel, separator) {
+    if (separator) return svgUri(stacked(label, sublabel, 10, style.bar.y - 8) + bar(state));
     const top = style.bar.y;
     // The label in the space above the sublabel (or the bar), at LABEL_SIZE where it fits.
     const bottom = sublabel ? top * 0.78 - 15 : top - 10;
     return svgUri(lines(label, (10 + bottom) / 2, { size: LABEL_SIZE, width: 128, height: bottom - 10 }) +
       (sublabel ? lines(sublabel, top * 0.78, { size: SUBLABEL_SIZE, color: style.dim }) : '') + bar(state));
   },
-  button(label, sublabel) {
+  button(label, sublabel, separator) {
+    if (separator) return svgUri(stacked(label, sublabel, 10, 134));
     const bottom = sublabel ? 90 : 134;
     return svgUri(lines(label, (10 + bottom) / 2, { size: LABEL_SIZE, width: 128, height: bottom - 10 }) +
       (sublabel ? lines(sublabel, 104, { size: SUBLABEL_SIZE, color: style.dim }) : ''));
@@ -261,7 +277,7 @@ const tiles = {
   // opts (user, 2026-11-03): showValue false hides the number; state draws the state bar under it.
   readout(label, value, sublabel, separator, { showValue = true, state } = {}) {
     const withBar = state !== undefined && state !== null;
-    if (!showValue) return withBar ? tiles.switch(label, state, sublabel) : tiles.button(label, sublabel);
+    if (!showValue) return withBar ? tiles.switch(label, state, sublabel, separator) : tiles.button(label, sublabel, separator);
     if (withBar) {
       // Label, separator and sublabel stacked from the top; the value centred above the bar.
       const lab = textFit(label, { size: LABEL_SIZE, width: 130, height: 24 });

@@ -222,6 +222,18 @@ const text = uri => decodeURIComponent(uri);
     assert.ok(both.includes(`fill="${style.on}"`) && /aria-label="1"/.test(both), 'value and bar');
     assert.ok(!/aria-label="1"/.test(text(engine.keyImage({ ...com, hideValue: true }, 1))), 'label only');
   }
+  // Separator on any key type (user, 2026-11-03).
+  {
+    const { style } = require(path.join(pluginDir, 'plugin', 'render'));
+    const sep = svg => new RegExp(`width="64" height="7" rx="3.5" fill="${style.separator || style.readout}"`).test(svg);
+    const sw = { type: 'switch', label: 'BAT', read: { input: 'B' }, states: { 0: 'off', 1: 'on' }, press: { cycle: [0, 1] } };
+    assert.ok(!sep(text(engine.keyImage(sw, 1))), 'no separator by default');
+    const swS = text(engine.keyImage({ ...sw, separator: true, sublabel: 'MAIN' }, 1));
+    assert.ok(sep(swS) && swS.includes(`fill="${style.on}"`) && /aria-label="MAIN"/.test(swS), 'switch: separator, sublabel and bar');
+    assert.ok(sep(text(engine.keyImage({ type: 'button', label: 'SWAP', press: { event: 'X' }, separator: true }))), 'button');
+    assert.ok(sep(text(engine.keyImage({ type: 'decor', label: 'LIGHTS', separator: true }))), 'decorative');
+    assert.ok(sep(text(engine.keyImage({ type: 'readout', label: 'COM1', read: { var: 'C', unit: 'bool' }, hideValue: true, stateBar: true, separator: true }, 1))), 'readout with the value hidden');
+  }
   // Level bar (user, 2026-11-03): fill in proportion between min and max, direction, colour bands.
   {
     const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));

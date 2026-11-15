@@ -247,6 +247,13 @@ const text = uri => decodeURIComponent(uri);
     const off = text(engine.keyImage(eng, 0));
     assert.strictEqual(bars(off), 0, 'no bar at 0');
     assert.match(off, /aria-label="OFF"/, 'sublabel kept');
+    // ...and takes the bar's place as the status (user, 2026-11-15): centred on the bar, larger.
+    {
+      const ys = [...off.split('aria-label="OFF"')[1].split('/>')[0].matchAll(/[MLQ ]([\d.]+) ([\d.]+)/g)].map(q => +q[2]);
+      const mid = (Math.min(...ys) + Math.max(...ys)) / 2;
+      assert.ok(Math.abs(mid - (style.bar.y + style.bar.h / 2)) < 1.5, `centred on the bar (${mid})`);
+      assert.ok(Math.max(...ys) - Math.min(...ys) > 20, 'drawn at status size, not sublabel size');
+    }
     const run = text(engine.keyImage(eng, 1));
     assert.ok(run.includes(`fill="${style.on}"`) && /aria-label="RUN"/.test(run), 'green bar at 1');
     assert.match(text(engine.keyImage(eng, 0)), new RegExp(`aria-label="OFF"[^>]*fill="${style.dim}"`));

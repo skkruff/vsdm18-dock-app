@@ -42,8 +42,9 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
 | `readout` | label and a live value, or a state from `logic`; with `icon`, the top of that library icon above the value | `read` or `logic` |
 | `decor` | looks only: icon, or label and `sublabel`, or a `face`; never reads or acts | nothing (no `read` or `press` allowed) |
 
-- **states** (switch): sim value to `on`, `off`, `clear`, `armed` or `none` (no status bar; the
-  sublabel stays where it is; a library icon shows its clear version). `otherwise`: state for values not in
+- **states** (switch): sim value to `on`, `off`, `clear`, `armed` or `none` (no status bar: the
+  sublabel takes the bar's place as the status, centred there at size 35; a library icon shows its
+  clear version). `otherwise`: state for values not in
   the map. Unknown value (not yet read, sim reconnecting) shows `clear`.
 - **logic** (readout; key editor redesign 2026-11-01, replaces the old `armable` type): steps
   checked in order; the first with any condition met decides the look and sublabel, else

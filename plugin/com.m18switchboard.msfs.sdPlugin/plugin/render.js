@@ -260,11 +260,21 @@ function placedIcon(uri, box, area, id, crop = 'auto') {
 }
 
 // Sublabels: a smaller line under the main label, in the sublabel colour (Look panel).
+const STATUS_SUBLABEL_SIZE = 35; // a sublabel standing in for the status bar (user, 2026-11-15)
 const SUBLABEL_SIZE = 25; // was 19 (user, 2026-11-03)
 
 const tiles = {
   // state: on | off | clear (unknown). sublabel: optional line under the label, e.g. ARM.
   switch(label, state, sublabel, separator) {
+    // No bar for this value (user, 2026-11-15): the sublabel takes the bar's place as the status,
+    // centred where the bar would be and larger; the label keeps the space above.
+    if (state === 'none') {
+      const b = style.bar;
+      const top = 10, bottom = b.y - 8;
+      const head = separator ? stacked(label, null, top, bottom)
+        : lines(label, (top + bottom) / 2, { size: LABEL_SIZE, width: 128, height: bottom - top });
+      return svgUri(head + (sublabel ? lines(sublabel, b.y + b.h / 2, { size: STATUS_SUBLABEL_SIZE, color: style.dim, width: 132 }) : ''));
+    }
     if (separator) return svgUri(stacked(label, sublabel, 10, style.bar.y - 8) + bar(state));
     const top = style.bar.y;
     // The label in the space above the sublabel (or the bar), at LABEL_SIZE where it fits.

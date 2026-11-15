@@ -46,7 +46,7 @@ const HELP = {
   logic: 'Steps checked from the top: the first step with any of its conditions met decides the look and sublabel; '
     + 'if none is met, "otherwise". E.g. APR: step 1 green LOC when APPROACH CAPTURED is 1, step 2 white ARM when '
     + 'APPROACH HOLD is 1, otherwise clear. A step can have several conditions ("or"), each with its own source.',
-  positions: 'One row per sim value: the status bar (green, white, red, clear, or — for none, the sublabel staying where it is; "as Other values" follows the Other values setting), sublabel, the text shown instead of the number, or an icon that '
+  positions: 'One row per sim value: the status bar (green, white, red, clear, or — for none, when the sublabel takes the bar\'s place as the status; "as Other values" follows the Other values setting), sublabel, the text shown instead of the number, or an icon that '
     + 'replaces the whole key. Leave a cell empty for the default. "Fill from the SDK" uses the values the SDK lists '
     + 'for a simvar; "Learn positions" records the values while you move the control in the cockpit.',
   sendScale: 'Some controls are set in other units than they report. The DA62\'s panel light reads 0-100 but is set '

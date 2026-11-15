@@ -78,6 +78,8 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
 - **hideValue**, **stateBar** (readout, rotary; user 2026-11-03): the automatic look without the
   number (`"hideValue": true`), and / or with a state bar coloured by `states` / `otherwise` like a
   switch's (`"stateBar": true`). A custom face ignores them (it has its own layers).
+- **border** (any type but keypad; user 2026-11-15): `true` draws a white outline round the whole
+  key on the automatic look. A custom face uses a Border layer instead.
 - **separator** (any type; user 2026-11-03): `true` draws a line under the label (64 x 7, corner 3.5, in the Look's
   separator colour, which is the readout colour until set).
 - **valueIcons** (any type): sim value to a library icon name shown as the whole key, e.g.
@@ -109,6 +111,8 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
   - `{ "kind": "separator", "x", "y", "w", "h", "r", "color" }`: the separator line, centred on
     x, y (defaults 72, 56, 64 x 7, corner 3.5, readout colour).
   - `{ "kind": "rect", "x", "y", "w", "h", "r", "color" }`: a filled box.
+  - `{ "kind": "border", "w", "color", "r" }`: an outline round the whole key (thickness `w`,
+    default 3; colour, default white; corner `r`, default 14).
   - `{ "kind": "level", "x", "y", "w", "h", "r", "dir", "min", "max", "color", "track", "bands", "read" }`:
     a level bar (user, 2026-11-03), an outline filled in proportion to the value between `min`
     (empty, default 0) and `max` (full, default 100). `dir`: `right` (fills from the left, the

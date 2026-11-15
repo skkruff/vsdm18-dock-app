@@ -86,6 +86,7 @@ function unusedFields(key) {
   // State logic decides the look: the per-value tables and number format are not shown.
   if (key.type === 'readout' && key.logic) out.push(...['states', 'otherwise', 'sublabels', 'valueIcons', 'valueFaces', ...FORMAT].filter(f => key[f] !== undefined && f !== 'separator'));
   if (key.type === 'keypad' && key.separator !== undefined) out.push('separator');
+  if (key.type === 'keypad' && key.border !== undefined) out.push('border');
   if (key.type !== 'rotary' && key.levelBar !== undefined) out.push('levelBar');
   if (key.type === 'decor' || key.type === 'keypad') out.push(...['read', 'press', 'states', 'otherwise', 'sublabels', 'valueIcons', 'valueFaces'].filter(f => key[f] !== undefined));
   return [...new Set(out)];
@@ -210,6 +211,7 @@ function lookSection(key, slot) {
       if (e.target.checked) key.separator = true; else delete key.separator;
       changed(); renderInspector();
     } } }), 'A line under the label (its colour is in the Look panel)'), why));
+    out.push(borderTick(key));
   }
   if (key.type === 'keypad' || key.type === 'decor') {
     out.push(el('h4', {}, 'Face (optional)'), faceDesigner(key, slot));
@@ -243,6 +245,7 @@ function lookSection(key, slot) {
         faced || (key.type === 'rotary' && key.levelBar ? 'Not shown: the level bar takes its place.' : '')));
     }
     out.push(dimmed(tick('Separator', key.separator, v => { if (v) key.separator = true; else delete key.separator; }, 'A line under the label (its colour is in the Look panel)'), faced && 'Not used: this key has a custom face (add a Separator layer there).'));
+    out.push(borderTick(key));
     if (!key.logic) {
       out.push(el('h4', {}, 'Value'));
       if (key.hideValue && !key.face) out.push(el('p', { class: 'muted' }, 'The value is hidden: these settings apply to faces that show it.'));
@@ -572,4 +575,14 @@ function levelRangeOf(key) {
   const min = steps.map(a => a.min).find(n => typeof n === 'number');
   const max = steps.map(a => a.max).find(n => typeof n === 'number');
   return { min: min ?? 0, max: max ?? 100 };
+}
+
+// A white outline round the whole key on the automatic look (user, 2026-11-15). A custom face has
+// a Border layer with thickness, colour and corner instead.
+function borderTick(key) {
+  return dimmed(field('Border', el('input', { type: 'checkbox', checked: key.border ? true : null, on: { change: e => {
+    if (e.target.checked) key.border = true; else delete key.border;
+    changed(); renderInspector();
+  } } }), 'A white outline round the whole key (thickness and colour: add a Border layer in a custom face)'),
+  key.face ? 'Not used: this key has a custom face (add a Border layer there).' : '');
 }

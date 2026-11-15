@@ -238,6 +238,24 @@ const text = uri => decodeURIComponent(uri);
     assert.match(svg, /aria-label="40%"/, 'with the value');
     assert.ok(!/<path d="M[^"]+" fill="[^"]+"\/>/.test(text(engine.keyImage({ ...rot, levelBar: false }, 40))), 'off: no level bar');
   }
+  // Whole-key border (user, 2026-11-15): white on the automatic look; a Border layer in faces.
+  {
+    const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
+    const border = svg => (svg.match(/<rect x="6" y="6" width="132" height="132" rx="12.5" fill="none" stroke="#ffffff" stroke-width="3"\/>/g) || []).length;
+    const sw = { type: 'switch', label: 'BAT', read: { input: 'B' }, states: { 0: 'off', 1: 'on' }, press: { cycle: [0, 1] } };
+    assert.strictEqual(border(text(engine.keyImage(sw, 1))), 0, 'no border by default');
+    assert.strictEqual(border(text(engine.keyImage({ ...sw, border: true }, 1))), 1, 'switch');
+    assert.strictEqual(border(text(engine.keyImage({ type: 'readout', label: 'QNH', read: { var: 'K', unit: 'millibars' }, border: true }, 1013))), 1, 'readout');
+    assert.strictEqual(border(text(engine.keyImage({ type: 'decor', label: 'LIGHTS', border: true }))), 1, 'decorative');
+    const png = text(require(path.join(pluginDir, 'plugin', 'render')).tiles.withBorder('data:image/png;base64,iVBORw0KGgo='));
+    assert.ok(/<image href="data:image\/png;base64,iVBORw0KGgo="/.test(png) && border(png) === 1, 'a library icon (PNG) is placed under the border');
+    // A face draws its own: the box does not add a second one.
+    const faced = { ...sw, border: true, face: { layers: [{ kind: 'text', text: 'BAT' }, { kind: 'border', w: 6, color: '#ff0000', r: 20 }] } };
+    const f = text(engine.keyImage(faced, 1));
+    assert.strictEqual(border(f), 0, 'no automatic border on a face');
+    assert.match(f, /<rect x="7.5" y="7.5" width="129" height="129" rx="17" fill="none" stroke="#ff0000" stroke-width="6"\/>/, 'the layer\'s thickness, colour and corner');
+    assert.doesNotThrow(() => validate({ id: 'b', fallback: true, pages: [{ keys: { 0: faced } }] }, 'b.json'));
+  }
   // No status bar for a value (user, 2026-11-15): look 'none' draws no bar; the sublabel stays put.
   {
     const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));

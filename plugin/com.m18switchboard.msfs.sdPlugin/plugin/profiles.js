@@ -117,7 +117,7 @@ function validate(profile, file) {
         if (!face) continue;
         if (!Array.isArray(face.layers)) { errors.push(`${where}: ${name} needs a layers list`); continue; }
         for (const L of face.layers) {
-          if (!['icon', 'text', 'value', 'sublabel', 'separator', 'bar', 'rect', 'level'].includes(L.kind)) errors.push(`${where}: ${name}: unknown layer ${L.kind}`);
+          if (!['icon', 'text', 'value', 'sublabel', 'separator', 'bar', 'rect', 'level', 'border'].includes(L.kind)) errors.push(`${where}: ${name}: unknown layer ${L.kind}`);
           if (L.kind === 'bar' && L.look !== undefined && !LOOKS.includes(L.look)) errors.push(`${where}: ${name}: bar look must be on, armed, off, clear or none`);
           if (L.kind === 'level') errors.push(...levelProblems(L).map(m => `${where}: ${name}: level bar ${m}`));
           if ((L.kind === 'value' || L.kind === 'sublabel' || L.kind === 'level') && L.read) errors.push(...sourceProblems(L.read).map(m => `${where}: ${name}: ${L.kind} layer source ${m}`));

@@ -82,6 +82,8 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     look per value, e.g. a COM receive readout: label, OFF sublabel, green bar) and
     **Separator** (a line under the label). Dimmed when the key has a custom face, which has its
     own layers.
+  - **Border** (On the key, every type): a white outline round the whole key on the automatic
+    look; a custom face uses a Border layer.
   - **On the key** on switches, buttons and decorative keys: **Separator**, a line under the label
     (dimmed when a PNG icon fills the key or the key has a custom face).
   - **Value**: decimals / padding, show as, **Unit before / after** (e.g. QNH, %, RPM).
@@ -136,7 +138,8 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     source, and optional colour bands ("+ colour band": below or above a value, e.g. yellow below
     25, red below 10). "+ face for a value" adds a separate face shown for one sim value (e.g. per
     switch position). Drag on the big preview to move
-    the selected layer, or type positions (key units 0-144). **↔ centre** / **↕ centre** on each
+    the selected layer, or type positions (key units 0-144). A **Border** layer outlines the whole key (thickness,
+    colour, corner). **↔ centre** / **↕ centre** on each
     layer put it in the middle of the key. Icon layers have a **scale** (% of the key's width; the
     icon's box keeps its shape and centre) instead of width and height. Use it to put a PNG above a readout,
     or make a clean text-only key when the library has no suitable PNG. "Remove custom face" goes

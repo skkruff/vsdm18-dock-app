@@ -403,6 +403,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const dim = file().pages[file().pages.length - 1].keys['0'];
     assert.deepStrictEqual([dim.type, dim.suffix, dim.separator], ['rotary', '%', true]);
     assert.deepStrictEqual(dim.press, { tap: { step: 25, min: 0, max: 100, wrap: true }, hold: { step: 5, min: 0, max: 100, wrap: true, repeatMs: 100 } });
+    // Border (user, 2026-11-15): a tickbox on the automatic look, a layer in faces.
+    await page.check(`${fld('look', 'Border')} input`);
+    await page.waitForFunction(() => /stroke="#ffffff" stroke-width="3"/.test(decodeURIComponent(document.querySelector('.slot[data-slot="0"] img').src)));
+    await save();
+    assert.strictEqual(file().pages[file().pages.length - 1].keys['0'].border, true);
+    await page.uncheck(`${fld('look', 'Border')} input`);
+    await save();
     // Level bar on a rotary (user, 2026-11-03): an On the key option; the state bar steps aside.
     await page.check(`${fld('look', 'Level bar')} input`);
     await page.waitForSelector(`${sec('look')} .dim-note:has-text("the level bar takes its place")`);

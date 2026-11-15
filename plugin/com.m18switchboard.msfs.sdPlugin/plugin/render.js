@@ -61,6 +61,14 @@ function esc(s) {
 }
 
 // viewBox lets one large drawing be cut into per-key pieces (see tiles.scene).
+// A whole-key border (user, 2026-11-15), like the keypad keys': its outer edge 4.5 in from the
+// key's edge, thickness w, corner r on the outside.
+function borderRect({ w = 3, color = '#ffffff', r = 14 } = {}) {
+  const t = Math.max(0.5, Number(w) || 3);
+  const x = 4.5 + t / 2;
+  return `<rect x="${x}" y="${x}" width="${144 - 2 * x}" height="${144 - 2 * x}" rx="${Math.max(0, (Number(r) || 0) - t / 2)}" fill="none" stroke="${esc(color)}" stroke-width="${t}"/>`;
+}
+
 function svgUri(body, bg = '#000000', viewBox = '0 0 144 144') {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ` +
     `width="144" height="144" viewBox="${viewBox}"><rect x="-1000" y="-1000" width="3000" height="3000" fill="${esc(bg)}"/>` +
@@ -326,6 +334,16 @@ const tiles = {
       lines(text, sublabel ? 62 : 72, { size, color, width: 112 }) +
       (sublabel ? lines(sublabel, 112, { size: SUBLABEL_SIZE, color: dim ? '#3a3f47' : style.dim }) : ''));
   },
+  // The automatic look with a white whole-key border on top (key.border). A library icon (PNG) is
+  // placed in an SVG first.
+  withBorder(uri) {
+    const prefix = 'data:image/svg+xml;charset=utf8,';
+    if (uri.startsWith(prefix)) {
+      const svg = decodeURIComponent(uri.slice(prefix.length));
+      return prefix + encodeURIComponent(svg.replace(/<\/svg>$/, `${borderRect()}</svg>`));
+    }
+    return svgUri(`<image href="${uri}" xlink:href="${uri}" x="0" y="0" width="144" height="144"/>` + borderRect());
+  },
   // A library icon, faded: a keypad key that does nothing right now.
   dimIcon(uri) {
     return svgUri(`<image href="${uri}" xlink:href="${uri}" x="0" y="0" width="144" height="144" opacity="0.3"/>`);
@@ -373,6 +391,7 @@ const tiles = {
   //   { kind: 'separator', x, y, w, h, r, color }                 a rounded line, centred on (x, y)
   //   { kind: 'rect', x, y, w, h, r, color }
   //   { kind: 'level', x, y, w, h, r, dir, min, max, color, track, bands, read? }
+  //   { kind: 'border', w, color, r }                              a whole-key outline (w: thickness)
   //                                                                a bar filled by the value: see level()
   // ctx: { iconFor(name) -> { uri, box } | null, valueFor(layer) -> string, numberFor(layer), state }
   face(face, ctx) {
@@ -400,6 +419,8 @@ const tiles = {
         body += separatorRect({ x: num(L.x, SEPARATOR.x), y: num(L.y, 56), w: num(L.w, SEPARATOR.w), h: num(L.h, SEPARATOR.h), r: num(L.r, SEPARATOR.r), color: L.color });
       } else if (L.kind === 'rect') {
         body += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${num(L.r, 0)}" fill="${esc(L.color || '#333333')}"/>`;
+      } else if (L.kind === 'border') {
+        body += borderRect({ w: num(L.w, 3), color: L.color || '#ffffff', r: num(L.r, 14) });
       } else if (L.kind === 'level') {
         body += level(L, ctx.numberFor ? ctx.numberFor(L) : undefined, { x, y, w, h, r: num(L.r, style.bar.r) });
       }

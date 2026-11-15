@@ -18,6 +18,12 @@ const facesOf = key => [key.face, ...Object.values(key.valueFaces || {}), ...Obj
 // Every new face carries a Sublabel layer, ready to move, placed where drawn tiles put the
 // sublabel (user, 2026-10-29). It draws nothing while the key has no sublabel.
 function defaultFace(key) {
+  const f = defaultFaceLayers(key);
+  // A key with the Border box ticked starts its face with the same outline, on top.
+  if (key.border && key.type !== 'keypad') f.layers.push(NEW_LAYER.border());
+  return f;
+}
+function defaultFaceLayers(key) {
   const label = key.label || '';
   // A keypad key's live value is its role's text: the digit, ENT, the title, the digits typed.
   if (key.type === 'keypad') {
@@ -101,8 +107,9 @@ const NEW_LAYER = {
   separator: () => ({ kind: 'separator', x: 72, y: 56 }),
   rect: () => ({ kind: 'rect', x: 0, y: 0, w: 144, h: 40, color: '#1e2a3a' }),
   level: () => ({ kind: 'level', dir: 'right', min: 0, max: 100 }),
+  border: () => ({ kind: 'border', w: 3, color: '#ffffff', r: 14 }),
 };
-const LAYER_NAMES = { icon: 'Icon', text: 'Text', value: 'Live value', sublabel: 'Sublabel', separator: 'Separator', bar: 'State bar', rect: 'Box', level: 'Level bar' };
+const LAYER_NAMES = { icon: 'Icon', text: 'Text', value: 'Live value', sublabel: 'Sublabel', separator: 'Separator', bar: 'State bar', rect: 'Box', level: 'Level bar', border: 'Border' };
 const LEVEL_DIRS = [['right', '→ fills left to right'], ['left', '← fills right to left'], ['up', '↑ fills bottom to top'], ['down', '↓ fills top to bottom']];
 // A vertical level bar needs a tall box: the right-hand edge of the key, unless placed already.
 const LEVEL_TALL = { x: 108, y: 14, w: 24, h: 116 };
@@ -267,9 +274,12 @@ function faceDesigner(key, slot) {
       fields.push(n('x', 'x'), n('y', 'y'), n('w', 'w'), n('h', 'h'), n('r', 'corner'), color('color', '#1e2a3a'));
     } else if (L.kind === 'level') {
       fields.push(levelFields(L, i, n, color, update));
+    } else if (L.kind === 'border') {
+      fields.push(n('w', 'thickness', { min: 0.5, max: 20, step: 0.5, placeholder: 3 }), n('r', 'corner', { min: 0, max: 72, placeholder: 14 }), color('color', '#ffffff'),
+        el('span', { class: 'muted' }, 'Round the whole key; draw it last to keep it on top.'));
     }
     // One click puts the layer in the middle of the key, across or up and down (user, 2026-11-03).
-    fields.push(el('span', { class: 'inline centre-btns' },
+    if (L.kind !== 'border') fields.push(el('span', { class: 'inline centre-btns' },
       el('button', { title: 'Centre across the key', on: { click: () => { centreLayer(L, 'x'); changed(); renderInspector(); } } }, '↔ centre'),
       el('button', { title: 'Centre up and down the key', on: { click: () => { centreLayer(L, 'y'); changed(); renderInspector(); } } }, '↕ centre')));
     const move = d => {

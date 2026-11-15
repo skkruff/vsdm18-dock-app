@@ -530,7 +530,17 @@ class ProfileEngine {
   // valueOf(src) gives the value of another source (value layers with their own source).
   // Order: a custom face for this value, a library icon for this value, the key's custom face,
   // then the automatic look.
+  // The key's picture. key.border (user, 2026-11-15) outlines the automatic look; a custom face
+  // has its own Border layer instead.
   keyImage(key, value, error, valueOf = () => undefined) {
+    const uri = this._keyPicture(key, value, error, valueOf);
+    const k = norm(key);
+    if (!k || !k.border || error || k.type === 'keypad') return uri;
+    const fromFace = k.logic ? !!(k.face || Object.keys(k.logicFaces || {}).length) : !!(lookup(k.valueFaces, value) || k.face);
+    return fromFace ? uri : tiles.withBorder(uri);
+  }
+
+  _keyPicture(key, value, error, valueOf) {
     key = norm(key);
     if (!key) return tiles.blank();
     if (error) return tiles.unavailable(key.label || '');

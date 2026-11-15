@@ -10,7 +10,7 @@ const { migrateProfile } = require('./migrate');
 // Key types (key editor redesign, user 2026-11-01): named after the control they stand for. The
 // type sets the editor's flow; the engine draws and acts from the key's fields.
 const KEY_TYPES = ['switch', 'button', 'rotary', 'readout', 'decor'];
-const LOOKS = ['on', 'armed', 'off', 'clear'];
+const LOOKS = ['on', 'armed', 'off', 'clear', 'none']; // none: no status bar (user, 2026-11-15)
 
 // Sim states the plugin keeps itself: paused (1 in any pause: menu, pause, active pause).
 const SIM_STATES = ['paused'];
@@ -29,9 +29,9 @@ function logicProblems(logic) {
   logic.steps.forEach((s, i) => {
     if (!Array.isArray(s.when) || !s.when.length) out.push(`step ${i + 1} needs at least one condition`);
     for (const c of s.when || []) out.push(...sourceProblems(c.read).map(m => `step ${i + 1}: condition ${m}`));
-    if (s.look !== undefined && !LOOKS.includes(s.look)) out.push(`step ${i + 1}: look must be on, armed, off or clear`);
+    if (s.look !== undefined && !LOOKS.includes(s.look)) out.push(`step ${i + 1}: look must be on, armed, off, clear or none`);
   });
-  if (logic.otherwise && logic.otherwise.look !== undefined && !LOOKS.includes(logic.otherwise.look)) out.push('otherwise: look must be on, armed, off or clear');
+  if (logic.otherwise && logic.otherwise.look !== undefined && !LOOKS.includes(logic.otherwise.look)) out.push('otherwise: look must be on, armed, off, clear or none');
   return out;
 }
 
@@ -118,7 +118,7 @@ function validate(profile, file) {
         if (!Array.isArray(face.layers)) { errors.push(`${where}: ${name} needs a layers list`); continue; }
         for (const L of face.layers) {
           if (!['icon', 'text', 'value', 'sublabel', 'separator', 'bar', 'rect', 'level'].includes(L.kind)) errors.push(`${where}: ${name}: unknown layer ${L.kind}`);
-          if (L.kind === 'bar' && L.look !== undefined && !LOOKS.includes(L.look)) errors.push(`${where}: ${name}: bar look must be on, armed, off or clear`);
+          if (L.kind === 'bar' && L.look !== undefined && !LOOKS.includes(L.look)) errors.push(`${where}: ${name}: bar look must be on, armed, off, clear or none`);
           if (L.kind === 'level') errors.push(...levelProblems(L).map(m => `${where}: ${name}: level bar ${m}`));
           if ((L.kind === 'value' || L.kind === 'sublabel' || L.kind === 'level') && L.read) errors.push(...sourceProblems(L.read).map(m => `${where}: ${name}: ${L.kind} layer source ${m}`));
         }

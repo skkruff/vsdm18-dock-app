@@ -47,6 +47,9 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-15, unit + editor tests: a value can have no status bar ("— (no bar)", look `none`);
+  the positions column is now "status bar"; rows without a choice say "as Other values". Not yet
+  seen on the dock.
 - 2026-11-03, user (sim, XCub) with plugin and explorer logs: AUTOPILOT_VS_SELECTOR is the
   wheel's angle (0-350, 10 per click, wrapping). Writing it does not set the angle: the XCub turns
   a write into a turn the other way, eight times as large (sent prev-10 -> prev+80, prev+10 ->

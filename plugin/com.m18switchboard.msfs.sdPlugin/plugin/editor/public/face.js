@@ -286,7 +286,7 @@ function faceDesigner(key, slot) {
     el('div', { class: 'layer-head' },
       el('input', { type: 'radio', name: 'faceLayer', checked: i === faceLayer ? true : null, title: 'Drag moves this layer', on: { change: () => { faceLayer = i; renderInspector(); } } }),
       el('strong', {}, LAYER_NAMES[L.kind] || L.kind),
-      el('span', { class: 'muted' }, L.kind === 'level' ? ` ${L.read ? L.read.input || L.read.var || '(choose a source)' : 'the key\'s value'}, ${L.min ?? 0}-${L.max ?? 100}` : L.kind === 'bar' ? (L.look ? ` always ${{ on: 'green', armed: 'white', off: 'red', clear: 'clear' }[L.look]}` : ' green / red / outline by state') : L.kind === 'sublabel' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' per value / step') : L.kind === 'value' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' the key\'s value') : ''),
+      el('span', { class: 'muted' }, L.kind === 'level' ? ` ${L.read ? L.read.input || L.read.var || '(choose a source)' : 'the key\'s value'}, ${L.min ?? 0}-${L.max ?? 100}` : L.kind === 'bar' ? (L.look ? ` always ${{ on: 'green', armed: 'white', off: 'red', clear: 'clear', none: 'no bar' }[L.look]}` : ' green / red / outline by state') : L.kind === 'sublabel' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' per value / step') : L.kind === 'value' ? (L.read ? ` ${L.read.input || L.read.var || '(choose a source)'}` : ' the key\'s value') : ''),
       el('span', { class: 'spacer' }),
       el('button', { title: 'Draw earlier (behind)', on: { click: () => move(-1) } }, '↑'),
       el('button', { title: 'Draw later (in front)', on: { click: () => move(1) } }, '↓'),

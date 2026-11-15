@@ -238,6 +238,21 @@ const text = uri => decodeURIComponent(uri);
     assert.match(svg, /aria-label="40%"/, 'with the value');
     assert.ok(!/<path d="M[^"]+" fill="[^"]+"\/>/.test(text(engine.keyImage({ ...rot, levelBar: false }, 40))), 'off: no level bar');
   }
+  // No status bar for a value (user, 2026-11-15): look 'none' draws no bar; the sublabel stays put.
+  {
+    const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));
+    const { style } = require(path.join(pluginDir, 'plugin', 'render'));
+    const eng = { type: 'switch', label: 'Engine', read: { input: 'E' }, states: { 0: 'none', 1: 'on' }, sublabels: { 0: 'OFF', 1: 'RUN' }, press: { cycle: [0, 1] } };
+    const bars = svg => (svg.match(/<rect x="21.4" y="93.4"/g) || []).length + (svg.match(/stroke-width="[\d.]+"\/>/g) || []).length;
+    const off = text(engine.keyImage(eng, 0));
+    assert.strictEqual(bars(off), 0, 'no bar at 0');
+    assert.match(off, /aria-label="OFF"/, 'sublabel kept');
+    const run = text(engine.keyImage(eng, 1));
+    assert.ok(run.includes(`fill="${style.on}"`) && /aria-label="RUN"/.test(run), 'green bar at 1');
+    assert.match(text(engine.keyImage(eng, 0)), new RegExp(`aria-label="OFF"[^>]*fill="${style.dim}"`));
+    assert.strictEqual(bars(text(engine.keyImage({ ...eng, states: { 1: 'on' }, otherwise: 'none' }, 7))), 0, 'Other values: none');
+    assert.doesNotThrow(() => validate({ id: 'n', fallback: true, pages: [{ keys: { 0: eng, 1: { type: 'readout', logic: { steps: [{ when: [{ read: { input: 'E' } }], look: 'on' }], otherwise: { look: 'none' } } } } }] }, 'n.json'));
+  }
   // Separator on any key type (user, 2026-11-03).
   {
     const { style } = require(path.join(pluginDir, 'plugin', 'render'));

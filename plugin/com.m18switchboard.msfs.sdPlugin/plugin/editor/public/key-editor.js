@@ -13,7 +13,7 @@ const KEY_TYPES = {
   readout: { name: 'Readout / annunciator', help: 'readoutType' },
   decor: { name: 'Decorative', help: 'decor' },
 };
-const LOOK_NAMES = [['on', 'green'], ['armed', 'white (armed)'], ['off', 'red'], ['clear', 'clear (outline)']];
+const LOOK_NAMES = [['on', 'green'], ['armed', 'white (armed)'], ['off', 'red'], ['clear', 'clear (outline)'], ['none', '— (no bar)']];
 const HOLD_MS = 400; // default tap / hold threshold: the hold-to-ramp delay proven in flight
 
 // Which sections stay folded, across keys (user's choice while editing).
@@ -223,7 +223,7 @@ function lookSection(key, slot) {
     out.push(el('h4', {}, key.type === 'switch' ? 'Positions' : 'Per value', info('positions')), valueTable(key, cols));
     out.push(fillValues(key));
     if (key.type === 'switch' || key.type === 'button' || ((key.type === 'readout' || key.type === 'rotary') && key.stateBar)) {
-      out.push(field('Other values', select_([['', 'clear (outline)'], ['on', 'green'], ['off', 'red'], ['armed', 'white (armed)']], key.otherwise || '', v => { if (v) key.otherwise = v; else delete key.otherwise; changed(); })));
+      out.push(field('Other values', select_([['', 'clear (outline)'], ['on', 'green'], ['off', 'red'], ['armed', 'white (armed)'], ['none', '— (no bar)']], key.otherwise || '', v => { if (v) key.otherwise = v; else delete key.otherwise; changed(); })));
     }
   }
   if (key.type === 'readout' || key.type === 'rotary') {
@@ -239,7 +239,7 @@ function lookSection(key, slot) {
         out.push(dimmed(tick('Level bar', key.levelBar, v => { if (v) key.levelBar = true; else delete key.levelBar; },
           `A bar filled by the value, from ${range.min} (empty) to ${range.max} (full): the step's minimum and maximum`), faced));
       }
-      out.push(dimmed(tick('State bar', key.stateBar, v => { if (v) key.stateBar = true; else delete key.stateBar; }, 'A bar coloured by the look per value (green, white, red, clear)'),
+      out.push(dimmed(tick('State bar', key.stateBar, v => { if (v) key.stateBar = true; else delete key.stateBar; }, 'A bar coloured per value by the status bar column above (green, white, red, clear, or none)'),
         faced || (key.type === 'rotary' && key.levelBar ? 'Not shown: the level bar takes its place.' : '')));
     }
     out.push(dimmed(tick('Separator', key.separator, v => { if (v) key.separator = true; else delete key.separator; }, 'A line under the label (its colour is in the Look panel)'), faced && 'Not used: this key has a custom face (add a Separator layer there).'));
@@ -259,7 +259,7 @@ function lookSection(key, slot) {
 
 // One row per sim value: look, sublabel, value text, icon (states, sublabels, text, valueIcons).
 const VALUE_MAPS = { look: 'states', sublabel: 'sublabels', text: 'text', icon: 'valueIcons' };
-const VALUE_COLS = { look: 'look', sublabel: 'sublabel', text: 'shows (instead of the number)', icon: 'icon (whole key)' };
+const VALUE_COLS = { look: 'status bar', sublabel: 'sublabel', text: 'shows (instead of the number)', icon: 'icon (whole key)' };
 function valueTable(key, cols) {
   if (key.type === 'switch' && key.text && !key.sublabels) { key.sublabels = key.text; delete key.text; }
   const table = el('table', { class: 'map-table value-table' });
@@ -279,7 +279,7 @@ function valueTable(key, cols) {
       const cells = cols.map(c => {
         const name = VALUE_MAPS[c];
         const now = key[name] && key[name][current];
-        if (c === 'look') return select_([['', '—'], ...LOOK_NAMES], now || '', x => setCell(c, current, x));
+        if (c === 'look') return select_([['', 'as Other values'], ...LOOK_NAMES], now || '', x => setCell(c, current, x));
         if (c === 'icon') return el('div', { class: 'inline' }, iconThumb(now), el('button', { on: { click: () => pickIcon('any', n => { setCell(c, current, n || ''); draw(); }) } }, now ? '…' : '+'));
         return input(now, x => setCell(c, current, x), { class: 'narrow-wide' });
       });

@@ -179,6 +179,7 @@ function separatorRect({ x = SEPARATOR.x, y, w = SEPARATOR.w, h = SEPARATOR.h, r
 // place (a rotary's automatic look, user 2026-11-03).
 function bar(state, b = style.bar) {
   if (state && typeof state === 'object' && state.level) return level(state.level, state.level.value, b);
+  if (state === 'none') return ''; // no status bar for this value (user, 2026-11-15)
   const fill = style[state === 'on' || state === 'off' || state === 'armed' ? state : null];
   if (fill) return `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.r}" fill="${fill}"/>`;
   const sw = style.clearWidth;
@@ -437,6 +438,8 @@ class Renderer {
   }
 
   _file(base, state) {
+    // A library icon has its bar drawn in: "no bar" uses its clear (outline) version.
+    if (state === 'none') state = 'clear';
     return base && this.icons ? this.icons.resolve(base, state) : null;
   }
 

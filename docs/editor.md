@@ -50,7 +50,8 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     "otherwise". Any number of steps; "+ or" adds a condition with its own source and value;
     ↑ ↓ reorder. Faces and Preview are per step. Keys saved as Switch (armable) open as a readout
     with two steps.
-  - **Positions / Per value** table: one row per sim value with its look, sublabel, the text shown
+  - **Positions / Per value** table: one row per sim value with its **status bar** (green, white,
+    red, clear, or "— (no bar)"; "as Other values" follows Other values), sublabel, the text shown
     instead of the number (readouts) and an icon for the whole key. **Fill from the SDK** fills it
     from the values the SDK lists for a simvar (e.g. transponder mode 0 off ... 4 alt);
     **Learn positions** records the values while you move the control in the cockpit, then Done.

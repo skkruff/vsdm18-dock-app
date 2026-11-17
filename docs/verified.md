@@ -47,6 +47,9 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-17, editor test + screenshots: library redesign (user): closed on load, faces A-Z under
+  category / key type headings, details of the selection below (summary from the key, inline
+  rename, category, notes, Insert, Delete); generated descriptions dropped from the shipped library.
 - 2026-11-17, editor test + screenshots: wording sweep (user): shorter labels and buttons; notes
   under fields became tooltips on the label (dotted underline); explanatory paragraphs trimmed.
 - 2026-11-17, editor test + screenshot: Aircraft Profile panel (Name, File ID, announcement played

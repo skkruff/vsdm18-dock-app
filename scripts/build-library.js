@@ -24,15 +24,6 @@ function category(key) {
   return 'Other';
 }
 
-function describe(key) {
-  const src = key.read ? (key.read.input || `${key.read.var} (${key.read.unit})`) : 'nothing';
-  const p = key.press;
-  const act = !p ? 'no press action'
-    : p.event ? `sends ${p.event}` : p.cycle ? `toggles ${p.cycle.join('/')}` : p.step !== undefined ? `steps ${p.step > 0 ? '+' : ''}${p.step}`
-      : p.hold !== undefined ? `holds ${p.hold}, releases to ${p.release}` : `sets ${p.set}`;
-  return `Reads ${src}; ${act}.`;
-}
-
 const items = [];
 // Keys with the same label on one aircraft (COM1 audio switch, COM1 frequency) get what they are.
 const KIND = { switch: 'switch', readout: 'readout', button: 'button', armable: 'mode', decor: 'decor' };
@@ -52,7 +43,8 @@ for (const prof of profiles) {
           return `${l}${labelCount.get(`${prof.id}:${l}`) > 1 ? ` ${KIND[key.type] || key.type}` : ''} (${aircraft})`;
         })(),
         category: category(key),
-        notes: describe(key),
+        // No generated description: the editor's library shows what a key reads and does from
+        // the key itself (user, 2026-11-17); notes are the user's own.
         shipped: true,
         keys: [{ dr: 0, dc: 0, key }],
       });
@@ -83,7 +75,6 @@ items.unshift({
   id: 'group.c172-lights-row',
   name: 'Exterior lights row (BCN, LAND, TAXI, NAV, STRB)',
   category: 'Lights',
-  notes: 'From the C172 G1000 (input events).',
   shipped: true,
   keys: [5, 6, 7, 8, 9].map((s, i) => ({ dr: 0, dc: i, key: c172[s] })),
 });
@@ -105,14 +96,12 @@ items.push({
   id: 'dock.stopwatch.onekey',
   name: 'Stopwatch on one key (tap start/stop, hold reset)',
   category: 'Chrono',
-  notes: 'Shows dock stopwatch T1; a tap starts or stops it, holding for 1 s resets it. The bar is green while it runs.',
   shipped: true,
   keys: [{ dr: 0, dc: 0, key: { type: 'readout', label: 'TIMER', read: { timer: 'T1' }, format: 'duration', separator: true,
     press: { tap: { timer: 'T1', action: 'toggle' }, hold: [{ timer: 'T1', action: 'stop' }, { timer: 'T1', action: 'reset' }], holdMs: 1000 } } }],
 });
 const keypadKey = (id, name, label, read, fmt, preset) => items.push({
   id, name, category: 'Radios', shipped: true,
-  notes: `Shows ${read.var}; pressing it opens a keypad to type a new value.`,
   keys: [{ dr: 0, dc: 0, key: { type: 'readout', label, read, ...fmt, press: { keypad: preset } } }],
 });
 keypadKey('dock.keypad.xpdr', 'XPDR code, keypad entry (any aircraft)', 'XPDR', { var: 'TRANSPONDER CODE:1', unit: 'number' }, { pad: 4 }, 'xpdr');

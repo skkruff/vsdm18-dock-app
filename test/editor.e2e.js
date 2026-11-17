@@ -83,7 +83,19 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const library = () => JSON.parse(fs.readFileSync(path.join(path.dirname(h.dir), 'library.json'), 'utf8')).items;
     assert.ok(library().some(i => i.id === 'group.magneto-set'), 'shipped magneto set');
     assert.ok(library().some(i => i.id === 'c172-g1000.0.2'), 'every shipped key is in the library');
+    // Library (user, 2026-11-17): closed on load; faces with titles, A-Z; details of the selection below.
+    assert.ok(!(await page.evaluate(() => document.querySelector('#libraryPanel').open)), 'closed on load');
+    await page.click('#libraryPanel > summary');
     assert.ok(await page.isVisible('.lib-cat summary:has-text("Groups")'));
+    const names = await page.$$eval('.lib-cat[data-cat="Groups"] .lib-item .name', n => n.map(x => x.textContent));
+    assert.deepStrictEqual(names, [...names].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })), 'A-Z');
+    await page.click('.lib-cat[data-cat="Groups"] .lib-item:has-text("Magneto set")');
+    await page.waitForSelector('#libraryDetail .lib-line:has-text("ENGINE_MAGNETO_1")');
+    assert.ok(await page.isVisible('#libraryDetail .lib-key:has-text("START") .lib-line:has-text("holds ENGINE_MAGNETO_1 at 4, 3 on release every 250 ms")'), 'what START does');
+    await page.selectOption('#libGroupBy', 'type');
+    await page.waitForSelector('.lib-cat[data-cat="Switch / toggle"]');
+    await page.selectOption('#libGroupBy', 'category');
+    await page.waitForSelector('.lib-cat[data-cat="Groups"]');
 
     // Save the magneto group to the library, then insert it on the Auxiliary page with a new source.
     await page.click(slot(11));
@@ -106,7 +118,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click(slot(10));
     // As if another aircraft were loaded, one without ENGINE_MAGNETO_1: insert asks for its equivalent.
     await page.evaluate(() => { S.inputs = S.inputs.filter(n => n !== 'ENGINE_MAGNETO_1'); });
-    await page.click('.lib-cat[data-cat="My keys"] .lib-item:has-text("My magnetos") button:has-text("Insert")');
+    await page.click('.lib-cat[data-cat="My keys"] .lib-item:has-text("My magnetos")');
+    // Rename and notes in the details; Insert from there.
+    await page.fill('#libraryDetail .lib-name', 'My magnetos 2');
+    await page.keyboard.press('Tab');
+    await page.waitForSelector('.lib-cat[data-cat="My keys"] .lib-item:has-text("My magnetos 2")');
+    await page.fill('#libraryDetail .lib-notes', 'Check the values first');
+    await page.keyboard.press('Tab');
+    await sleep(300);
+    assert.deepStrictEqual([library().find(i => i.category === 'My keys').name, library().find(i => i.category === 'My keys').notes], ['My magnetos 2', 'Check the values first']);
+    await page.click('#libraryDetail button:has-text("Insert")');
     await page.click('dialog.small-dialog button:has-text("Choose from this aircraft")');
     await page.fill('dialog.browse .dialog-head input', 'MAGNETO_2');
     await page.click('dialog.browse .browse-row:has-text("ENGINE_MAGNETO_2")');

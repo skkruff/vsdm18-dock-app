@@ -150,19 +150,15 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   - Preview value: type a value to see that look.
   - JSON: the key as JSON.
   - An empty key shows **Add key** (and Paste when something is copied).
-- **Library** (top of the right column, beside the dock picture, so keys drag straight across;
-  its list scrolls on its own): reusable keys and groups of keys, searchable, by category. It ships with every key
-  built so far (each C172 and generic key, plus groups: magneto set, fuel selector, exterior
-  lights row). Save any key or selection with "Save to library": a name, and a category from the
-  list of existing ones or "New category…". **Groups** fills itself: every item of more than one
-  key appears there as well as in its own category, so it can't be chosen when saving. To use an
-  item, drag it onto the dock picture (dashed outlines show every key it will land on: yellow for
-  empty, orange for a key it replaces; keys that would fall off the panel are counted under the
-  picture), or click the target key and press Insert (groups go in with their top-left key there).
-  If the item works one input event the loaded aircraft doesn't have, you can choose this
-  aircraft's equivalent from its list, or keep it. Simvars are the same in every aircraft and are
-  never asked about. Deleting a shipped item keeps it deleted; new shipped items arrive with updates.
-  The library is `library.json` next to the profiles folder.
+- **Library** (right column, closed on load): key faces with their titles, A–Z, under headings by
+  category (with every group also under **Groups**), by key type, or none (A–Z), chosen beside the
+  search. Click a face to see it below: its name and category (both editable there), what each key
+  reads, its values and what a press does (worked out from the key), your notes, and **Insert** /
+  **Delete**. Double-click inserts; drag a face onto the dock picture (dashed outlines show where it
+  lands: yellow for empty, orange for a key it replaces). **Save to library** saves the selected
+  keys (several make a group). If the item works one input event the loaded aircraft doesn't have,
+  Insert offers this aircraft's equivalent. Deleting a shipped item keeps it deleted; new shipped
+  items arrive with updates. The library is `library.json` next to the profiles folder.
 
 ## Saving rules
 

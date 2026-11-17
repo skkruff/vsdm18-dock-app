@@ -94,13 +94,19 @@
     </section>
 
     <section class="right">
-      <details id="libraryPanel" open>
-        <summary>Library: reusable keys and groups</summary>
+      <details id="libraryPanel">
+        <summary>Library</summary>
         <div class="lib-tools">
-          <input id="libSearch" placeholder="Search the library (e.g. magneto, lights, COM)">
+          <input id="libSearch" placeholder="Search">
+          <select id="libGroupBy" title="Group the library">
+            <option value="category">By category</option>
+            <option value="type">By key type</option>
+            <option value="none">A–Z</option>
+          </select>
           <button id="saveToLibrary" title="Save the selected key(s) to the library">Save to library</button>
         </div>
         <div id="libraryList"></div>
+        <div id="libraryDetail" class="lib-detail"></div>
       </details>
       <div id="inspector"></div>
     </section>

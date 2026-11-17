@@ -38,6 +38,7 @@ async function init() {
   $('#saveToLibrary').addEventListener('click', saveToLibrary);
   let libTimer = null;
   $('#libSearch').addEventListener('input', () => { clearTimeout(libTimer); libTimer = setTimeout(renderLibrary, 200); });
+  $('#libGroupBy').addEventListener('change', e => { try { localStorage.setItem('switchboard.libGroupBy', e.target.value); } catch { /* per session then */ } renderLibrary(); });
   $('#iconSearch').addEventListener('input', drawIcons);
   $('#iconClose').addEventListener('click', () => $('#iconDialog').close());
   $('#iconNone').addEventListener('click', () => { $('#iconDialog').close(); pickCallback(null); });

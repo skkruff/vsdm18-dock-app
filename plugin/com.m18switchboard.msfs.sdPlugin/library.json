@@ -4,7 +4,6 @@
       "id": "group.c172-lights-row",
       "name": "Exterior lights row (BCN, LAND, TAXI, NAV, STRB)",
       "category": "Lights",
-      "notes": "From the C172 G1000 (input events).",
       "shipped": true,
       "keys": [
         {
@@ -264,7 +263,6 @@
       "id": "c172-g1000.0.0",
       "name": "STBY BATT (C172 G1000)",
       "category": "Electrical",
-      "notes": "Reads ELECTRICAL_BATTERY_STBY_2; toggles 1/0.",
       "shipped": true,
       "keys": [
         {
@@ -300,7 +298,6 @@
       "id": "c172-g1000.0.1",
       "name": "ALT switch (C172 G1000)",
       "category": "Electrical",
-      "notes": "Reads ELECTRICAL_ALTERNATOR_1; toggles 0/1.",
       "shipped": true,
       "keys": [
         {
@@ -331,7 +328,6 @@
       "id": "c172-g1000.0.2",
       "name": "BAT (C172 G1000)",
       "category": "Electrical",
-      "notes": "Reads ELECTRICAL_BATTERY_1; toggles 0/1.",
       "shipped": true,
       "keys": [
         {
@@ -362,7 +358,6 @@
       "id": "c172-g1000.0.3",
       "name": "AVIONICS BUS 1 (C172 G1000)",
       "category": "Electrical",
-      "notes": "Reads ELECTRICAL_LINE_BUS_1_TO_AVIONICS_BUS_1; toggles 0/1.",
       "shipped": true,
       "keys": [
         {
@@ -409,7 +404,6 @@
       "id": "c172-g1000.0.4",
       "name": "AVN BUS 2 (C172 G1000)",
       "category": "Electrical",
-      "notes": "Reads ELECTRICAL_LINE_BUS_2_TO_AVIONICS_BUS_2; toggles 0/1.",
       "shipped": true,
       "keys": [
         {
@@ -439,7 +433,6 @@
       "id": "c172-g1000.0.5",
       "name": "BCN (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_BEACON_1; toggles 0/1.",
       "shipped": true,
       "keys": [
         {
@@ -470,7 +463,6 @@
       "id": "c172-g1000.0.6",
       "name": "LAND (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_LANDING_1; toggles 0/1.",
       "shipped": true,
       "keys": [
         {
@@ -501,7 +493,6 @@
       "id": "c172-g1000.0.7",
       "name": "TAXI (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_TAXI_1; toggles 0/1.",
       "shipped": true,
       "keys": [
         {
@@ -532,7 +523,6 @@
       "id": "c172-g1000.0.8",
       "name": "NAV switch (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_NAV_0; toggles 0/1.",
       "shipped": true,
       "keys": [
         {
@@ -563,7 +553,6 @@
       "id": "c172-g1000.0.9",
       "name": "STRB (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_STROBE_0; toggles 0/1.",
       "shipped": true,
       "keys": [
         {
@@ -594,7 +583,6 @@
       "id": "c172-g1000.0.10",
       "name": "FUEL PUMP (C172 G1000)",
       "category": "Fuel",
-      "notes": "Reads FUEL_PUMP_1; toggles 0/1.",
       "shipped": true,
       "keys": [
         {
@@ -625,7 +613,6 @@
       "id": "c172-g1000.0.11",
       "name": "◀ MAG (C172 G1000)",
       "category": "Engine",
-      "notes": "Reads ENGINE_MAGNETO_1; steps -1.",
       "shipped": true,
       "keys": [
         {
@@ -650,7 +637,6 @@
       "id": "c172-g1000.0.12",
       "name": "MAGS (C172 G1000)",
       "category": "Engine",
-      "notes": "Reads ENGINE_MAGNETO_1; no press action.",
       "shipped": true,
       "keys": [
         {
@@ -684,7 +670,6 @@
       "id": "c172-g1000.0.13",
       "name": "MAG ▶ (C172 G1000)",
       "category": "Engine",
-      "notes": "Reads ENGINE_MAGNETO_1; steps +1.",
       "shipped": true,
       "keys": [
         {
@@ -709,7 +694,6 @@
       "id": "c172-g1000.0.14",
       "name": "START (C172 G1000)",
       "category": "Engine",
-      "notes": "Reads ENGINE_MAGNETO_1; holds 4, releases to 3.",
       "shipped": true,
       "keys": [
         {
@@ -735,7 +719,6 @@
       "id": "c172-g1000.1.0",
       "name": "COM1 switch (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads COM RECEIVE:1 (bool); holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -767,7 +750,6 @@
       "id": "c172-g1000.1.1",
       "name": "COM1 readout (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads COM ACTIVE FREQUENCY:1 (MHz); sends COM_STBY_RADIO_SWAP.",
       "shipped": true,
       "keys": [
         {
@@ -793,7 +775,6 @@
       "id": "c172-g1000.1.2",
       "name": "COM1 STBY (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads COM STANDBY FREQUENCY:1 (MHz); sets undefined.",
       "shipped": true,
       "keys": [
         {
@@ -843,7 +824,6 @@
       "id": "c172-g1000.1.3",
       "name": "NAV1 (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads NAV ACTIVE FREQUENCY:1 (MHz); sends NAV1_RADIO_SWAP.",
       "shipped": true,
       "keys": [
         {
@@ -894,7 +874,6 @@
       "id": "c172-g1000.1.4",
       "name": "NAV1 STBY (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads NAV STANDBY FREQUENCY:1 (MHz); sets undefined.",
       "shipped": true,
       "keys": [
         {
@@ -944,7 +923,6 @@
       "id": "c172-g1000.1.5",
       "name": "COM2 switch (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads COM RECEIVE:2 (bool); holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -976,7 +954,6 @@
       "id": "c172-g1000.1.6",
       "name": "COM2 readout (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads COM ACTIVE FREQUENCY:2 (MHz); sends COM2_RADIO_SWAP.",
       "shipped": true,
       "keys": [
         {
@@ -1002,7 +979,6 @@
       "id": "c172-g1000.1.7",
       "name": "COM2 STBY (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads COM STANDBY FREQUENCY:2 (MHz); sets undefined.",
       "shipped": true,
       "keys": [
         {
@@ -1052,7 +1028,6 @@
       "id": "c172-g1000.1.8",
       "name": "NAV2 (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads NAV ACTIVE FREQUENCY:2 (MHz); sends NAV2_RADIO_SWAP.",
       "shipped": true,
       "keys": [
         {
@@ -1103,7 +1078,6 @@
       "id": "c172-g1000.1.9",
       "name": "NAV2 STBY (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads NAV STANDBY FREQUENCY:2 (MHz); sets undefined.",
       "shipped": true,
       "keys": [
         {
@@ -1153,7 +1127,6 @@
       "id": "c172-g1000.1.10",
       "name": "XPDR (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads TRANSPONDER CODE:1 (number); sets undefined.",
       "shipped": true,
       "keys": [
         {
@@ -1180,7 +1153,6 @@
       "id": "c172-g1000.1.11",
       "name": "XPDR MODE (C172 G1000)",
       "category": "Radios",
-      "notes": "Reads TRANSPONDER STATE:1 (number); toggles 0/3/4.",
       "shipped": true,
       "keys": [
         {
@@ -1318,7 +1290,6 @@
       "id": "c172-g1000.2.0",
       "name": "AP (C172 G1000)",
       "category": "Autopilot",
-      "notes": "Reads nothing; holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -1356,7 +1327,6 @@
       "id": "c172-g1000.2.1",
       "name": "HDG (C172 G1000)",
       "category": "Autopilot",
-      "notes": "Reads nothing; holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -1394,7 +1364,6 @@
       "id": "c172-g1000.2.2",
       "name": "NAV button (C172 G1000)",
       "category": "Autopilot",
-      "notes": "Reads nothing; holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -1432,7 +1401,6 @@
       "id": "c172-g1000.2.3",
       "name": "VS (C172 G1000)",
       "category": "Autopilot",
-      "notes": "Reads nothing; holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -1470,7 +1438,6 @@
       "id": "c172-g1000.2.4",
       "name": "NOSE UP (C172 G1000)",
       "category": "Autopilot",
-      "notes": "Reads nothing; holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -1510,7 +1477,6 @@
       "id": "c172-g1000.2.5",
       "name": "FD (C172 G1000)",
       "category": "Autopilot",
-      "notes": "Reads nothing; holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -1548,7 +1514,6 @@
       "id": "c172-g1000.2.6",
       "name": "ALT button (C172 G1000)",
       "category": "Autopilot",
-      "notes": "Reads nothing; holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -1586,7 +1551,6 @@
       "id": "c172-g1000.2.7",
       "name": "APR (C172 G1000)",
       "category": "Autopilot",
-      "notes": "Reads nothing; holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -1624,7 +1588,6 @@
       "id": "c172-g1000.2.8",
       "name": "FLC (C172 G1000)",
       "category": "Autopilot",
-      "notes": "Reads nothing; holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -1662,7 +1625,6 @@
       "id": "c172-g1000.2.9",
       "name": "NOSE DN (C172 G1000)",
       "category": "Autopilot",
-      "notes": "Reads nothing; holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -1702,7 +1664,6 @@
       "id": "c172-g1000.2.10",
       "name": "VNV (C172 G1000)",
       "category": "Autopilot",
-      "notes": "Reads nothing; holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -1740,7 +1701,6 @@
       "id": "c172-g1000.2.11",
       "name": "BC (C172 G1000)",
       "category": "Autopilot",
-      "notes": "Reads nothing; holds 1, releases to 0.",
       "shipped": true,
       "keys": [
         {
@@ -1778,7 +1738,6 @@
       "id": "c172-g1000.3.0",
       "name": "QNH (C172 G1000)",
       "category": "Instruments",
-      "notes": "Reads KOHLSMAN SETTING MB:1 (millibars); sends BAROMETRIC.",
       "shipped": true,
       "keys": [
         {
@@ -1823,7 +1782,6 @@
       "id": "c172-g1000.3.1",
       "name": "TIME (C172 G1000)",
       "category": "Chrono",
-      "notes": "Reads LOCAL TIME (seconds); no press action.",
       "shipped": true,
       "keys": [
         {
@@ -1891,7 +1849,6 @@
       "id": "c172-g1000.3.2",
       "name": "TIMER (C172 G1000)",
       "category": "Chrono",
-      "notes": "Reads undefined (undefined); holds [object Object],[object Object], releases to undefined.",
       "shipped": true,
       "keys": [
         {
@@ -1957,7 +1914,6 @@
       "id": "c172-g1000.3.3",
       "name": "Switches & Circuit Breakers Dimmer (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_PANEL_1; holds [object Object], releases to undefined.",
       "shipped": true,
       "keys": [
         {
@@ -2016,7 +1972,6 @@
       "id": "c172-g1000.3.4",
       "name": "Standby Instruments Dimmer (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_PANEL_2; holds [object Object], releases to undefined.",
       "shipped": true,
       "keys": [
         {
@@ -2075,7 +2030,6 @@
       "id": "c172-g1000.3.5",
       "name": "PITOT HEAT (C172 G1000)",
       "category": "Anti-ice",
-      "notes": "Reads PITOT HEAT SWITCH (bool); sends PITOT_HEAT_TOGGLE.",
       "shipped": true,
       "keys": [
         {
@@ -2104,7 +2058,6 @@
       "id": "c172-g1000.3.8",
       "name": "Pedestal Dimmer (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_PEDESTRAL_1; holds [object Object], releases to undefined.",
       "shipped": true,
       "keys": [
         {
@@ -2163,7 +2116,6 @@
       "id": "c172-g1000.3.9",
       "name": "Avionics Dimmer (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_POTENTIOMETER_5; holds [object Object], releases to undefined.",
       "shipped": true,
       "keys": [
         {
@@ -2222,7 +2174,6 @@
       "id": "c172-g1000.3.10",
       "name": "◀ FUEL (C172 G1000)",
       "category": "Fuel",
-      "notes": "Reads FUEL_SELECTOR_1; steps -1.",
       "shipped": true,
       "keys": [
         {
@@ -2247,7 +2198,6 @@
       "id": "c172-g1000.3.11",
       "name": "FUEL SEL (C172 G1000)",
       "category": "Fuel",
-      "notes": "Reads FUEL_SELECTOR_1; no press action.",
       "shipped": true,
       "keys": [
         {
@@ -2273,7 +2223,6 @@
       "id": "c172-g1000.3.12",
       "name": "FUEL ▶ (C172 G1000)",
       "category": "Fuel",
-      "notes": "Reads FUEL_SELECTOR_1; steps +1.",
       "shipped": true,
       "keys": [
         {
@@ -2298,7 +2247,6 @@
       "id": "c172-g1000.3.13",
       "name": "FLASHLIGHT (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads nothing; sets undefined.",
       "shipped": true,
       "keys": [
         {
@@ -2318,7 +2266,6 @@
       "id": "c172-g1000.3.14",
       "name": "Cabin Light Dimmer (C172 G1000)",
       "category": "Lights",
-      "notes": "Reads LIGHTING_CABIN_1; holds [object Object], releases to undefined.",
       "shipped": true,
       "keys": [
         {
@@ -2377,7 +2324,6 @@
       "id": "generic.0.0",
       "name": "BAT (any aircraft, classic simvars)",
       "category": "Electrical",
-      "notes": "Reads ELECTRICAL MASTER BATTERY (bool); sends TOGGLE_MASTER_BATTERY.",
       "shipped": true,
       "keys": [
         {
@@ -2406,7 +2352,6 @@
       "id": "generic.0.1",
       "name": "ALT (any aircraft, classic simvars)",
       "category": "Electrical",
-      "notes": "Reads GENERAL ENG MASTER ALTERNATOR:1 (bool); sends TOGGLE_MASTER_ALTERNATOR.",
       "shipped": true,
       "keys": [
         {
@@ -2435,7 +2380,6 @@
       "id": "generic.0.2",
       "name": "AVIONICS (any aircraft, classic simvars)",
       "category": "Electrical",
-      "notes": "Reads AVIONICS MASTER SWITCH (bool); sends AVIONICS_MASTER_SET.",
       "shipped": true,
       "keys": [
         {
@@ -2465,7 +2409,6 @@
       "id": "generic.0.3",
       "name": "PITOT HEAT (any aircraft, classic simvars)",
       "category": "Anti-ice",
-      "notes": "Reads PITOT HEAT SWITCH (bool); sends PITOT_HEAT_TOGGLE.",
       "shipped": true,
       "keys": [
         {
@@ -2494,7 +2437,6 @@
       "id": "generic.0.5",
       "name": "BCN (any aircraft, classic simvars)",
       "category": "Lights",
-      "notes": "Reads LIGHT BEACON (bool); sends TOGGLE_BEACON_LIGHTS.",
       "shipped": true,
       "keys": [
         {
@@ -2523,7 +2465,6 @@
       "id": "generic.0.6",
       "name": "LAND (any aircraft, classic simvars)",
       "category": "Lights",
-      "notes": "Reads LIGHT LANDING (bool); sends LANDING_LIGHTS_TOGGLE.",
       "shipped": true,
       "keys": [
         {
@@ -2552,7 +2493,6 @@
       "id": "generic.0.7",
       "name": "TAXI (any aircraft, classic simvars)",
       "category": "Lights",
-      "notes": "Reads LIGHT TAXI (bool); sends TOGGLE_TAXI_LIGHTS.",
       "shipped": true,
       "keys": [
         {
@@ -2581,7 +2521,6 @@
       "id": "generic.0.8",
       "name": "NAV (any aircraft, classic simvars)",
       "category": "Lights",
-      "notes": "Reads LIGHT NAV (bool); sends TOGGLE_NAV_LIGHTS.",
       "shipped": true,
       "keys": [
         {
@@ -2610,7 +2549,6 @@
       "id": "generic.0.9",
       "name": "STRB (any aircraft, classic simvars)",
       "category": "Lights",
-      "notes": "Reads LIGHT STROBE (bool); sends STROBES_TOGGLE.",
       "shipped": true,
       "keys": [
         {
@@ -2639,7 +2577,6 @@
       "id": "generic.0.10",
       "name": "COM1 (any aircraft, classic simvars)",
       "category": "Radios",
-      "notes": "Reads COM ACTIVE FREQUENCY:1 (MHz); no press action.",
       "shipped": true,
       "keys": [
         {
@@ -2661,7 +2598,6 @@
       "id": "generic.0.11",
       "name": "COM1 STBY (any aircraft, classic simvars)",
       "category": "Radios",
-      "notes": "Reads COM STANDBY FREQUENCY:1 (MHz); no press action.",
       "shipped": true,
       "keys": [
         {
@@ -2683,7 +2619,6 @@
       "id": "generic.0.12",
       "name": "QNH (any aircraft, classic simvars)",
       "category": "Instruments",
-      "notes": "Reads KOHLSMAN SETTING MB:1 (millibars); no press action.",
       "shipped": true,
       "keys": [
         {
@@ -2705,7 +2640,6 @@
       "id": "generic.0.13",
       "name": "XPDR (any aircraft, classic simvars)",
       "category": "Radios",
-      "notes": "Reads TRANSPONDER CODE:1 (number); no press action.",
       "shipped": true,
       "keys": [
         {
@@ -2780,7 +2714,6 @@
       "id": "dock.stopwatch.onekey",
       "name": "Stopwatch on one key (tap start/stop, hold reset)",
       "category": "Chrono",
-      "notes": "Shows dock stopwatch T1; a tap starts or stops it, holding for 1 s resets it. The bar is green while it runs.",
       "shipped": true,
       "keys": [
         {
@@ -2820,7 +2753,6 @@
       "name": "XPDR code, keypad entry (any aircraft)",
       "category": "Radios",
       "shipped": true,
-      "notes": "Shows TRANSPONDER CODE:1; pressing it opens a keypad to type a new value.",
       "keys": [
         {
           "dr": 0,
@@ -2845,7 +2777,6 @@
       "name": "COM1 standby, keypad entry (any aircraft)",
       "category": "Radios",
       "shipped": true,
-      "notes": "Shows COM STANDBY FREQUENCY:1; pressing it opens a keypad to type a new value.",
       "keys": [
         {
           "dr": 0,
@@ -2870,7 +2801,6 @@
       "name": "COM2 standby, keypad entry (any aircraft)",
       "category": "Radios",
       "shipped": true,
-      "notes": "Shows COM STANDBY FREQUENCY:2; pressing it opens a keypad to type a new value.",
       "keys": [
         {
           "dr": 0,
@@ -2895,7 +2825,6 @@
       "name": "NAV1 standby, keypad entry (any aircraft)",
       "category": "Radios",
       "shipped": true,
-      "notes": "Shows NAV STANDBY FREQUENCY:1; pressing it opens a keypad to type a new value.",
       "keys": [
         {
           "dr": 0,
@@ -2920,7 +2849,6 @@
       "name": "NAV2 standby, keypad entry (any aircraft)",
       "category": "Radios",
       "shipped": true,
-      "notes": "Shows NAV STANDBY FREQUENCY:2; pressing it opens a keypad to type a new value.",
       "keys": [
         {
           "dr": 0,

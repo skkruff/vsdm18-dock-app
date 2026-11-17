@@ -93,7 +93,7 @@ async function libraryThumbs(items) {
 // "Groups" is not a real category: it lists every item with more than one key, wherever it is
 // filed (user, 2026-10-28). Items filed under "Groups" by older versions appear only there.
 const GROUPS = 'Groups';
-const libOpen = new Set([GROUPS]); // categories the user has open, kept across redraws
+const libOpen = new Set([GROUPS]); // headings the user has open, kept across redraws
 const isGroup = item => item.keys.length > 1;
 const categoriesOf = item => {
   const cats = [];
@@ -101,7 +101,16 @@ const categoriesOf = item => {
   if (isGroup(item)) cats.push(GROUPS);
   return cats.length ? cats : ['Other'];
 };
+const typeOf = item => (isGroup(item) ? GROUPS : ((typeof KEY_TYPES !== 'undefined' && KEY_TYPES[item.keys[0].key.type]) || {}).name || item.keys[0].key.type);
+const byName = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
 
+// Grouping, kept per viewer: by category, by key type, or none (A-Z) (user, 2026-11-17).
+function libGroupBy() {
+  try { return localStorage.getItem('switchboard.libGroupBy') || 'category'; } catch { return 'category'; }
+}
+
+// The library (user, 2026-11-17): key faces with their titles, A-Z, under headings; below, the
+// selected item: what it reads and does, its name, category and notes, Insert and Delete.
 let librarySeq = 0;
 async function renderLibrary() {
   // Several redraws can overlap (search, save, look change); only the newest may draw, otherwise
@@ -109,36 +118,113 @@ async function renderLibrary() {
   const seq = ++librarySeq;
   const list = $('#libraryList');
   const q = $('#libSearch').value.trim().toLowerCase();
-  const items = S.library.filter(i => !q || `${i.name} ${i.category} ${i.notes || ''}`.toLowerCase().includes(q));
+  const mode = libGroupBy();
+  $('#libGroupBy').value = mode;
+  const items = S.library.filter(i => !q || `${i.name} ${i.category} ${i.notes || ''}`.toLowerCase().includes(q)).sort(byName);
   const thumbs = await libraryThumbs(items);
   if (seq !== librarySeq) return;
   list.innerHTML = '';
   if (!items.length) list.append(el('div', { class: 'muted' }, q ? 'Nothing matches.' : 'The library is empty.'));
+  const headsOf = item => (mode === 'type' ? [typeOf(item)] : mode === 'none' ? [''] : categoriesOf(item));
   const order = c => (c === GROUPS ? '0' : `1${c}`);
-  const cats = [...new Set(items.flatMap(categoriesOf))].sort((a, b) => order(a).localeCompare(order(b)));
-  for (const cat of cats) {
-    const inCat = items.filter(i => categoriesOf(i).includes(cat));
-    const group = el('details', { class: 'lib-cat', 'data-cat': cat, open: q || libOpen.has(cat) ? true : null },
-      el('summary', {}, `${cat} (${inCat.length})`));
-    group.addEventListener('toggle', () => { if (!q) { if (group.open) libOpen.add(cat); else libOpen.delete(cat); } });
-    items.forEach((item, i) => {
-      if (!categoriesOf(item).includes(cat)) return;
-      group.append(el('div', {
-        class: 'lib-item', draggable: 'true', title: item.notes || '',
-        on: {
-          dragstart: e => { S.draggingItem = item; e.dataTransfer.setData('application/x-library', item.id); },
-          dragend: () => { S.draggingItem = null; clearDropMarks(); },
-        },
-      },
-      el('img', { src: thumbs[i], alt: '' }),
-      el('div', { class: 'name' }, item.name, item.keys.length > 1 ? el('span', { class: 'muted' }, ` · ${item.keys.length} keys`) : null,
-        item.notes ? el('div', { class: 'muted small' }, item.notes) : null),
-      el('button', { title: 'Insert at the selected key (or drag onto the dock picture)', on: { click: () => insertItem(item) } }, 'Insert'),
-      el('button', { title: 'Rename', on: { click: () => renameItem(item) } }, '✎'),
-      el('button', { title: 'Delete from library', on: { click: () => deleteItem(item) } }, '✕')));
-    });
+  const heads = [...new Set(items.flatMap(headsOf))].sort((a, b) => order(a).localeCompare(order(b)));
+  const tile = (item, i) => el('div', {
+    class: `lib-item ${S.libSel === item.id ? 'selected' : ''}`, draggable: 'true', 'data-id': item.id, title: item.name,
+    on: {
+      click: () => { S.libSel = item.id; renderLibraryDetail(); for (const t of list.querySelectorAll('.lib-item')) t.classList.toggle('selected', t.dataset.id === item.id); },
+      dblclick: () => insertItem(item),
+      dragstart: e => { S.draggingItem = item; e.dataTransfer.setData('application/x-library', item.id); },
+      dragend: () => { S.draggingItem = null; clearDropMarks(); },
+    },
+  },
+  el('div', { class: 'lib-thumb' }, el('img', { src: thumbs[i], alt: '' }), isGroup(item) ? el('span', { class: 'lib-count' }, `×${item.keys.length}`) : null),
+  el('div', { class: 'name' }, item.name));
+  for (const head of heads) {
+    const grid = el('div', { class: 'lib-grid' });
+    items.forEach((item, i) => { if (headsOf(item).includes(head)) grid.append(tile(item, i)); });
+    if (mode === 'none') { list.append(grid); continue; }
+    const group = el('details', { class: 'lib-cat', 'data-cat': head, open: q || libOpen.has(head) ? true : null },
+      el('summary', {}, `${head} (${grid.children.length})`), grid);
+    group.addEventListener('toggle', () => { if (!q) { if (group.open) libOpen.add(head); else libOpen.delete(head); } });
     list.append(group);
   }
+  renderLibraryDetail();
+}
+
+// ---------- what a key does, in a line or two (library detail) ----------
+
+const srcText = r => (!r ? null : r.timer !== undefined ? `stopwatch ${r.timer}${r.part === 'running' ? ' (running)' : ''}`
+  : r.sim ? 'sim paused' : r.input ? r.input : r.var ? `${r.var} (${r.unit || 'number'})` : null);
+function actionText(key, a) {
+  if (a === undefined || a === null) return 'nothing';
+  if (Array.isArray(a)) return a.map(x => actionText(key, x)).join(', then ');
+  if (a.tap !== undefined || (a.hold !== undefined && typeof a.hold === 'object')) {
+    return [a.tap !== undefined ? `tap: ${actionText(key, a.tap)}` : null, a.hold !== undefined ? `hold ${a.holdMs || 400} ms: ${actionText(key, a.hold)}` : null].filter(Boolean).join(' · ');
+  }
+  if (a.keypad !== undefined) return `keypad ${typeof a.keypad === 'string' ? a.keypad : a.keypad.preset || a.keypad.title || '(own)'}`;
+  if (a.timer !== undefined) return `stopwatch ${a.timer}: ${a.action || 'toggle'}`;
+  if (a.keys !== undefined) return `keys ${a.keys}${a.whileHeld ? ' (held)' : ''}`;
+  if (a.event !== undefined) return `${a.event}${a.toggleValue ? ' 1/0' : a.value !== undefined ? ` = ${a.value}` : ''}`;
+  const t = a.var && a.var.var ? a.var.var : a.input || (key.read && key.read.input) || '?';
+  const x = a.scale ? ` ×${a.scale}` : '';
+  const rep = a.repeatMs ? ` every ${a.repeatMs} ms` : '';
+  if (a.cycle) return `cycles ${t}: ${a.cycle.join(' / ')}${x}`;
+  if (a.step !== undefined) {
+    const lim = a.min !== undefined && a.max !== undefined ? `${a.min}–${a.max}` : a.min !== undefined ? `min ${a.min}` : a.max !== undefined ? `max ${a.max}` : '';
+    const range = lim ? ` (${lim}${a.wrap ? ', wraps' : ''})` : '';
+    return `steps ${t} ${a.step > 0 ? '+' : ''}${a.step}${range}${rep}${x}`;
+  }
+  if (typeof a.hold === 'number') return `holds ${t} at ${a.hold}${a.release !== undefined ? `, ${a.release} on release` : ''}${rep}${x}`;
+  if (a.set !== undefined) return `sets ${t} to ${a.set}${x}`;
+  return 'nothing';
+}
+function valuesText(key) {
+  if (key.logic) return `${key.logic.steps.length} step${key.logic.steps.length > 1 ? 's' : ''} of state logic`;
+  const look = { on: 'green', off: 'red', armed: 'white', clear: 'clear', none: 'no bar' };
+  const maps = [key.states || {}, key.sublabels || {}, key.text || {}];
+  const vals = [...new Set(maps.flatMap(m => Object.keys(m)))].sort((a, b) => Number(a) - Number(b));
+  if (!vals.length) return null;
+  return vals.map(v => [v, (key.text || {})[v] || (key.sublabels || {})[v], look[(key.states || {})[v]]].filter(Boolean).join(' ')).join(' · ');
+}
+function keyLines(key) {
+  const k = key;
+  const type = ((typeof KEY_TYPES !== 'undefined' && KEY_TYPES[k.type]) || {}).name || k.type;
+  const src = srcText(k.read) || (k.logic ? 'state logic' : null);
+  return [
+    ['Type', type],
+    src ? ['Reads', src] : null,
+    valuesText(k) ? ['Values', valuesText(k)] : null,
+    k.press ? ['Does', actionText(k, k.press)] : null,
+  ].filter(Boolean);
+}
+
+function renderLibraryDetail() {
+  const box = $('#libraryDetail');
+  box.innerHTML = '';
+  const item = S.library.find(i => i.id === S.libSel);
+  if (!item) { box.append(el('div', { class: 'muted' }, 'Select a key or group')); return; }
+  const patch = async change => { await api('PATCH', `/api/library/${encodeURIComponent(item.id)}`, change); Object.assign(item, change); };
+  const name = el('input', { class: 'lib-name', value: item.name, title: 'Name (rename here)', on: { change: async e => {
+    const v = e.target.value.trim();
+    if (!v) { e.target.value = item.name; return; }
+    await patch({ name: v }); renderLibrary();
+  } } });
+  const cats = [...new Set(S.library.map(i => i.category).filter(c => c && c !== GROUPS))].sort();
+  const cat = el('select', { title: 'Category', on: { change: async e => {
+    let v = e.target.value;
+    if (v === '__new__') { v = (prompt('New category') || '').trim(); if (!v || v.toLowerCase() === GROUPS.toLowerCase()) { e.target.value = item.category; return; } }
+    await patch({ category: v }); libOpen.add(v); renderLibrary();
+  } } }, ...cats.map(c => el('option', { value: c, selected: c === item.category ? true : null }, c)), el('option', { value: '__new__' }, 'New…'));
+  const rows = isGroup(item)
+    ? item.keys.map(g => el('div', { class: 'lib-key' }, el('div', { class: 'lib-key-name' }, (g.key.label || g.key.icon || g.key.type).replace(/\n/g, ' ')),
+      ...keyLines(g.key).filter(([k]) => k !== 'Type').map(([k, v]) => el('div', { class: 'lib-line' }, el('span', { class: 'muted' }, k), ' ', v))))
+    : keyLines(item.keys[0].key).map(([k, v]) => el('div', { class: 'lib-line' }, el('span', { class: 'muted' }, k), ' ', v));
+  const notes = el('textarea', { class: 'lib-notes', rows: 2, placeholder: 'Notes', on: { change: async e => { await patch({ notes: e.target.value.trim() }); } } }, item.notes || '');
+  box.append(el('div', { class: 'lib-detail-head' }, name, cat),
+    el('div', { class: 'lib-lines' }, rows), notes,
+    el('div', { class: 'inline' },
+      el('button', { class: 'primary', title: 'Insert at the selected key (or drag it onto the dock picture)', on: { click: () => insertItem(item) } }, 'Insert'),
+      el('button', { on: { click: () => deleteItem(item) } }, 'Delete')));
 }
 
 async function saveToLibrary() {
@@ -162,7 +248,8 @@ async function saveToLibrary() {
     if (category.toLowerCase() === GROUPS.toLowerCase()) { status('"Groups" fills itself with every group; choose another category', 'bad'); return newCat.focus(); }
     close();
     libOpen.add(category);
-    await api('POST', '/api/library', { name: name.value.trim(), category, keys: g });
+    const saved = await api('POST', '/api/library', { name: name.value.trim(), category, keys: g });
+    S.libSel = saved.id; // shown below the list straight away
     await loadLibrary();
     status(`"${name.value.trim()}" saved to ${category}${g.length > 1 ? ' (and Groups)' : ''}`, 'good');
   };
@@ -176,18 +263,10 @@ async function saveToLibrary() {
   name.select();
 }
 
-async function renameItem(item) {
-  const name = prompt('Name', item.name);
-  if (name === null) return;
-  const category = prompt('Category', item.category);
-  if (category === null) return;
-  await api('PATCH', `/api/library/${encodeURIComponent(item.id)}`, { name, category });
-  loadLibrary();
-}
-
 async function deleteItem(item) {
   if (!confirm(`Delete "${item.name}" from the library?`)) return;
   await api('DELETE', `/api/library/${encodeURIComponent(item.id)}`);
+  if (S.libSel === item.id) S.libSel = null;
   loadLibrary();
 }
 

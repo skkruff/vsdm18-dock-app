@@ -13,11 +13,10 @@ never touches this folder: shipped profiles are copied in only when you don't ha
 - **Header**: profile picker, New / Duplicate / Delete (keeps a `.bak`), Save (Ctrl+S), sim status
   and which profile the dock is using.
 - **Aircraft Profile**: name, File ID, the two announcement lines shown when the aircraft loads
-  (**Play announcement on the dock** plays it there, sliding as on loading), and the file paths it
-  matches (part of the aircraft's path, e.g. its folder; one per line). "Add the aircraft loaded
-  now" adds the loaded aircraft's folder, keeping the others. Title and ATC model matching still
+  (**Preview Announcement** plays it on the dock, sliding as on loading), and the file paths it
+  matches (part of the aircraft's path, e.g. its folder; one per line). "Add loaded aircraft" adds the loaded aircraft's folder, keeping the others. Title and ATC model matching still
   work in profile files but show only for a profile that uses them (file path is enough, even for
-  third-party aircraft: user, 2026-11-17). **Fallback profile** (bottom corner): used when no other
+  third-party aircraft: user, 2026-11-17). **Fallback** (bottom corner): used when no other
   profile matches.
 - **Key Appearance Defaults**: the font and colours of every key the plugin draws (not PNG icons),
   grouped as **Text** (font, labels, sublabels, readout values), **Bars** (on, off, armed) and

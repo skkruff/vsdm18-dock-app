@@ -28,16 +28,16 @@
         <label>File ID <input id="pId"></label>
         <label>Announcement line 1 <input id="pBanner1" placeholder="e.g. C172"></label>
         <label>Announcement line 2 <input id="pBanner2" placeholder="e.g. G1000"></label>
-        <button id="previewAnnouncement" title="Play the announcement on the dock, as when the aircraft loads">Play announcement on the dock</button>
+        <button id="previewAnnouncement" title="Plays on the dock, as when the aircraft loads">Preview Announcement</button>
         <fieldset id="matchFields">
-          <legend>Matches aircraft whose file path contains (one per line)</legend>
-          <label>File path <textarea id="mPath" rows="2"></textarea></label>
+          <legend>Aircraft match</legend>
+          <label>File path <textarea id="mPath" rows="2" title="Part of the aircraft's file path, e.g. its folder; one per line"></textarea></label>
           <!-- Title and ATC model: shown only for a profile that already matches on them. -->
           <label id="mTitleRow">Title <textarea id="mTitle" rows="2"></textarea></label>
           <label id="mAtcRow">ATC model <textarea id="mAtc" rows="1"></textarea></label>
-          <button id="fillMatch">Add the aircraft loaded now</button>
+          <button id="fillMatch" title="Adds the folder of the aircraft loaded in MSFS">Add loaded aircraft</button>
         </fieldset>
-        <label class="row fallback-corner"><input type="checkbox" id="pFallback"> Fallback profile</label>
+        <label class="row fallback-corner" title="Used when no other profile matches"><input type="checkbox" id="pFallback"> Fallback</label>
       </details>
 
       <details id="lookPanel">

@@ -31,6 +31,11 @@ built and tested in the container (`plugin/migrate.js` converts old keys on read
 Next: Phase 4 (second aircraft, using the new editor to find friction), Phase 4b (remaining
 polish, `docs/design-notes.md`), Phase 5.
 
+## Editor wording (user, 2026-11-17)
+
+Section titles and buttons are short and plain (e.g. "Preview Announcement", "Add loaded
+aircraft", "Source / Appearance / Function"); explanations go in ⓘ help or tooltips, not in labels.
+
 ## Profile content principles (user, 2026-10-27)
 
 - Base profiles on the controls actually in each aircraft's cockpit, not only those named in the

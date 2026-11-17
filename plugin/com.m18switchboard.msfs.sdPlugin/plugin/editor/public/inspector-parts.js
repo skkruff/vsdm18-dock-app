@@ -42,29 +42,29 @@ function keypadEditor(action) {
   if (custom) {
     rows.push(
       field('Digits', input(k.digits, num(k, 'digits'), { type: 'number', min: 1, max: 10 })),
-      field('After the decimal point', input(k.decimals, num(k, 'decimals'), { type: 'number', min: 0, max: 9 })),
-      field('Digits 0-7 only', el('input', { type: 'checkbox', checked: k.octal ? true : null, on: { change: e => { if (e.target.checked) k.octal = true; else delete k.octal; changed(); } } })),
-      field('Set when all digits are in', el('input', { type: 'checkbox', checked: k.autoEnter === false ? null : true, on: { change: e => { if (e.target.checked) delete k.autoEnter; else k.autoEnter = false; changed(); } } }), 'Otherwise only on ENT'));
+      field('Decimals', input(k.decimals, num(k, 'decimals'), { type: 'number', min: 0, max: 9 })),
+      field('Octal (0-7)', el('input', { type: 'checkbox', checked: k.octal ? true : null, on: { change: e => { if (e.target.checked) k.octal = true; else delete k.octal; changed(); } } })),
+      field('Auto-enter', el('input', { type: 'checkbox', checked: k.autoEnter === false ? null : true, on: { change: e => { if (e.target.checked) delete k.autoEnter; else k.autoEnter = false; changed(); } } }), 'Otherwise only on ENT'));
   }
 
   // Where the value goes: shown and editable for presets too, so another pathway can be tried if
   // the preset's does not work in an aircraft (user, 2026-10-30). Editing a preset's stores the
-  // whole pathway on this key; "Back to the preset's" removes it.
+  // whole pathway on this key; "Reset to preset" removes it.
   const presetApply = (k.preset && S.keypad && S.keypad.presets && S.keypad.presets[k.preset] && S.keypad.presets[k.preset].apply) || {};
   const own = k.apply || {};
   const ownTarget = own.event !== undefined || own.var !== undefined || own.input !== undefined;
   const eff = { ...presetApply, ...own };
   if (ownTarget) for (const f of ['event', 'var', 'unit', 'input']) if (own[f] === undefined) delete eff[f];
-  const backBtn = el('button', { hidden: k.apply === undefined ? true : null, on: { click: e => { e.preventDefault(); delete k.apply; changed(); renderInspector(); } } }, 'Back to the preset\'s pathway');
-  const changedMark = el('span', { class: 'warn' }, !custom && k.apply !== undefined ? ' (changed from the preset\'s)' : '');
+  const backBtn = el('button', { hidden: k.apply === undefined ? true : null, on: { click: e => { e.preventDefault(); delete k.apply; changed(); renderInspector(); } } }, 'Reset to preset');
+  const changedMark = el('span', { class: 'warn' }, !custom && k.apply !== undefined ? ' (changed)' : '');
   const editApply = fn => {
     k.apply = clone(eff);
     fn(k.apply);
-    if (!custom) { changedMark.textContent = ' (changed from the preset\'s)'; backBtn.hidden = false; }
+    if (!custom) { changedMark.textContent = ' (changed)'; backBtn.hidden = false; }
     changed();
   };
   const target = eff.var !== undefined ? 'var' : eff.input !== undefined ? 'input' : 'event';
-  rows.push(el('h4', {}, 'Sends the value', changedMark));
+  rows.push(el('h4', {}, 'Send', changedMark));
   rows.push(field('Sets', select_([['event', 'A sim event, with the value'], ['var', 'A simvar'], ['input', 'An input event']], target, v => {
     editApply(a => { for (const f of ['event', 'var', 'unit', 'input']) delete a[f]; if (v === 'var') { a.var = ''; a.unit = 'number'; } else a[v] = ''; });
     renderInspector();
@@ -77,7 +77,7 @@ function keypadEditor(action) {
       renderInspector();
     }) } }, 'Browse…'))));
   if (target === 'var') rows.push(field('Unit', input(eff.unit, v => editApply(a => { a.unit = v || 'number'; }), { list: 'unitList' })));
-  rows.push(field('Value sent', select_([['number', 'The number'], ['bcd16', 'BCD (digits as hex, e.g. XPNDR_SET)']], eff.encode || 'number', v => {
+  rows.push(field('Encoding', select_([['number', 'The number'], ['bcd16', 'BCD (digits as hex, e.g. XPNDR_SET)']], eff.encode || 'number', v => {
     editApply(a => { if (v === 'number') delete a.encode; else a.encode = v; });
     renderInspector();
   })));
@@ -100,7 +100,7 @@ function keypadEditor(action) {
       showImages(images);
       setTimeout(renderGrid, 4000);
     } catch (err) { status(err.message, 'bad'); }
-  } } }, 'Show the keypad on the dock picture')));
+  } } }, 'Preview keypad')));
   return rows;
 }
 
@@ -154,7 +154,7 @@ function shortcutEditor(action, { allowHeld = true } = {}) {
     field('', note),
     !allowHeld ? null : field('While held', el('input', { type: 'checkbox', checked: p.whileHeld ? true : null, on: { change: e => { if (e.target.checked) p.whileHeld = true; else delete p.whileHeld; changed(); } } }),
       'Keys stay down while the dock key is held (e.g. push to talk); otherwise one press and release'),
-    field('Bring MSFS to the front', el('input', { type: 'checkbox', checked: p.focus === false ? null : true, on: { change: e => { if (e.target.checked) delete p.focus; else p.focus = false; changed(); } } }),
+    field('Focus MSFS', el('input', { type: 'checkbox', checked: p.focus === false ? null : true, on: { change: e => { if (e.target.checked) delete p.focus; else p.focus = false; changed(); } } }),
       'So the keys go to the sim, not to whatever window has focus'),
     field('Try it', el('div', { class: 'inline' }, el('button', { title: 'Brings MSFS to the front and presses the shortcut there', on: { click: async e => {
       e.preventDefault();
@@ -165,7 +165,7 @@ function shortcutEditor(action, { allowHeld = true } = {}) {
 
 // Raw JSON, Save to library, Delete: the end of every key's inspector.
 function inspectorTail(box, key, slot) {
-  const raw = el('details', {}, el('summary', {}, 'Advanced: edit as JSON'));
+  const raw = el('details', {}, el('summary', {}, 'JSON'));
   const ta = el('textarea', { class: 'json' }, JSON.stringify(key, null, 2));
   raw.append(ta, el('button', { on: { click: () => {
     try { keys()[slot] = JSON.parse(ta.value); changed(); renderInspector(); } catch (e) { status(`JSON error: ${e.message}`, 'bad'); }
@@ -173,9 +173,9 @@ function inspectorTail(box, key, slot) {
   box.append(raw);
   const dirty = keyChanged(slot);
   box.append(el('p', {}, el('button', { on: { click: saveToLibrary } }, 'Save to library'), ' ',
-    el('button', { on: { click: deleteSel } }, 'Delete this key'), ' ',
+    el('button', { on: { click: deleteSel } }, 'Delete key'), ' ',
     el('button', { id: 'revertKey', disabled: dirty ? null : true, title: dirty ? 'Undo every change to this key since the last save' : 'No changes to this key since the last save',
-      on: { click: () => revertKey(slot) } }, 'Revert changes')));
+      on: { click: () => revertKey(slot) } }, 'Revert')));
 }
 
 // Learn: the user moves a control; everything that changed in the next moment comes back. One
@@ -211,7 +211,7 @@ function sourceEditor(read, onChange, { allowNone = false, unit = 'number' } = {
     // A stopwatch's elapsed time shows as M:SS on a readout.
     set(v === 'none' ? null : v === 'input' ? { input: '' } : v === 'timer' ? { timer: 'T1', hint: { format: 'duration' } } : v === 'sim' ? { sim: 'paused' } : { var: '', unit });
   }), null, kind === 'timer' ? 'stopwatch' : kind === 'sim' ? 'simPaused' : null));
-  if (kind === 'sim') box.append(el('p', { class: 'muted' }, '1 while the sim is paused (pause, active pause or the menu), else 0. Unknown until the first pause change after the plugin connects.'));
+
   if (kind === 'timer') {
     box.append(field('Stopwatch', input(read.timer, v => { read.timer = v; changed(); }, { placeholder: 'T1' }), 'Its name: keys using the same name share one stopwatch'));
     box.append(field('Shows', select_([['', 'Elapsed time (seconds)'], ['running', 'Running (1) or stopped (0)']], read.part || '', v => {

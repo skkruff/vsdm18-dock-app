@@ -54,7 +54,7 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   - **Positions / Per value** table: one row per sim value with its **status bar** (green, white,
     red, clear, or "— (no bar)": the sublabel then stands in for the bar, centred in its place
     at size 35; "as Other values" follows Other values), sublabel, the text shown
-    instead of the number (readouts) and an icon for the whole key. **Fill from the SDK** fills it
+    instead of the number (readouts) and an icon for the whole key. **Fill from SDK** fills it
     from the values the SDK lists for a simvar (e.g. transponder mode 0 off ... 4 alt);
     **Learn positions** records the values while you move the control in the cockpit, then Done.
     A switch with no press yet gets a cycle through what was found.
@@ -76,9 +76,9 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     (e.g. ARM / OFF on the standby battery). A per-value sublabel wins; the fixed one covers the
     rest.
   - Value text per value (readouts): a word instead of the number (e.g. magneto 3 -> BOTH).
-  - **Revert changes** (under the key editor): the key back to how it was when last saved; dim
+  - **Revert** (under the key editor): the key back to how it was when last saved; dim
     while it has no changes. On an empty slot it brings back a key deleted since the save.
-  - **On the key** (readouts and rotaries): **Show the value**, **Level bar** (rotaries: filled
+  - **On the key** (readouts and rotaries): **Show value**, **Level bar** (rotaries: filled
     by the value between the step's minimum and maximum, in the state bar's place), **State bar** (coloured by the
     look per value, e.g. a COM receive readout: label, OFF sublabel, green bar) and
     **Separator** (a line under the label). Dimmed when the key has a custom face, which has its
@@ -88,8 +88,8 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   - **On the key** on switches, buttons and decorative keys: **Separator**, a line under the label
     (dimmed when a PNG icon fills the key or the key has a custom face).
   - **Value**: decimals / padding, show as, **Unit before / after** (e.g. QNH, %, RPM).
-  - Step actions: **Wrap at the ends**. A dimmer is a Rotary: tap steps, hold repeats a smaller
-    step ("Repeat while held", ms), counting from the value it last sent.
+  - Step actions: **Wrap**. A dimmer is a Rotary: tap steps, hold repeats a smaller
+    step ("Repeat (ms)", ms), counting from the value it last sent.
   - **Sim paused** (a Source choice): 1 in any pause (pause key, active pause, menu), else 0;
     unknown until the first pause change after the plugin connects.
   - **Dock stopwatch** (a Source choice): name (keys with the same name share one) and what to show
@@ -98,10 +98,10 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   - **Open a keypad** (an action): a preset (transponder code, COM1/2 or NAV1/2 standby; guessed
     from what the key reads) or your own (digits, decimals, 0-7 only, set when all digits are in,
     and the event, simvar or input event it sets, as a number times a factor or as BCD).
-    "Show the keypad on the dock picture" previews it. The library has XPDR and COM / NAV standby
-    keys with keypads, for any aircraft. **Sends the value**: the event, simvar or input event it
+    "Preview keypad" previews it. The library has XPDR and COM / NAV standby
+    keys with keypads, for any aircraft. **Send**: the event, simvar or input event it
     sets and how (number times a factor, or BCD), shown for presets too and changeable, with
-    "Back to the preset's pathway"; **Try it** sends some digits now, as ENT would.
+    "Reset to preset"; **Try it** sends some digits now, as ENT would.
 - **Keypad (all keypads)** tab, after the page tabs: the one keypad layout every keypad uses, laid
   out on the dock picture like a page. Each key is a **Keypad key** with a role (digit, ENT, DEL,
   CLR, CANCEL, VFR, title, value now, digits typed) and the usual label, sublabel, icon and face.
@@ -110,7 +110,7 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   Save stores it for all profiles (`keypad.json`); "Reset to built-in" goes back. Missing digits
   or ENT are listed as warnings.
   - **Press a keyboard shortcut**: type it ("Ctrl+Shift+L") or click **Record** and press it;
-    "While held" keeps the keys down while the dock key is held; "Bring MSFS to the front" (on by
+    "While held" keeps the keys down while the dock key is held; "Focus MSFS" (on by
     default) makes sure the keys go to the sim. **Send now** tries it. Shortcuts the browser keeps
     (Ctrl+W, Ctrl+T, Ctrl+N) can't be recorded: type them.
   - **Function** (what a press does): a new key starts as a button that holds a position while
@@ -118,8 +118,8 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     while that starting press is untouched). Choices: toggle / cycle, step (min / max, wrap), set, hold a position while pressed
     (spring-loaded, with release value and repeat), a sim event, a keyboard shortcut, a keypad or
     a stopwatch control. **+ then** adds another action done after it (e.g. two softkeys).
-    **Something else when held**: a tap and a hold do different things. A tap acts when you let
-    go before the hold time (400 ms unless changed, "Hold for, ms"); the hold acts at the hold
+    **Hold action**: a tap and a hold do different things. A tap acts when you let
+    go before the hold time (400 ms unless changed, "Hold time (ms)"); the hold acts at the hold
     time, so the two never both happen. A hold action can repeat while held. Without a hold
     action a press acts at once. **Acts on** chooses what toggle / step / hold / set change: an
     input event (a cockpit control), or a **simvar written directly** (Browse, unit, and **Set**
@@ -139,16 +139,16 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     right, right to left, bottom to top, top to bottom; turning it upright moves it to the key's
     right edge), "empty at" / "full at", fill and outline colours, the key's value or its own
     source, and optional colour bands ("+ colour band": below or above a value, e.g. yellow below
-    25, red below 10). "+ face for a value" adds a separate face shown for one sim value (e.g. per
+    25, red below 10). "+ Value face" adds a separate face shown for one sim value (e.g. per
     switch position). Drag on the big preview to move
     the selected layer, or type positions (key units 0-144). A **Border** layer outlines the whole key (thickness,
     colour, corner). **↔ centre** / **↕ centre** on each
     layer put it in the middle of the key. Icon layers have a **scale** (% of the key's width; the
     icon's box keeps its shape and centre) instead of width and height. Use it to put a PNG above a readout,
-    or make a clean text-only key when the library has no suitable PNG. "Remove custom face" goes
+    or make a clean text-only key when the library has no suitable PNG. "Remove face" goes
     back to the automatic look.
   - Preview value: type a value to see that look.
-  - Advanced: the key as JSON.
+  - JSON: the key as JSON.
   - An empty key shows **Add key** (and Paste when something is copied).
 - **Library** (top of the right column, beside the dock picture, so keys drag straight across;
   its list scrolls on its own): reusable keys and groups of keys, searchable, by category. It ships with every key

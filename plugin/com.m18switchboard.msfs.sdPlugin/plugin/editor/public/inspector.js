@@ -5,8 +5,11 @@
 
 // ---------- inspector ----------
 
+// note: shown as a tooltip on the label (dotted underline), not under the control: labels stay
+// short and the panel tidy (user, 2026-11-17).
 function field(label, control, note, help) {
-  return el('label', { class: 'field' }, el('span', {}, label, help ? info(help) : null), control, note ? el('span', {}) : null, note ? el('span', { class: 'muted' }, note) : null);
+  return el('label', { class: 'field' },
+    el('span', note ? { class: 'has-note', title: note } : {}, label, help ? info(help) : null), control);
 }
 
 // ⓘ next to a label: the help text on hover, or pinned open by a click (user, 2026-10-29). Texts
@@ -34,7 +37,7 @@ const HELP = {
   decor: 'For looks only: a label, an icon, a sublabel or a custom face, with no sim source and nothing on press. '
     + 'Use it for panel titles, separators or artwork. It saves once it shows something.',
   switchType: 'A control with positions you can see: toggles, rockers, latching push buttons, selectors (magnetos, '
-    + 'fuel). Give it a source to show its position, and its Positions (value, look, sublabel): "Fill from the SDK" or '
+    + 'fuel). Give it a source to show its position, and its Positions (value, status bar, sublabel): "Fill from SDK" or '
     + '"Learn positions" finds them. It saves once it does something when pressed.',
   buttonType: 'Something you push: panel buttons, softkeys, or a press that turns a selector one way (◀ MAG). '
     + 'A tap and a hold can do different things, and a hold can repeat. A source is optional (to show a state). '
@@ -47,7 +50,7 @@ const HELP = {
     + 'if none is met, "otherwise". E.g. APR: step 1 green LOC when APPROACH CAPTURED is 1, step 2 white ARM when '
     + 'APPROACH HOLD is 1, otherwise clear. A step can have several conditions ("or"), each with its own source.',
   positions: 'One row per sim value: the status bar (green, white, red, clear, or — for none, when the sublabel takes the bar\'s place as the status; "as Other values" follows the Other values setting), sublabel, the text shown instead of the number, or an icon that '
-    + 'replaces the whole key. Leave a cell empty for the default. "Fill from the SDK" uses the values the SDK lists '
+    + 'replaces the whole key. Leave a cell empty for the default. "Fill from SDK" uses the values the SDK lists '
     + 'for a simvar; "Learn positions" records the values while you move the control in the cockpit.',
   sendScale: 'Some controls are set in other units than they report. The DA62\'s panel light reads 0-100 but is set '
     + '0-1: with Sends × 0.01, a step of 10 from 50 sends 0.6. Steps, minimum, maximum and the value on the key stay in '
@@ -137,12 +140,12 @@ function renderInspector() {
     const g = selectionGroup() || [];
     const sources = sourcesIn(g);
     box.append(el('h3', {}, `${sel.length} keys selected`),
-      el('p', { class: 'muted' }, 'Copy (Ctrl+C), delete, or save them to the library as a group.'),
+      el('p', { class: 'muted' }, 'Copy, delete, or save as a group.'),
       el('button', { on: { click: saveToLibrary } }, 'Save to library'));
     if (sources.length) {
       let from = sources[0];
       let to = '';
-      box.append(el('h4', {}, 'Change the source of these keys'),
+      box.append(el('h4', {}, 'Change source'),
         field('Replace', select_(sources.map(s => [s, s]), from, v => { from = v; })),
         field('With', input('', v => { to = v; }, { list: 'inputList', placeholder: 'input event or simvar' })),
         el('button', { on: { click: () => {
@@ -161,7 +164,7 @@ function renderInspector() {
         el('button', { class: 'primary', on: { click: () => { keys()[slot] = S.page === KP ? { type: 'keypad', role: 'digit', digit: '1' } : { type: 'button', label: 'NEW', press: prefillPress('button') }; changed(); renderInspector(); } } }, 'Add key'),
         S.clipboard ? el('button', { on: { click: paste } }, 'Paste') : null,
         // A key deleted since the last save comes back with Revert changes.
-        savedKey(slot) ? el('button', { title: 'Bring back the key saved here', on: { click: () => revertKey(slot) } }, 'Revert changes') : null));
+        savedKey(slot) ? el('button', { title: 'Bring back the key saved here', on: { click: () => revertKey(slot) } }, 'Revert') : null));
     return;
   }
 

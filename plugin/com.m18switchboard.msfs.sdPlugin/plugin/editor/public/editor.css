@@ -201,3 +201,7 @@ table.value-table select, table.value-table input { width: 100%; }
 #profileSettings .fallback-corner { justify-content: flex-end; font-size: 11px; color: var(--dim); margin: 6px 0 0; }
 #profileSettings #previewAnnouncement { align-self: flex-start; margin: 2px 0 8px; }
 #profileSettings [hidden] { display: none; }
+
+/* A field label with more to say: hover for it (field() notes, user 2026-11-17). */
+.has-note { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
+.has-note .info { text-decoration: none; }

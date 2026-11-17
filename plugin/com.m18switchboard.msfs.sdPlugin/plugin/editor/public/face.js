@@ -154,7 +154,7 @@ function faceDesigner(key, slot) {
   };
   const tabs = el('div', { class: 'face-tabs' },
     el('button', { class: faceTarget === 'default' ? 'active' : '', on: { click: () => { faceTarget = 'default'; faceLayer = 0; renderInspector(); } } },
-      key.face ? 'Default face' : 'Default (automatic)'),
+      key.face ? 'Default face' : 'Automatic'),
     logic ? [
       ...Object.keys(valueFaces).map(v => el('button', { class: faceTarget === v ? 'active' : '', on: { click: () => { faceTarget = v; faceLayer = 0; renderInspector(); } } }, `when ${stepName(v)}`)),
       ...[...key.logic.steps.map((s, i) => String(i)), 'otherwise'].filter(v => !valueFaces[v]).map(v => el('button', { title: `Design a separate face shown at ${stepName(v)}`, on: { click: () => addFace(v) } }, `+ face for ${stepName(v)}`)),
@@ -165,18 +165,17 @@ function faceDesigner(key, slot) {
       const v = prompt('Face for which sim value? (e.g. 0, 1, 3)', String(Object.keys(key.states || key.text || {})[0] ?? '0'));
       if (v === null || v.trim() === '') return;
       addFace(v.trim());
-    } } }, '+ face for a value'));
+    } } }, '+ Value face'));
   box.append(tabs);
 
   const face = faceTarget === 'default' ? key.face : valueFaces[faceTarget];
   if (!face) {
-    box.append(el('p', { class: 'muted' }, 'This key uses the automatic look. Design your own to place a library icon, live values, your own text and a state bar exactly where you want.'),
-      el('button', { on: { click: () => { key.face = defaultFace(key); faceLayer = 0; changed(); renderInspector(); } } }, 'Design a custom face'));
+    box.append(el('button', { title: 'Design the key yourself: icons, text, live values, bars, placed where you want', on: { click: () => { key.face = defaultFace(key); faceLayer = 0; changed(); renderInspector(); } } }, 'Custom face'));
     return box;
   }
-  if (faceTarget !== 'default') box.append(el('p', { class: 'muted' }, logic ? `Shown at ${stepName(faceTarget)}.` : `Shown while the sim value is ${faceTarget}. The preview shows that value.`));
+  if (faceTarget !== 'default') box.append(el('p', { class: 'muted' }, logic ? `Shown at ${stepName(faceTarget)}.` : `Shown at value ${faceTarget}.`));
 
-  const preview = el('img', { class: 'face-preview', alt: 'face preview', draggable: 'false' });
+  const preview = el('img', { class: 'face-preview', alt: 'face preview', draggable: 'false', title: 'Drag to move the selected layer (key units 0-144; text and values are placed by their centre)' });
   // Only the newest request may update the picture: answers can arrive out of order while a
   // colour or position is being dragged.
   let seq = 0;
@@ -209,7 +208,6 @@ function faceDesigner(key, slot) {
   preview.addEventListener('pointerup', () => { if (drag) { drag = null; changed(); renderInspector(); } });
 
   box.append(el('div', { class: 'face-top' }, preview, el('div', {},
-    el('p', { class: 'muted' }, 'Drag on the picture to move the selected layer. Positions are in key units (0-144); text and values are centred on x, y.'),
     field('Background', el('input', { type: 'color', value: face.background || '#000000', on: { input: e => { face.background = e.target.value; update(); } } })),
     el('div', { class: 'inline' }, ...Object.keys(NEW_LAYER).map(k => el('button', { on: { click: () => {
       face.layers.push(NEW_LAYER[k]());
@@ -315,7 +313,7 @@ function faceDesigner(key, slot) {
       faceTarget = 'default';
     }
     changed(); renderInspector();
-  } } }, faceTarget === 'default' ? 'Remove custom face' : `Remove face for ${logic ? stepName(faceTarget) : `value ${faceTarget}`}`));
+  } } }, faceTarget === 'default' ? 'Remove face' : `Remove face for ${logic ? stepName(faceTarget) : `value ${faceTarget}`}`));
   refresh();
   return box;
 }

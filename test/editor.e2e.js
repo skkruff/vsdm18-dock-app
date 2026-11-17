@@ -128,7 +128,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     // Face designer: QNH readout gets a custom face with an extra text layer, moved by dragging.
     await page.click(slot(3));
-    await page.click('#inspector button:has-text("Design a custom face")');
+    await page.click('#inspector button:has-text("Custom face")');
     await page.click('#inspector button:has-text("+ Text")');
     await page.fill('#inspector .layer.active textarea', 'BARO');
     await page.locator('.face-preview').scrollIntoViewIfNeeded();
@@ -203,7 +203,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     // A face for one value: the BAT switch dragged in earlier gets its own look when on.
     await page.click(slot(14));
     page.prompts = ['1'];
-    await page.click('#inspector button:has-text("+ face for a value")');
+    await page.click('#inspector button:has-text("+ Value face")');
     await page.click('#inspector button:has-text("+ Text")');
     await page.fill('#inspector .layer.active textarea', 'BATT ON');
     // Its bar layer set to always show white.
@@ -319,17 +319,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), 8);
     await page.waitForFunction(s => /ffffff/i.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), 8);
     // With a custom face the sublabel needs a Sublabel layer; the editor offers to add it.
-    await page.click('#inspector button:has-text("Design a custom face")');
+    await page.click('#inspector button:has-text("Custom face")');
     await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), 8);
     await page.evaluate(s => { const f = S.profile.pages[S.page].keys[s].face; f.layers = f.layers.filter(L => L.kind !== 'sublabel'); renderInspector(); renderGrid(); }, 8);
     await page.waitForFunction(s => !/aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), 8);
-    await page.click('#inspector button:has-text("Add it to the face")');
+    await page.click('#inspector button:has-text("Add sublabel layer")');
     await page.waitForFunction(s => /aria-label="ARM"/.test(decodeURIComponent(document.querySelector(`.slot[data-slot="${s}"] img`).src)), 8);
     // The ⓘ pins its explanation open on click.
     await page.click('#inspector .info[data-help="logic"]');
     assert.ok(await page.isVisible('#inspector .info.open .info-text'));
     // The old switch settings are listed as unused, and go at save.
-    assert.ok(await page.isVisible('#inspector p:has-text("removed when you save")'));
+    assert.ok(await page.isVisible('#inspector p:has-text("Removed on save")'));
     await save();
     const ar = file().pages[1].keys['8'];
     assert.strictEqual(ar.type, 'readout');
@@ -365,8 +365,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.waitForSelector('.status.bad:has-text("needs the event")');
     await page.fill(`${fld('press', 'Event')} input`, 'AP_APR_HOLD');
     // Tap / hold: a tap sends the event, a hold sends a list of two, after 600 ms.
-    await page.check(`${fld('press', 'Something else when held')} input`);
-    await page.fill(`${fld('press', 'Hold for, ms')} input`, '600');
+    await page.check(`${fld('press', 'Hold action')} input`);
+    await page.fill(`${fld('press', 'Hold time (ms)')} input`, '600');
     await page.fill(`${sec('press')} .action-list >> nth=1 >> .field:has(> span:text-is("Event")) input`, 'AP_MASTER');
     await page.click(`${sec('press')} .action-list >> nth=1 >> button:has-text("+ then")`);
     await page.fill(`${sec('press')} .action-list >> nth=1 >> .action-item >> nth=1 >> .field:has(> span:text-is("Event")) input`, 'AP_PANEL_HEADING_HOLD');
@@ -406,7 +406,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.selectOption(`${fld('info', 'Source')} select`, 'var');
     await page.fill(`${sec('info')} input[placeholder^="e.g. NAV"]`, 'TRANSPONDER STATE:1');
     await page.keyboard.press('Tab');
-    await page.click(`${sec('look')} button:has-text("Fill from the SDK")`);
+    await page.click(`${sec('look')} button:has-text("Fill from SDK")`);
     await page.waitForFunction(() => [...document.querySelectorAll('#inspector table.value-table input')].some(i => /STANDBY/i.test(i.value)), null, { timeout: 5000 });
     await save();
     const xp = file().pages[1].keys['8'];
@@ -439,8 +439,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await save();
     // Level bar on a rotary (user, 2026-11-03): an On the key option; the state bar steps aside.
     await page.check(`${fld('look', 'Level bar')} input`);
-    await page.waitForSelector(`${sec('look')} .dim-note:has-text("the level bar takes its place")`);
-    await page.fill(`${fld('preview', 'Preview value')} input`, '50');
+    await page.waitForSelector(`${sec('look')} .dim-note:has-text("Replaced by the level bar")`);
+    await page.fill(`${fld('preview', 'Preview')} input`, '50');
     await page.waitForFunction(() => /<path d="M[^"]+" fill="[^"]+"\/>/.test(decodeURIComponent(document.querySelector('.slot[data-slot="0"] img').src)));
     await save();
     assert.strictEqual(file().pages[file().pages.length - 1].keys['0'].levelBar, true);
@@ -453,7 +453,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.strictEqual(await page.inputValue(`${fld('look', 'Label')} textarea`), 'NEW', 'label back');
     assert.ok(await page.isChecked(`${fld('look', 'Level bar')} input`), 'level bar back');
     assert.ok(!(await page.isVisible('#dirty')), 'nothing left unsaved');
-    await page.click('#inspector button:has-text("Design a custom face")');
+    await page.click('#inspector button:has-text("Custom face")');
     assert.ok(await page.isVisible('#inspector .layer:has-text("Separator")'), 'the custom face starts with the separator');
     // Level bar (user, 2026-11-03): upright, filling from the bottom, yellow below 25.
     await page.click('#inspector button:has-text("+ Level bar")');
@@ -488,7 +488,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click(slot(3));
     await page.click('#inspector button:has-text("Add key")');
     await page.selectOption(`${fld('press', 'Action')} select`, 'timer');
-    await page.check(`${fld('press', 'Something else when held')} input`);
+    await page.check(`${fld('press', 'Hold action')} input`);
     await page.selectOption(`${sec('press')} .action-list >> nth=1 >> .field:has(> span:text-is("Action")) select`, 'timer');
     await page.selectOption(`${sec('press')} .action-list >> nth=1 >> .field:has(> span:text-is("Does")) select`, 'reset');
     // Sim paused (user, 2026-11-01): a switch that is green while the sim is paused.
@@ -513,18 +513,18 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.fill('#inspector input[placeholder="e.g. NAV ACTIVE FREQUENCY:1"]', 'TRANSPONDER CODE:1');
     await page.selectOption(`${fld('press', 'Action')} select`, 'keypad');
     assert.strictEqual(await page.inputValue('#inspector .field:has-text("Keypad for") select'), 'xpdr');
-    await page.click('#inspector button:has-text("Show the keypad on the dock picture")');
+    await page.click('#inspector button:has-text("Preview keypad")');
     await page.waitForFunction(() => /aria-label="CANCEL"/.test(decodeURIComponent(document.querySelector('.slot[data-slot="0"] img').src)));
     // The preset's pathway is shown and can be changed (user, 2026-10-30), tried, and put back.
     assert.strictEqual(await page.inputValue('#inspector .field:has(> span:text-is("Event")) input'), 'XPNDR_SET');
     await page.fill('#inspector .field:has(> span:text-is("Event")) input', 'XPNDR_SET_ALT');
     await page.keyboard.press('Tab');
-    await page.waitForSelector('#inspector h4:has-text("changed from the preset")');
+    await page.waitForSelector('#inspector h4:has-text("(changed)")');
     await page.fill('#inspector .field:has-text("Try it") input', '7700');
     await page.click('#inspector .field:has-text("Try it") button');
     await page.waitForSelector('#inspector .test-out:has-text("sent 30464 to XPNDR_SET_ALT")');
     assert.deepStrictEqual(h.sim.sent.pop(), { event: 'XPNDR_SET_ALT', value: 0x7700 }, 'BCD, through the new event');
-    await page.click('#inspector button:has-text("Back to the preset")');
+    await page.click('#inspector button:has-text("Reset to preset")');
     assert.strictEqual(await page.inputValue('#inspector .field:has(> span:text-is("Event")) input'), 'XPNDR_SET');
     // Your own keypad: e.g. an autopilot altitude, 5 digits, sent with AP_ALT_VAR_SET_ENGLISH.
     await page.selectOption('#inspector .field:has-text("Keypad for") select', '');

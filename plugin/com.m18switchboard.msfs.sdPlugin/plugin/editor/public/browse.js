@@ -36,7 +36,7 @@ async function browse(what, onPick) {
       const r = await api('GET', '/api/input-values');
       if (!r.connected) { list.innerHTML = ''; list.append(el('p', { class: 'muted' }, 'MSFS is not connected.')); return; }
       rows = r.inputs.map(i => ({ name: i.name, detail: i.value === null ? '' : `now ${i.value}`, search: i.name }));
-      custom.append(el('p', { class: 'muted' }, `${rows.length} input events in ${r.aircraft || 'this aircraft'}. Values are as of opening this list; reopen to refresh, or use Learn.`));
+      custom.append(el('p', { class: 'muted' }, `${rows.length} input events in ${r.aircraft || 'this aircraft'} (values as of opening)`));
     } else {
       browseCache[what] = browseCache[what] || await api('GET', `/api/catalog/${what}`);
       rows = browseCache[what].map(c => ({ ...c, detail: `${c.desc}${c.unit ? ` · ${c.unit}` : ''}`, search: `${c.name} ${c.desc} ${c.cat}` }));
@@ -48,8 +48,8 @@ async function browse(what, onPick) {
         onPick({ name: name.value.trim().toUpperCase().replace(/^L:/, 'L:'), unit: unit ? unit.value : undefined });
       } } }, 'Use')),
       el('p', { class: 'muted' }, what === 'simvars'
-        ? `All ${rows.length} simvars of the MSFS 2024 SDK; ★ marks common ones, listed first. Use Test to check one gives a value in this aircraft. Third-party aircraft often use their own L:vars instead.`
-        : `All ${rows.length} key events of the MSFS 2024 SDK; ★ marks common ones, listed first. "Send" fires it in the sim right away, so you can see what it does.`));
+        ? `${rows.length} simvars (★ common)`
+        : `${rows.length} key events (★ common)`));
     }
   } catch (e) {
     list.innerHTML = '';

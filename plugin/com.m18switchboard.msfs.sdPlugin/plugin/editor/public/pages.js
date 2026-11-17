@@ -169,7 +169,7 @@ async function renderGrid() {
   const live = isLivePage();
   const values = {};
   for (const slot of Object.keys(k)) values[slot] = previewValueFor(k[slot], slot);
-  $('#liveNote').textContent = live ? 'Showing live values from the sim.' : '';
+  $('#liveNote').textContent = live ? 'Live from the sim' : '';
   const { images } = await api('POST', '/api/render', { keys: k, values, sources: previewSources() });
   if (seq !== renderSeq) return;
   showImages(images);

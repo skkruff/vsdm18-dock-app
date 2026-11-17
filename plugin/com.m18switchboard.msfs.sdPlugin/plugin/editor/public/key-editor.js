@@ -36,9 +36,9 @@ function dimmed(node, reason) {
 function covers(key) {
   const png = !!key.icon && !key.face;
   return {
-    label: png && key.type !== 'readout' && key.type !== 'rotary' ? 'Not shown: the PNG icon fills the key. A custom face can place text over it.'
-      : png ? 'Not shown: the icon takes the label\'s place above the value.' : '',
-    sublabel: png && key.type !== 'readout' && key.type !== 'rotary' ? 'Not shown: the PNG icon fills the key. A custom face can add a Sublabel layer.' : '',
+    label: png && key.type !== 'readout' && key.type !== 'rotary' ? 'Hidden by the icon'
+      : png ? 'Hidden by the icon' : '',
+    sublabel: png && key.type !== 'readout' && key.type !== 'rotary' ? 'Hidden by the icon' : '',
   };
 }
 
@@ -51,7 +51,7 @@ function renderKeyEditor(box, key, slot) {
   box.append(field('Type', select_(types, key.type, v => { setType(key, v); redraw(); }), null,
     key.type === 'keypad' ? 'keypadKey' : (KEY_TYPES[key.type] || {}).help));
   const unused = unusedFields(key);
-  if (unused.length) box.append(el('p', { class: 'muted' }, `Not used by this type, removed when you save: ${unused.join(', ')}.`));
+  if (unused.length) box.append(el('p', { class: 'muted' }, `Removed on save (unused): ${unused.join(', ')}`));
   if (key.type === 'keypad') return keypadKeyEditor(box, key, slot);
 
   if (key.type !== 'decor') box.append(section('info', 'Source', ...infoSection(key)));
@@ -137,7 +137,6 @@ function infoSection(key) {
     }
     if (r) delete r.hint;
   }, { allowNone: key.type !== 'readout' || !!key.logic }));
-  if (key.type !== 'readout' && !key.read) out.push(el('p', { class: 'muted' }, 'Optional: a source lets the key show the sim\'s state (a bar, a sublabel, a value).'));
   if (key.type === 'readout') {
     out.push(field('State logic', el('input', { type: 'checkbox', checked: key.logic ? true : null, on: { change: e => {
       if (e.target.checked) key.logic = { steps: [{ when: [{ read: key.read ? clone(key.read) : { var: '', unit: 'bool' } }], look: 'on' }], otherwise: { look: 'clear' } };
@@ -149,7 +148,7 @@ function infoSection(key) {
   // Sources used only by face layers live in the face designer; listed here so nothing is hidden.
   const layerSources = [key.face, ...Object.values(key.valueFaces || {}), ...Object.values(key.logicFaces || {})].filter(Boolean)
     .flatMap(f => f.layers || []).filter(L => L.read).map(L => L.read.input || L.read.var || (L.read.timer && `stopwatch ${L.read.timer}`) || (L.read.sim && 'sim paused')).filter(Boolean);
-  if (layerSources.length) out.push(el('p', { class: 'muted' }, `Also read by face layers (edit in Appearance → face): ${[...new Set(layerSources)].join(', ')}`));
+  if (layerSources.length) out.push(el('p', { class: 'muted' }, `Face layers also read: ${[...new Set(layerSources)].join(', ')}`));
   return out;
 }
 
@@ -219,13 +218,13 @@ function lookSection(key, slot) {
   const missing = facesOf(key).filter(f => !(f.layers || []).some(L => L.kind === 'sublabel'));
   if (missing.length && (key.sublabel || (key.sublabels && Object.keys(key.sublabels).length))) {
     out.push(el('p', { class: 'warn' }, 'This key has a custom face, which shows the sublabel only where it has a Sublabel layer. ',
-      el('button', { on: { click: () => { for (const f of missing) f.layers.push(NEW_LAYER.sublabel()); changed(); renderInspector(); } } }, 'Add it to the face')));
+      el('button', { on: { click: () => { for (const f of missing) f.layers.push(NEW_LAYER.sublabel()); changed(); renderInspector(); } } }, 'Add sublabel layer')));
   }
   // A separator on any type (user, 2026-11-03); readouts and rotaries have it with their other
   // switches below.
   if (key.type !== 'readout' && key.type !== 'rotary' && key.type !== 'keypad') {
-    const why = key.face ? 'Not used: this key has a custom face (add a Separator layer there).'
-      : key.icon ? 'Not shown: the PNG icon fills the key. A custom face can add a Separator layer.' : '';
+    const why = key.face ? 'Set in the custom face'
+      : key.icon ? 'Hidden by the icon' : '';
     out.push(el('h4', {}, 'On the key'), dimmed(field('Separator', el('input', { type: 'checkbox', checked: key.separator ? true : null, on: { change: e => {
       if (e.target.checked) key.separator = true; else delete key.separator;
       changed(); renderInspector();
@@ -233,7 +232,7 @@ function lookSection(key, slot) {
     out.push(borderTick(key));
   }
   if (key.type === 'keypad' || key.type === 'decor') {
-    out.push(el('h4', {}, 'Face (optional)'), faceDesigner(key, slot));
+    out.push(el('h4', {}, 'Face'), faceDesigner(key, slot));
     return out;
   }
 
@@ -251,37 +250,36 @@ function lookSection(key, slot) {
     // What the automatic look draws (user, 2026-11-03): its own section, apart from how the value
     // is written. A custom face has its own layers instead.
     const tick = (name, on, set, note) => field(name, el('input', { type: 'checkbox', checked: on ? true : null, on: { change: e => { set(e.target.checked); changed(); renderInspector(); } } }), note);
-    const faced = key.face ? 'Not used: this key has a custom face (add or remove its layers there).' : '';
+    const faced = key.face ? 'Set in the custom face' : '';
     out.push(el('h4', {}, 'On the key'));
     if (!key.logic) {
-      out.push(dimmed(tick('Show the value', !key.hideValue, v => { if (v) delete key.hideValue; else key.hideValue = true; }, 'The number (or its text per value)'), faced));
+      out.push(dimmed(tick('Show value', !key.hideValue, v => { if (v) delete key.hideValue; else key.hideValue = true; }, 'The number (or its text per value)'), faced));
       if (key.type === 'rotary') {
         const range = levelRangeOf(key);
         out.push(dimmed(tick('Level bar', key.levelBar, v => { if (v) key.levelBar = true; else delete key.levelBar; },
           `A bar filled by the value, from ${range.min} (empty) to ${range.max} (full): the step's minimum and maximum`), faced));
       }
       out.push(dimmed(tick('State bar', key.stateBar, v => { if (v) key.stateBar = true; else delete key.stateBar; }, 'A bar coloured per value by the status bar column above (green, white, red, clear, or none)'),
-        faced || (key.type === 'rotary' && key.levelBar ? 'Not shown: the level bar takes its place.' : '')));
+        faced || (key.type === 'rotary' && key.levelBar ? 'Replaced by the level bar' : '')));
     }
-    out.push(dimmed(tick('Separator', key.separator, v => { if (v) key.separator = true; else delete key.separator; }, 'A line under the label (its colour is in Key Appearance Defaults)'), faced && 'Not used: this key has a custom face (add a Separator layer there).'));
+    out.push(dimmed(tick('Separator', key.separator, v => { if (v) key.separator = true; else delete key.separator; }, 'A line under the label (its colour is in Key Appearance Defaults)'), faced && 'Set in the custom face'));
     out.push(borderTick(key));
     if (!key.logic) {
       out.push(el('h4', {}, 'Value'));
-      if (key.hideValue && !key.face) out.push(el('p', { class: 'muted' }, 'The value is hidden: these settings apply to faces that show it.'));
       out.push(field('Decimals', input(key.decimals, v => { if (v === '') delete key.decimals; else key.decimals = Number(v); changed(); }, { type: 'number', min: 0, max: 6 })));
-      out.push(field('Pad to digits', input(key.pad, v => { if (v === '') delete key.pad; else key.pad = Number(v); changed(); }, { type: 'number', min: 0, max: 8 }), 'e.g. 4 shows 7 as 0007'));
+      out.push(field('Pad', input(key.pad, v => { if (v === '') delete key.pad; else key.pad = Number(v); changed(); }, { type: 'number', min: 0, max: 8 }), 'e.g. 4 shows 7 as 0007'));
       out.push(field('Show as', select_([['', 'Number'], ['time', 'Time HH:MM (from seconds)'], ['duration', 'Stopwatch M:SS (from seconds)']], key.format || '', v => { if (v) key.format = v; else delete key.format; changed(); })));
       out.push(field('Unit before', input(key.prefix, v => { if (v) key.prefix = v; else delete key.prefix; changed(); }, { placeholder: 'e.g. QNH' }), null, 'units'));
       out.push(field('Unit after', input(key.suffix, v => { if (v) key.suffix = v; else delete key.suffix; changed(); }, { placeholder: 'e.g. %, RPM, FPM' })));
     }
   }
-  out.push(el('h4', {}, 'Face (optional)'), faceDesigner(key, slot));
+  out.push(el('h4', {}, 'Face'), faceDesigner(key, slot));
   return out;
 }
 
 // One row per sim value: look, sublabel, value text, icon (states, sublabels, text, valueIcons).
 const VALUE_MAPS = { look: 'states', sublabel: 'sublabels', text: 'text', icon: 'valueIcons' };
-const VALUE_COLS = { look: 'status bar', sublabel: 'sublabel', text: 'shows (instead of the number)', icon: 'icon (whole key)' };
+const VALUE_COLS = { look: 'status bar', sublabel: 'sublabel', text: 'text', icon: 'icon' };
 function valueTable(key, cols) {
   if (key.type === 'switch' && key.text && !key.sublabels) { key.sublabels = key.text; delete key.text; }
   const table = el('table', { class: 'map-table value-table' });
@@ -369,7 +367,7 @@ function fillValues(key) {
       const pairs = c ? enumValues(c.desc) : [];
       if (!pairs.length) { out.textContent = 'the SDK lists no values for it: use Learn positions'; return; }
       add(pairs.map(m => m[0]), Object.fromEntries(pairs));
-    } } }, 'Fill from the SDK'));
+    } } }, 'Fill from SDK'));
   }
   if (key.read && (key.read.input !== undefined || key.read.var !== undefined)) {
     let timer = null;
@@ -416,14 +414,14 @@ function pressSection(key) {
   const { tap, hold, holdMs } = now();
   out.push(el('h4', {}, hold !== undefined ? 'Tap' : 'Press'));
   out.push(actionList(key, tap, a => commit({ ...now(), tap: a }), { allowSpring: hold === undefined }));
-  out.push(field('Something else when held', el('input', { type: 'checkbox', checked: hold !== undefined ? true : null, on: { change: e => {
+  out.push(field('Hold action', el('input', { type: 'checkbox', checked: hold !== undefined ? true : null, on: { change: e => {
     const t = now().tap;
     if (e.target.checked) commit({ tap: Array.isArray(t) || !(t && typeof t.hold === 'number') ? t : undefined, hold: { event: '' } });
     else commit({ tap: t });
     renderInspector();
   } } }), hold !== undefined ? 'A tap acts when you let go before the hold time; a hold acts at the hold time' : 'Tap and hold do different things (e.g. tap toggles, hold resets)', 'tapHold'));
   if (hold !== undefined) {
-    out.push(field('Hold for, ms', input(holdMs, v => commit({ ...now(), holdMs: v === '' ? undefined : Number(v) }), { type: 'number', min: 20, placeholder: String(HOLD_MS) }), 'Longer guards a function better'));
+    out.push(field('Hold time (ms)', input(holdMs, v => commit({ ...now(), holdMs: v === '' ? undefined : Number(v) }), { type: 'number', min: 20, placeholder: String(HOLD_MS) }), 'Longer guards a function better'));
     out.push(el('h4', {}, 'Hold'));
     out.push(actionList(key, hold, a => commit({ ...now(), hold: a === undefined ? { event: '' } : a }), { repeat: true }));
   }
@@ -476,19 +474,19 @@ function actionEditor(key, a, set, { allowSpring = true, repeat = false } = {}) 
   if (!a) return box;
   const num = v => (v === '' ? undefined : Number(v));
   const setA = (k, v) => { if (v === undefined || Number.isNaN(v)) delete a[k]; else a[k] = v; changed(); };
-  if (kind === 'cycle') box.append(field('Values in order', input(a.cycle.join(', '), v => { a.cycle = v.split(',').map(s => Number(s.trim())).filter(n => !Number.isNaN(n)); changed(); }), 'e.g. 0, 1 toggles; the next value after the current one is set'));
+  if (kind === 'cycle') box.append(field('Values', input(a.cycle.join(', '), v => { a.cycle = v.split(',').map(s => Number(s.trim())).filter(n => !Number.isNaN(n)); changed(); }), 'e.g. 0, 1 toggles; the next value after the current one is set'));
   if (kind === 'step') {
     box.append(field('Step', input(a.step, v => setA('step', num(v)), { type: 'number' }), '1 = up, -1 = down'));
     box.append(field('Minimum', input(a.min, v => setA('min', num(v)), { type: 'number' })));
     box.append(field('Maximum', input(a.max, v => setA('max', num(v)), { type: 'number' })));
-    box.append(field('Wrap at the ends', el('input', { type: 'checkbox', checked: a.wrap ? true : null, on: { change: e => setA('wrap', e.target.checked || undefined) } }),
+    box.append(field('Wrap', el('input', { type: 'checkbox', checked: a.wrap ? true : null, on: { change: e => setA('wrap', e.target.checked || undefined) } }),
       'At the stop, go round to the other end (needs min and max); a repeating step turns back', 'wrap'));
   }
   if (kind === 'set') box.append(field('Value', input(a.set, v => setA('set', num(v)), { type: 'number' })));
   if (kind === 'spring') {
     box.append(field('While held', input(a.hold, v => setA('hold', num(v)), { type: 'number' })));
     box.append(field('On release', input(a.release, v => setA('release', num(v)), { type: 'number' })));
-    box.append(field('Repeat every ms', input(a.repeatMs, v => setA('repeatMs', num(v)), { type: 'number', min: 0 }), 'Re-sends while held, for positions the aircraft drops. Empty = once. G1000 softkeys need 130 ms or less to stay held; the C172 START works at 250.'));
+    box.append(field('Repeat (ms)', input(a.repeatMs, v => setA('repeatMs', num(v)), { type: 'number', min: 0 }), 'Re-sends while held, for positions the aircraft drops. Empty = once. G1000 softkeys need 130 ms or less to stay held; the C172 START works at 250.'));
   }
   if (kind === 'keys') box.append(...shortcutEditor(a, { allowHeld: allowSpring }));
   if (kind === 'keypad') box.append(...keypadEditor(a));
@@ -504,11 +502,11 @@ function actionEditor(key, a, set, { allowSpring = true, repeat = false } = {}) 
         try { await api('POST', '/api/send-event', { event: a.event, value: a.value }); status(`Sent ${a.event}`, 'good'); } catch (e) { status(e.message, 'bad'); }
       } } }, 'Send now'))));
     box.append(field('Value', input(a.value, v => setA('value', num(v)), { type: 'number' })));
-    box.append(field('Send 1/0 opposite of current', el('input', { type: 'checkbox', checked: a.toggleValue ? true : null, on: { change: e => setA('toggleValue', e.target.checked || undefined) } })));
+    box.append(field('Toggle 1/0', el('input', { type: 'checkbox', checked: a.toggleValue ? true : null, on: { change: e => setA('toggleValue', e.target.checked || undefined) } })));
   }
   if (['cycle', 'step', 'set', 'spring'].includes(kind)) box.append(...actsOn(key, a));
   if (repeat && kind !== 'spring' && kind !== 'keypad') {
-    box.append(field('Repeat while held', input(a.repeatMs, v => setA('repeatMs', num(v)), { type: 'number', min: 20, placeholder: 'once' }),
+    box.append(field('Repeat (ms)', input(a.repeatMs, v => setA('repeatMs', num(v)), { type: 'number', min: 20, placeholder: 'once' }),
       kind === 'step' ? 'Every this many ms: a repeating step ramps (a dimmer), counting from the value it last sent' : 'Every this many ms while you keep holding'));
   }
   return box;
@@ -562,8 +560,8 @@ function previewSection(key, slot) {
     const steps = key.logic.steps.map((s, i) => [`step ${i + 1}`, `step ${i + 1}${s.sublabel ? ` (${s.sublabel})` : ''}`]);
     return [field('Preview', select_([['', isLivePage() ? 'live from sim' : 'step 1 (default)'], ...steps, ['otherwise', 'otherwise']], S.previewValues[pvKey] || '', onChange))];
   }
-  if (key.type === 'decor') return [el('p', { class: 'muted' }, 'A decorative key looks the same whatever the sim does.')];
-  return [field('Preview value', input(S.previewValues[pvKey], onChange, { placeholder: isLivePage() ? 'live from sim' : `default: ${defaultPreview(key) ?? 'unknown'}` }),
+  if (key.type === 'decor') return [el('p', { class: 'muted' }, 'Always looks the same.')];
+  return [field('Preview', input(S.previewValues[pvKey], onChange, { placeholder: isLivePage() ? 'live from sim' : `default: ${defaultPreview(key) ?? 'unknown'}` }),
     'Try values to see each look. Empty = live value (when this page is on the dock) or a default.')];
 }
 
@@ -578,7 +576,7 @@ function keypadKeyEditor(box, key, slot) {
   if (key.role === 'digit') box.append(field('Digit', select_([...'1234567890'].map(d => [d, d]), String(key.digit ?? '1'), v => { key.digit = v; changed(); renderInspector(); })));
   // 9 is not a transponder digit: on keypads with a VFR code it becomes VFR (user, 2026-10-30).
   if (key.role === 'digit' && String(key.digit) === '9') {
-    box.append(field('VFR on transponders', el('input', { type: 'checkbox', checked: key.vfr === false ? null : true, on: { change: e => { if (e.target.checked) delete key.vfr; else key.vfr = false; changed(); } } }),
+    box.append(field('VFR key', el('input', { type: 'checkbox', checked: key.vfr === false ? null : true, on: { change: e => { if (e.target.checked) delete key.vfr; else key.vfr = false; changed(); } } }),
       'On keypads with a VFR code (the transponder), this key shows VFR and sets that code'));
   }
   box.append(section('look', 'Appearance', ...lookSection(key, slot)));
@@ -603,5 +601,5 @@ function borderTick(key) {
     if (e.target.checked) key.border = true; else delete key.border;
     changed(); renderInspector();
   } } }), 'An outline round the whole key (its colour is in Key Appearance Defaults; thickness: a Border layer in a custom face)'),
-  key.face ? 'Not used: this key has a custom face (add a Border layer there).' : '');
+  key.face ? 'Set in the custom face' : '');
 }

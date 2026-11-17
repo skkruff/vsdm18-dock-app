@@ -168,7 +168,6 @@ async function saveToLibrary() {
   };
   dlg.append(el('h3', {}, `Save ${g.length > 1 ? `a group of ${g.length} keys` : 'this key'} to the library`),
     field('Name', name), field('Category', cat), field('', newCat),
-    g.length > 1 ? el('p', { class: 'muted' }, 'Groups also appear under "Groups" automatically.') : null,
     el('div', { class: 'dialog-buttons' }, el('button', { on: { click: close } }, 'Cancel'), el('button', { class: 'primary', id: 'libSaveOk', on: { click: ok } }, 'Save')));
   dlg.addEventListener('keydown', e => { if (e.key === 'Enter') ok(); });
   document.body.append(dlg);

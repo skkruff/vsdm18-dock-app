@@ -36,8 +36,8 @@ function defaultFaceLayers(key) {
   // The label as the automatic look draws it (render.js): size 40 where it fits the space between
   // top and bottom (a capital is about 0.7 of the size; each further line adds 1.02).
   const n = String(label).split('\n').length;
-  const fit = h => Math.max(8, Math.min(40, Math.floor(h / (0.7 + (n - 1) * 1.02))));
-  const centred = (top, bottom) => ({ kind: 'text', text: label, x: 72, y: Math.round((top + bottom) / 2), size: fit(bottom - top) });
+  const fit = (h, max = 40) => Math.max(8, Math.min(max, Math.floor(h / (0.7 + (n - 1) * 1.02))));
+  const centred = (top, bottom, max) => ({ kind: 'text', text: label, x: 72, y: Math.round((top + bottom) / 2), size: fit(bottom - top, max) });
   const block = h => fit(h) * (0.7 + (n - 1) * 1.02);
   // With a separator: label, separator and sublabel stacked and centred (render.js stacked()).
   const stacked = (top, bottom) => {
@@ -53,7 +53,8 @@ function defaultFaceLayers(key) {
     return out;
   };
   const switchLabel = () => (key.separator ? stacked(10, barY - 8) : [centred(10, subl ? barY * 0.78 - 15 : barY - 10), sub()]);
-  const buttonLabel = () => (key.separator ? stacked(10, 134) : [centred(10, subl ? 90 : 134), sub(104)]);
+  // Nothing but the label: 65 where it fits (render.js LABEL_ONLY_SIZE).
+  const buttonLabel = () => (key.separator ? stacked(10, 134) : subl ? [centred(10, 90), sub(104)] : [centred(10, 134, 65), sub(104)]);
   const levelBar = key.type === 'rotary' && key.levelBar;
   if ((key.type === 'readout' || key.type === 'rotary') && !key.logic && (key.hideValue || key.stateBar || levelBar)) {
     // As the automatic look draws it with the value hidden and / or a state bar (or a rotary's

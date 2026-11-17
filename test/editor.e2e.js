@@ -237,12 +237,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     assert.strictEqual(file().pages[1].keys['9'].label, file().pages[1].keys['3'].label);
 
     // Empty slot: add a switch on a learned input event (key editor redesign, 2026-11-01: type,
-    // then the sections "gets its information from", "looks like", "when pressed").
+    // then the sections Source, Appearance, Function).
     const sec = n => `#inspector [data-section="${n}"]`;
     const fld = (n, label) => `${sec(n)} .field:has(> span:text-is("${label}"))`;
     await page.click(slot(8));
     await page.click('#inspector button:has-text("Add key")');
+    // Starting functions (user, 2026-11-17): a new key is a button holding a position while
+    // pressed; made a toggle, it cycles. Sections: Source, Appearance, Function.
+    assert.strictEqual(await page.inputValue(`${fld('press', 'Action')} select`), 'spring');
+    assert.deepStrictEqual(await page.$$eval('#inspector .key-section > summary', s => s.map(x => x.textContent)), ['Source', 'Appearance', 'Function', 'Preview']);
     await page.selectOption('#inspector select >> nth=0', 'switch');
+    assert.strictEqual(await page.inputValue(`${fld('press', 'Action')} select`), 'cycle', 'a toggle cycles');
     await page.selectOption(`${fld('info', 'Source')} select`, 'input');
     await page.click(`${sec('info')} button:text-is("Learn")`);
     await page.waitForFunction(() => /LIGHTING_TAXI_1/.test(document.querySelector('#inspector input[list="inputList"]').value), null, { timeout: 6000 });

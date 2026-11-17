@@ -238,6 +238,16 @@ const text = uri => decodeURIComponent(uri);
     assert.match(svg, /aria-label="40%"/, 'with the value');
     assert.ok(!/<path d="M[^"]+" fill="[^"]+"\/>/.test(text(engine.keyImage({ ...rot, levelBar: false }, 40))), 'off: no level bar');
   }
+  // Only a label: drawn at 65, shrinking only to fit (user, 2026-11-17).
+  {
+    const capOf = (svg, word) => { const ys = [...svg.split(`aria-label="${word}"`)[1].split('/>')[0].matchAll(/[MLQ ]([\d.]+) ([\d.]+)/g)].map(q => +q[2]); return Math.max(...ys) - Math.min(...ys); };
+    const big = text(engine.keyImage({ type: 'button', label: 'AP', press: { event: 'AP_MASTER' } }));
+    assert.ok(capOf(big, 'AP') > 40, `a short label alone is big (${capOf(big, 'AP')})`);
+    const withSub = text(engine.keyImage({ type: 'button', label: 'AP', sublabel: 'MASTER', press: { event: 'AP_MASTER' } }));
+    assert.ok(capOf(withSub, 'AP') < 30, 'with a sublabel it stays at 40');
+    const noBar = text(engine.keyImage({ type: 'switch', label: 'AP', read: { input: 'A' }, states: { 0: 'none' }, press: { cycle: [0, 1] } }, 0));
+    assert.ok(capOf(noBar, 'AP') > 40, 'a no-bar value with no sublabel leaves only the label');
+  }
   // Whole-key border (user, 2026-11-15): white on the automatic look; a Border layer in faces.
   {
     const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));

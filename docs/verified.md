@@ -47,6 +47,9 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-17, unit + editor tests: label-only keys at 65; sections renamed Source, Appearance,
+  Function; starting functions per type (button: hold a position; toggle: cycle 0, 1). Not yet
+  seen on the dock.
 - 2026-11-15, unit + editor tests, screenshots: whole-key border (tickbox on the automatic look,
   Border layer in faces). Not yet seen on the dock.
 - 2026-11-15, unit tests + screenshots: with no bar, the sublabel takes the bar's place as the

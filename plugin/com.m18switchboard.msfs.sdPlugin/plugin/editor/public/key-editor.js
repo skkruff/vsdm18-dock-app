@@ -54,23 +54,42 @@ function renderKeyEditor(box, key, slot) {
   if (unused.length) box.append(el('p', { class: 'muted' }, `Not used by this type, removed when you save: ${unused.join(', ')}.`));
   if (key.type === 'keypad') return keypadKeyEditor(box, key, slot);
 
-  if (key.type !== 'decor') box.append(section('info', 'Gets its information from', ...infoSection(key)));
-  box.append(section('look', 'Looks like', ...lookSection(key, slot)));
-  if (key.type !== 'decor') box.append(section('press', 'When pressed', ...pressSection(key)));
+  if (key.type !== 'decor') box.append(section('info', 'Source', ...infoSection(key)));
+  box.append(section('look', 'Appearance', ...lookSection(key, slot)));
+  if (key.type !== 'decor') box.append(section('press', 'Function', ...pressSection(key)));
   box.append(section('preview', 'Preview', ...previewSection(key, slot)));
   inspectorTail(box, key, slot);
 }
 
 // Changing type keeps everything until save (flip back and forth freely); it adds the new type's
 // starting settings where the key has none.
+// A starting Function per type (user, 2026-11-17): a toggle cycles, a button holds a position
+// while pressed (a momentary push), a rotary steps and ramps.
+const DEFAULT_PRESS = {
+  switch: () => ({ cycle: [0, 1] }),
+  button: () => ({ hold: 1, release: 0 }),
+  rotary: () => ({ tap: { step: 10, min: 0, max: 100, wrap: true }, hold: { step: 5, min: 0, max: 100, wrap: true, repeatMs: 100 } }),
+};
+// Presses the editor filled in itself. While one is still untouched (the same object, unchanged),
+// changing type swaps it for the new type's, or drops it for a readout or decorative key; a
+// press the user chose is never touched.
+const PREFILLED = new WeakSet();
+function prefillPress(type) {
+  const p = DEFAULT_PRESS[type] ? DEFAULT_PRESS[type]() : undefined;
+  if (p) PREFILLED.add(p);
+  return p;
+}
+const untouchedPress = p => !!p && PREFILLED.has(p) && Object.values(DEFAULT_PRESS).some(d => JSON.stringify(d()) === JSON.stringify(p));
+
 function setType(key, v) {
   key.type = v;
   if (v === 'keypad' && !key.role) { key.role = 'digit'; key.digit = '1'; }
   if (v === 'switch' && !key.states) key.states = { 0: 'off', 1: 'on' };
-  if (v === 'rotary') {
-    if (!key.press) key.press = { tap: { step: 10, min: 0, max: 100, wrap: true }, hold: { step: 5, min: 0, max: 100, wrap: true, repeatMs: 100 } };
-    if (key.suffix === undefined) key.suffix = '%';
+  if (!key.press || untouchedPress(key.press)) {
+    const p = prefillPress(v);
+    if (p) key.press = p; else delete key.press;
   }
+  if (v === 'rotary' && key.suffix === undefined) key.suffix = '%';
 }
 
 // Fields this type does not use; cleanUnused() removes them at save (user schema).
@@ -130,7 +149,7 @@ function infoSection(key) {
   // Sources used only by face layers live in the face designer; listed here so nothing is hidden.
   const layerSources = [key.face, ...Object.values(key.valueFaces || {}), ...Object.values(key.logicFaces || {})].filter(Boolean)
     .flatMap(f => f.layers || []).filter(L => L.read).map(L => L.read.input || L.read.var || (L.read.timer && `stopwatch ${L.read.timer}`) || (L.read.sim && 'sim paused')).filter(Boolean);
-  if (layerSources.length) out.push(el('p', { class: 'muted' }, `Also read by face layers (edit in Looks like → face): ${[...new Set(layerSources)].join(', ')}`));
+  if (layerSources.length) out.push(el('p', { class: 'muted' }, `Also read by face layers (edit in Appearance → face): ${[...new Set(layerSources)].join(', ')}`));
   return out;
 }
 
@@ -562,7 +581,7 @@ function keypadKeyEditor(box, key, slot) {
     box.append(field('VFR on transponders', el('input', { type: 'checkbox', checked: key.vfr === false ? null : true, on: { change: e => { if (e.target.checked) delete key.vfr; else key.vfr = false; changed(); } } }),
       'On keypads with a VFR code (the transponder), this key shows VFR and sets that code'));
   }
-  box.append(section('look', 'Looks like', ...lookSection(key, slot)));
+  box.append(section('look', 'Appearance', ...lookSection(key, slot)));
   inspectorTail(box, key, slot);
 }
 

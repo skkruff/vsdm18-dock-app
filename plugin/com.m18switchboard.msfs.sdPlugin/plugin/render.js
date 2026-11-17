@@ -132,6 +132,7 @@ function stacked(label, sublabel, top, bottom) {
   if (sublabel) body += lines(sublabel, y + 8 + (SUBLABEL_SIZE * 0.7) / 2, { size: SUBLABEL_SIZE, color: style.dim });
   return body;
 }
+const LABEL_ONLY_SIZE = 65; // a key showing nothing but its label (user, 2026-11-17)
 const LABEL_SIZE = 40; // automatic key labels, where they fit (user, 2026-11-03)
 function textFit(text, { size = 26, width = 130, height } = {}) {
   const ls = String(text).split('\n');
@@ -277,6 +278,7 @@ const tiles = {
     // No bar for this value (user, 2026-11-15): the sublabel takes the bar's place as the status,
     // centred where the bar would be and larger; the label keeps the space above.
     if (state === 'none') {
+      if (!sublabel && !separator) return tiles.button(label); // only the label left
       const b = style.bar;
       const top = 10, bottom = b.y - 8;
       const head = separator ? stacked(label, null, top, bottom)
@@ -292,6 +294,8 @@ const tiles = {
   },
   button(label, sublabel, separator) {
     if (separator) return svgUri(stacked(label, sublabel, 10, 134));
+    // Nothing but the label: it fills the key (user, 2026-11-17), shrinking only to fit.
+    if (!sublabel) return svgUri(lines(label, 72, { size: LABEL_ONLY_SIZE, width: 128, height: 124 }));
     const bottom = sublabel ? 90 : 134;
     return svgUri(lines(label, (10 + bottom) / 2, { size: LABEL_SIZE, width: 128, height: bottom - 10 }) +
       (sublabel ? lines(sublabel, 104, { size: SUBLABEL_SIZE, color: style.dim }) : ''));

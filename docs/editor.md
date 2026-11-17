@@ -19,7 +19,7 @@ never touches this folder: shipped profiles are copied in only when you don't ha
   text is drawn as shapes, so it looks the same in the editor and on the dock) and the colours of
   readouts, labels, sublabels, the state bar (on, off, armed) and the separator (the readout
   colour until set; ↺ goes back to it). Labels on automatic keys are drawn at size 40 where they
-  fit, smaller for two lines; sublabels at 25. Bar and readout colours are measured from your
+  fit, smaller for two lines, and at 65 when the label is all the key shows; sublabels at 25. Bar and readout colours are measured from your
   icons at start-up (`master_battery` on/off/clear, `set_altimeter`); ↺ goes back to the measured
   value. Bar size and corners are fixed (corner 9.5). Saved in `settings.json` next to the
   profiles folder.
@@ -39,7 +39,7 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     **Switch / toggle** (positions you can see; any number of them), **Button** (something you
     push), **Rotary** (a dimmer or knob over a range: tap steps, hold ramps), **Readout /
     annunciator** (shows the sim's value or a state), **Decorative** (looks only). Below it three
-    foldable sections: **Gets its information from**, **Looks like**, **When pressed**, then
+    foldable sections: **Source**, **Appearance**, **Function**, then
     Preview. Changing type keeps everything until you save (flip back and forth freely); settings
     the new type doesn't use are listed and removed at save. Choices another one covers are
     dimmed with the reason (e.g. the label under a PNG icon).
@@ -112,7 +112,9 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     "While held" keeps the keys down while the dock key is held; "Bring MSFS to the front" (on by
     default) makes sure the keys go to the sim. **Send now** tries it. Shortcuts the browser keeps
     (Ctrl+W, Ctrl+T, Ctrl+N) can't be recorded: type them.
-  - **When pressed**: toggle / cycle, step (min / max, wrap), set, hold a position while pressed
+  - **Function** (what a press does): a new key starts as a button that holds a position while
+    pressed; made a Toggle it starts with toggle / cycle 0, 1, a Rotary with step and ramp (only
+    while that starting press is untouched). Choices: toggle / cycle, step (min / max, wrap), set, hold a position while pressed
     (spring-loaded, with release value and repeat), a sim event, a keyboard shortcut, a keypad or
     a stopwatch control. **+ then** adds another action done after it (e.g. two softkeys).
     **Something else when held**: a tap and a hold do different things. A tap acts when you let

@@ -23,20 +23,21 @@
   <main>
     <section class="left">
       <details id="profileSettings">
-        <summary>Profile settings</summary>
-        <label>ID <input id="pId"></label>
+        <summary>Aircraft Profile</summary>
         <label>Name <input id="pName"></label>
+        <label>File ID <input id="pId"></label>
         <label>Announcement line 1 <input id="pBanner1" placeholder="e.g. C172"></label>
         <label>Announcement line 2 <input id="pBanner2" placeholder="e.g. G1000"></label>
-        <label class="row"><input type="checkbox" id="pFallback"> Fallback (used when no other profile matches)</label>
+        <button id="previewAnnouncement" title="Play the announcement on the dock, as when the aircraft loads">Play announcement on the dock</button>
         <fieldset id="matchFields">
-          <legend>Matches aircraft when any pattern fits (one per line)</legend>
+          <legend>Matches aircraft whose file path contains (one per line)</legend>
           <label>File path <textarea id="mPath" rows="2"></textarea></label>
-          <label>Title <textarea id="mTitle" rows="2"></textarea></label>
-          <label>ATC model <textarea id="mAtc" rows="1"></textarea></label>
-          <button id="fillMatch">Use the aircraft loaded now</button>
+          <!-- Title and ATC model: shown only for a profile that already matches on them. -->
+          <label id="mTitleRow">Title <textarea id="mTitle" rows="2"></textarea></label>
+          <label id="mAtcRow">ATC model <textarea id="mAtc" rows="1"></textarea></label>
+          <button id="fillMatch">Add the aircraft loaded now</button>
         </fieldset>
-        <button id="previewAnnouncement">Preview announcement</button>
+        <label class="row fallback-corner"><input type="checkbox" id="pFallback"> Fallback profile</label>
       </details>
 
       <details id="lookPanel">

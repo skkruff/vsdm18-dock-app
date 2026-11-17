@@ -196,3 +196,8 @@ table.value-table select, table.value-table input { width: 100%; }
 .level-bands > button.add-or { align-self: flex-start; }
 .layer-fields .centre-btns { align-self: flex-end; }
 .layer-fields .centre-btns button { font-size: 12px; padding: 3px 8px; }
+
+/* Aircraft Profile: the fallback choice tucked into the bottom right corner (user, 2026-11-17). */
+#profileSettings .fallback-corner { justify-content: flex-end; font-size: 11px; color: var(--dim); margin: 6px 0 0; }
+#profileSettings #previewAnnouncement { align-self: flex-start; margin: 2px 0 8px; }
+#profileSettings [hidden] { display: none; }

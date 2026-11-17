@@ -17,6 +17,10 @@ function renderSettings() {
   $('#mPath').value = (m.path || []).join('\n');
   $('#mTitle').value = (m.title || []).join('\n');
   $('#mAtc').value = (m.atcModel || []).join('\n');
+  // Matching by file path is enough (user, 2026-11-17): title and ATC model only show for a
+  // profile that already uses them, so they can be seen and cleared.
+  $('#mTitleRow').hidden = !(m.title || []).length;
+  $('#mAtcRow').hidden = !(m.atcModel || []).length;
 }
 
 function bindSettings() {
@@ -44,17 +48,26 @@ function bindSettings() {
   $('#fillMatch').addEventListener('click', () => {
     const a = S.sim.aircraft || {};
     if (!a.title) return status('No aircraft loaded in MSFS', 'bad');
-    // The aircraft's folder under SimObjects\Airplanes names it best.
+    // The aircraft's folder under SimObjects\Airplanes names it best. Added to the list, which keeps
+    // what is there (user, 2026-11-17: it used to replace everything).
     const m = /simobjects[\\/]+airplanes[\\/]+([^\\/]+)/i.exec(a.path || '');
-    $('#mPath').value = m ? m[1].toLowerCase() : '';
-    $('#mTitle').value = m ? '' : a.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (!m) return status('MSFS has not reported this aircraft\'s file path yet; try again in a moment', 'bad');
+    const folder = m[1].toLowerCase();
+    const now = lines($('#mPath').value);
+    if (now.some(x => x.toLowerCase() === folder)) return status(`Already matches "${folder}"`, 'good');
+    $('#mPath').value = [...now, folder].join('\n');
     upd();
-    status(m ? `Matches aircraft folder "${m[1]}"` : 'No file path known; matching the title instead');
+    status(`Added aircraft folder "${folder}"`, 'good');
   });
+  // On the dock itself, sliding as when the aircraft loads (user, 2026-11-17); the dock picture shows
+  // it too.
   $('#previewAnnouncement').addEventListener('click', async () => {
-    const { images } = await api('POST', '/api/render-announcement', S.profile);
-    showImages(images);
-    setTimeout(renderGrid, 3000);
+    try {
+      const { ms } = await api('POST', '/api/announce', S.profile);
+      const { images } = await api('POST', '/api/render-announcement', S.profile);
+      showImages(images);
+      setTimeout(renderGrid, ms || 2500);
+    } catch (e) { status(`No announcement: ${e.message}`, 'bad'); }
   });
 }
 

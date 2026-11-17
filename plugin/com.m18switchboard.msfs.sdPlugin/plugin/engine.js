@@ -358,6 +358,17 @@ class ProfileEngine {
     return values;
   }
 
+  // Plays a profile's announcement on the dock, sliding as when its aircraft loads (editor, user
+  // 2026-11-17). A status screen (not connected, loading) sways again afterwards.
+  previewAnnouncement(profile) {
+    const scene = this._aircraftScene(profile);
+    this._showScene(scene, this.announceAircraftMs);
+    clearTimeout(this.announceResume);
+    this.announceResume = setTimeout(() => { if (!this.scene && this.status !== 'ready') this._sway(); }, this.announceAircraftMs + 50);
+    if (this.announceResume.unref) this.announceResume.unref();
+    this.log('announcement preview', { profile: profile.id });
+  }
+
   // The 15 images of the announcement shown when this profile's aircraft loads.
   aircraftSceneImages(profile) {
     const scene = this._aircraftScene(profile);

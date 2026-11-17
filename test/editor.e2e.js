@@ -42,6 +42,28 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.waitForSelector('.tab.active .ondock', { timeout: 5000 }); // after the first status poll
     assert.match(await page.textContent('.tab.active'), /on dock/, 'the page on the dock is marked');
 
+    // Aircraft Profile (user, 2026-11-17): Name before File ID; matching by file path only (title and
+    // ATC model hidden unless used); adding the loaded aircraft keeps what is there; the
+    // announcement plays on the dock.
+    await page.click('#profileSettings summary');
+    assert.deepStrictEqual(await page.$$eval('#profileSettings > label', l => l.map(x => x.firstChild.textContent.trim())).then(a => a.slice(0, 2)), ['Name', 'File ID']);
+    assert.ok(!(await page.isVisible('#mTitle')) && !(await page.isVisible('#mAtc')), 'title and ATC model hidden');
+    await page.fill('#mPath', 'something_else');
+    await page.dispatchEvent('#mPath', 'input');
+    await page.click('#fillMatch');
+    const pathNow = (await page.inputValue('#mPath')).split('\n');
+    assert.strictEqual(pathNow[0], 'something_else', 'kept');
+    assert.ok(pathNow.length === 2 || /not reported/.test(await page.textContent('.status')), `added (${pathNow})`);
+    h.engine.announceAircraftMs = 600; // the harness makes announcements 1 ms long
+    await page.click('#previewAnnouncement');
+    await sleep(200);
+    assert.ok(h.engine.scene && h.engine.scene.rows, 'the announcement is on the dock');
+    h.engine.announceAircraftMs = 1;
+    await sleep(100);
+    await page.evaluate(() => openFile(S.file)); // drop the test edits (the confirm is accepted)
+    await page.click('#profileSettings summary');
+    await sleep(600); // let the announcement finish before pressing keys
+
     // Edit a label and save: the file changes and the engine reloads it.
     await page.click(slot(1));
     await page.fill('#inspector textarea', 'ALTERNATOR');

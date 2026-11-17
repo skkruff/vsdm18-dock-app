@@ -277,6 +277,7 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
       const { keypad, typed = '', now = '' } = await readBody(req);
       return { images: engine.keypadImages(keypad, typed, now) };
     }],
+    ['POST', /^\/api\/announce$/, async (m, req) => { engine.previewAnnouncement(await readBody(req)); return { ok: true, ms: engine.announceAircraftMs }; }],
     ['POST', /^\/api\/render-announcement$/, async (m, req) => ({ images: engine.aircraftSceneImages(await readBody(req)) })],
     // Live values of the page currently on the dock.
     ['GET', /^\/api\/live$/, () => ({

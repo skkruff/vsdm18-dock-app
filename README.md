@@ -44,7 +44,7 @@ In `Documents\MSFS Switchboard\`, never touched by an update:
 |---|---|
 | `profiles\*.json` | one profile per aircraft (shipped ones are copied in only when missing) |
 | `library.json` | the key library (shipped items refreshed on start, yours kept) |
-| `settings.json` | the Look: font and colours |
+| `settings.json` | Key Appearance Defaults: font and colours |
 | `keypad.json` | your keypad layout (absent: the built-in one) |
 | `dock-state.json` | stopwatches, so they survive restarts |
 

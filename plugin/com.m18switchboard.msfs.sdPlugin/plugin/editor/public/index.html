@@ -40,22 +40,29 @@
       </details>
 
       <details id="lookPanel">
-        <summary>Look: font and colours of drawn keys</summary>
-        <p class="muted">Applies to every key drawn by the plugin (not to your PNG icons). Bar and
-          readout colours are measured from your icons; change them here if you want. Bar size and
-          corners are fixed.</p>
-        <div class="look-grid">
-          <label>Font <select id="lookFont"></select></label>
-          <label>Readout values <span class="inline"><input type="color" id="lookReadout"> <button data-reset="readout" title="Back to the colour measured from your icons">↺</button></span></label>
-          <label>Labels <span class="inline"><input type="color" id="lookLabel"> <button data-reset="label">↺</button></span></label>
-          <label>Sublabel <span class="inline"><input type="color" id="lookDim"> <button data-reset="dim">↺</button></span></label>
-          <label>Bar on <span class="inline"><input type="color" id="lookOn"> <button data-reset="on">↺</button></span></label>
-          <label>Bar off <span class="inline"><input type="color" id="lookOff"> <button data-reset="off">↺</button></span></label>
-          <label>Bar armed <span class="inline"><input type="color" id="lookArmed"> <button data-reset="armed" title="Back to white">↺</button></span></label>
-          <label>Separator <span class="inline"><input type="color" id="lookSeparator"> <button data-reset="separator" title="Back to the readout colour">↺</button></span></label>
+        <summary>Key Appearance Defaults</summary>
+        <div class="look-groups">
+          <fieldset class="look-group">
+            <legend>Text</legend>
+            <label>Font <select id="lookFont"></select></label>
+            <label>Labels <span class="inline"><input type="color" id="lookLabel"> <button data-reset="label">↺</button></span></label>
+            <label>Sublabels <span class="inline"><input type="color" id="lookDim"> <button data-reset="dim">↺</button></span></label>
+            <label>Readout values <span class="inline"><input type="color" id="lookReadout"> <button data-reset="readout">↺</button></span></label>
+          </fieldset>
+          <fieldset class="look-group">
+            <legend>Bars</legend>
+            <label>On <span class="inline"><input type="color" id="lookOn"> <button data-reset="on">↺</button></span></label>
+            <label>Off <span class="inline"><input type="color" id="lookOff"> <button data-reset="off">↺</button></span></label>
+            <label>Armed <span class="inline"><input type="color" id="lookArmed"> <button data-reset="armed">↺</button></span></label>
+          </fieldset>
+          <fieldset class="look-group">
+            <legend>Elements</legend>
+            <label>Separator <span class="inline"><input type="color" id="lookSeparator"> <button data-reset="separator">↺</button></span></label>
+            <label>Key border <span class="inline"><input type="color" id="lookBorder"> <button data-reset="border">↺</button></span></label>
+          </fieldset>
         </div>
+        <div class="look-preview-title">Preview</div>
         <div id="lookSamples" class="look-samples"></div>
-        <p id="lookMeasured" class="muted"></p>
       </details>
 
       <div class="pages">

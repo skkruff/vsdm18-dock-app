@@ -31,6 +31,7 @@ const DEFAULT_STYLE = {
   off: '#f0204c',
   armed: '#ffffff', // armable keys: mode armed, not yet active (G1000 shows armed modes in white)
   clearStroke: '#8a8f98',
+  border: '#ffffff', // whole-key border (Key Appearance Defaults, user 2026-11-17)
   clearWidth: 3,
   // Measured from the user's master_battery icons (2026-10-28), corner set by the user. Fixed
   // rather than re-measured at start-up: the style is settled (user, 2026-10-28).
@@ -63,7 +64,8 @@ function esc(s) {
 // viewBox lets one large drawing be cut into per-key pieces (see tiles.scene).
 // A whole-key border (user, 2026-11-15), like the keypad keys': its outer edge 4.5 in from the
 // key's edge, thickness w, corner r on the outside.
-function borderRect({ w = 3, color = '#ffffff', r = 14 } = {}) {
+function borderRect({ w = 3, color, r = 14 } = {}) {
+  color = color || style.border || '#ffffff'; // Key Appearance Defaults' key border colour
   const t = Math.max(0.5, Number(w) || 3);
   const x = 4.5 + t / 2;
   return `<rect x="${x}" y="${x}" width="${144 - 2 * x}" height="${144 - 2 * x}" rx="${Math.max(0, (Number(r) || 0) - t / 2)}" fill="none" stroke="${esc(color)}" stroke-width="${t}"/>`;
@@ -424,7 +426,7 @@ const tiles = {
       } else if (L.kind === 'rect') {
         body += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${num(L.r, 0)}" fill="${esc(L.color || '#333333')}"/>`;
       } else if (L.kind === 'border') {
-        body += borderRect({ w: num(L.w, 3), color: L.color || '#ffffff', r: num(L.r, 14) });
+        body += borderRect({ w: num(L.w, 3), color: L.color, r: num(L.r, 14) });
       } else if (L.kind === 'level') {
         body += level(L, ctx.numberFor ? ctx.numberFor(L) : undefined, { x, y, w, h, r: num(L.r, style.bar.r) });
       }

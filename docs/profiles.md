@@ -78,8 +78,8 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
 - **hideValue**, **stateBar** (readout, rotary; user 2026-11-03): the automatic look without the
   number (`"hideValue": true`), and / or with a state bar coloured by `states` / `otherwise` like a
   switch's (`"stateBar": true`). A custom face ignores them (it has its own layers).
-- **border** (any type but keypad; user 2026-11-15): `true` draws a white outline round the whole
-  key on the automatic look. A custom face uses a Border layer instead.
+- **border** (any type but keypad; user 2026-11-15): `true` draws an outline round the whole key on the
+  automatic look, in Key Appearance Defaults' key border colour (white unless changed). A custom face uses a Border layer instead.
 - **separator** (any type; user 2026-11-03): `true` draws a line under the label (64 x 7, corner 3.5, in the Look's
   separator colour, which is the readout colour until set).
 - **valueIcons** (any type): sim value to a library icon name shown as the whole key, e.g.
@@ -112,7 +112,7 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
     x, y (defaults 72, 56, 64 x 7, corner 3.5, readout colour).
   - `{ "kind": "rect", "x", "y", "w", "h", "r", "color" }`: a filled box.
   - `{ "kind": "border", "w", "color", "r" }`: an outline round the whole key (thickness `w`,
-    default 3; colour, default white; corner `r`, default 14).
+    default 3; colour, default the key border colour; corner `r`, default 14).
   - `{ "kind": "level", "x", "y", "w", "h", "r", "dir", "min", "max", "color", "track", "bands", "read" }`:
     a level bar (user, 2026-11-03), an outline filled in proportion to the value between `min`
     (empty, default 0) and `max` (full, default 100). `dir`: `right` (fills from the left, the
@@ -121,7 +121,7 @@ library base name, see `icon-index.md`; optional), `read`, `press`.
     "#ff3b3b" }, { "above": 90, "color": … }]`; the tightest band the value is in sets the fill.
     Without `read` it shows the key's value; with `read`, its own source (e.g. a fuel quantity on a
     fuel pump key). Position defaults to the standard bar; an unknown value shows the outline only.
-  Layers without a `color` follow the global look (editor Look panel). A text-only key with no
+  Layers without a `color` follow Key Appearance Defaults (editor). A text-only key with no
   sim source is a `button` with a face.
 
 ## Sources (`read`)

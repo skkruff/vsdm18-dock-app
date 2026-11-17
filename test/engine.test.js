@@ -257,6 +257,14 @@ const text = uri => decodeURIComponent(uri);
     assert.strictEqual(border(text(engine.keyImage({ ...sw, border: true }, 1))), 1, 'switch');
     assert.strictEqual(border(text(engine.keyImage({ type: 'readout', label: 'QNH', read: { var: 'K', unit: 'millibars' }, border: true }, 1013))), 1, 'readout');
     assert.strictEqual(border(text(engine.keyImage({ type: 'decor', label: 'LIGHTS', border: true }))), 1, 'decorative');
+    // Its colour comes from Key Appearance Defaults (user, 2026-11-17); faces' layers follow it unless set.
+    {
+      const R = require(path.join(pluginDir, 'plugin', 'render'));
+      R.setStyle({ border: '#123456' });
+      assert.match(text(engine.keyImage({ ...sw, border: true }, 1)), /stroke="#123456" stroke-width="3"/);
+      assert.match(text(engine.keyImage({ ...sw, face: { layers: [{ kind: 'border' }] } }, 1)), /stroke="#123456"/);
+      R.setStyle({ border: R.DEFAULT_STYLE.border });
+    }
     const png = text(require(path.join(pluginDir, 'plugin', 'render')).tiles.withBorder('data:image/png;base64,iVBORw0KGgo='));
     assert.ok(/<image href="data:image\/png;base64,iVBORw0KGgo="/.test(png) && border(png) === 1, 'a library icon (PNG) is placed under the border');
     // A face draws its own: the box does not add a second one.

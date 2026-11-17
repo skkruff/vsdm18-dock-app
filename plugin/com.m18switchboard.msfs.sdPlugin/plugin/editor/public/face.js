@@ -6,7 +6,7 @@
 // ---------- face designer ----------
 
 // Default colours shown in the colour pickers; layers without their own colour follow the global
-// look (Look panel), so changing it there restyles every key.
+// look (Key Appearance Defaults), so changing it there restyles every key.
 const COLORS = () => ({ label: lookValue('label', '#ffffff'), value: lookValue('readout', '#4fc3f7') });
 
 // A starting face that looks like the key's automatic look, ready to adjust.
@@ -108,7 +108,7 @@ const NEW_LAYER = {
   separator: () => ({ kind: 'separator', x: 72, y: 56 }),
   rect: () => ({ kind: 'rect', x: 0, y: 0, w: 144, h: 40, color: '#1e2a3a' }),
   level: () => ({ kind: 'level', dir: 'right', min: 0, max: 100 }),
-  border: () => ({ kind: 'border', w: 3, color: '#ffffff', r: 14 }),
+  border: () => ({ kind: 'border', w: 3, r: 14 }), // colour: the default's until set
 };
 const LAYER_NAMES = { icon: 'Icon', text: 'Text', value: 'Live value', sublabel: 'Sublabel', separator: 'Separator', bar: 'State bar', rect: 'Box', level: 'Level bar', border: 'Border' };
 const LEVEL_DIRS = [['right', '→ fills left to right'], ['left', '← fills right to left'], ['up', '↑ fills bottom to top'], ['down', '↓ fills top to bottom']];
@@ -276,7 +276,7 @@ function faceDesigner(key, slot) {
     } else if (L.kind === 'level') {
       fields.push(levelFields(L, i, n, color, update));
     } else if (L.kind === 'border') {
-      fields.push(n('w', 'thickness', { min: 0.5, max: 20, step: 0.5, placeholder: 3 }), n('r', 'corner', { min: 0, max: 72, placeholder: 14 }), color('color', '#ffffff'),
+      fields.push(n('w', 'thickness', { min: 0.5, max: 20, step: 0.5, placeholder: 3 }), n('r', 'corner', { min: 0, max: 72, placeholder: 14 }), color('color', lookValue('border', '#ffffff')),
         el('span', { class: 'muted' }, 'Round the whole key; draw it last to keep it on top.'));
     }
     // One click puts the layer in the middle of the key, across or up and down (user, 2026-11-03).

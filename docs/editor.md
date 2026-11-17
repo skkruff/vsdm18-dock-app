@@ -15,14 +15,12 @@ never touches this folder: shipped profiles are copied in only when you don't ha
 - **Profile settings**: ID, name, the two announcement lines shown when the aircraft loads, and
   what the profile matches. "Use the aircraft loaded now" fills in the aircraft's folder name.
   "Preview announcement" shows it on the dock picture.
-- **Look**: the font of all drawn text (7 bundled condensed fonts, default Barlow Condensed Bold;
-  text is drawn as shapes, so it looks the same in the editor and on the dock) and the colours of
-  readouts, labels, sublabels, the state bar (on, off, armed) and the separator (the readout
-  colour until set; ↺ goes back to it). Labels on automatic keys are drawn at size 40 where they
-  fit, smaller for two lines, and at 65 when the label is all the key shows; sublabels at 25. Bar and readout colours are measured from your
-  icons at start-up (`master_battery` on/off/clear, `set_altimeter`); ↺ goes back to the measured
-  value. Bar size and corners are fixed (corner 9.5). Saved in `settings.json` next to the
-  profiles folder.
+- **Key Appearance Defaults**: the font and colours of every key the plugin draws (not PNG icons),
+  grouped as **Text** (font, labels, sublabels, readout values), **Bars** (on, off, armed) and
+  **Elements** (separator, key border), with a preview. Bar and readout colours start as measured
+  from your icons (`master_battery`, `set_altimeter`); ↺ goes back to the starting colour. Labels
+  are drawn at 40 where they fit (65 when the label is all a key shows), sublabels at 25. Saved in
+  `settings.json` next to the profiles folder.
 - **Pages**: tabs (the first is the main page; "● on dock" marks the page the dock shows), add,
   rename, reorder, delete, and "Show on dock". **Preview on dock** shows the profile being
   edited (saved or not) on the dock, with the preview values, cut off from the sim even when its

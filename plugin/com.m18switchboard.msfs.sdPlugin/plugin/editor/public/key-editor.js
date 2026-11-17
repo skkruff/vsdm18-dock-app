@@ -229,7 +229,7 @@ function lookSection(key, slot) {
     out.push(el('h4', {}, 'On the key'), dimmed(field('Separator', el('input', { type: 'checkbox', checked: key.separator ? true : null, on: { change: e => {
       if (e.target.checked) key.separator = true; else delete key.separator;
       changed(); renderInspector();
-    } } }), 'A line under the label (its colour is in the Look panel)'), why));
+    } } }), 'A line under the label (its colour is in Key Appearance Defaults)'), why));
     out.push(borderTick(key));
   }
   if (key.type === 'keypad' || key.type === 'decor') {
@@ -263,7 +263,7 @@ function lookSection(key, slot) {
       out.push(dimmed(tick('State bar', key.stateBar, v => { if (v) key.stateBar = true; else delete key.stateBar; }, 'A bar coloured per value by the status bar column above (green, white, red, clear, or none)'),
         faced || (key.type === 'rotary' && key.levelBar ? 'Not shown: the level bar takes its place.' : '')));
     }
-    out.push(dimmed(tick('Separator', key.separator, v => { if (v) key.separator = true; else delete key.separator; }, 'A line under the label (its colour is in the Look panel)'), faced && 'Not used: this key has a custom face (add a Separator layer there).'));
+    out.push(dimmed(tick('Separator', key.separator, v => { if (v) key.separator = true; else delete key.separator; }, 'A line under the label (its colour is in Key Appearance Defaults)'), faced && 'Not used: this key has a custom face (add a Separator layer there).'));
     out.push(borderTick(key));
     if (!key.logic) {
       out.push(el('h4', {}, 'Value'));
@@ -602,6 +602,6 @@ function borderTick(key) {
   return dimmed(field('Border', el('input', { type: 'checkbox', checked: key.border ? true : null, on: { change: e => {
     if (e.target.checked) key.border = true; else delete key.border;
     changed(); renderInspector();
-  } } }), 'A white outline round the whole key (thickness and colour: add a Border layer in a custom face)'),
+  } } }), 'An outline round the whole key (its colour is in Key Appearance Defaults; thickness: a Border layer in a custom face)'),
   key.face ? 'Not used: this key has a custom face (add a Border layer there).' : '');
 }

@@ -361,7 +361,7 @@ class ProfileEngine {
   // Plays a profile's announcement on the dock, sliding as when its aircraft loads (editor, user
   // 2026-11-17). A status screen (not connected, loading) sways again afterwards.
   previewAnnouncement(profile) {
-    const scene = this._aircraftScene(profile);
+    const scene = { ...this._aircraftScene(profile), editorPreview: true };
     this._showScene(scene, this.announceAircraftMs);
     clearTimeout(this.announceResume);
     this.announceResume = setTimeout(() => { if (!this.scene && this.status !== 'ready') this._sway(); }, this.announceAircraftMs + 50);
@@ -525,6 +525,9 @@ class ProfileEngine {
   }
 
   _image(slot) {
+    // An announcement played from the editor shows over everything while it plays, so it can be
+    // seen with the sim not running or a profile previewed (review 2026-11-17).
+    if (this.scene && this.scene.editorPreview) return tiles.scene({ ...this.scene, offset: this.slide }, slot);
     if (this.preview) return this._previewImage(slot);
     if (this.status === 'offline') return tiles.scene({ ...this._statusScene('offline'), offset: this.slide }, slot);
     if (this.scene) return tiles.scene({ ...this.scene, offset: this.slide }, slot);
@@ -544,11 +547,13 @@ class ProfileEngine {
   // The key's picture. key.border (user, 2026-11-15) outlines the automatic look; a custom face
   // has its own Border layer instead.
   keyImage(key, value, error, valueOf = () => undefined) {
+    this._drewFace = false; // set by _faceImage: was this picture a custom face?
     const uri = this._keyPicture(key, value, error, valueOf);
     const k = norm(key);
-    if (!k || !k.border || error || k.type === 'keypad') return uri;
-    const fromFace = k.logic ? !!(k.face || Object.keys(k.logicFaces || {}).length) : !!(lookup(k.valueFaces, value) || k.face);
-    return fromFace ? uri : tiles.withBorder(uri);
+    // Review 2026-11-17: decided by what was drawn, so a state-logic key with a face for one step
+    // keeps the automatic border on the others.
+    if (!k || !k.border || error || k.type === 'keypad' || this._drewFace) return uri;
+    return tiles.withBorder(uri);
   }
 
   _keyPicture(key, value, error, valueOf) {
@@ -586,6 +591,7 @@ class ProfileEngine {
   // / clear version on switches); a value layer shows the key's value (with the key's format unless
   // the layer has its own) or, with its own source, that source's value.
   _faceImage(key, face, { value, valueOf, state, sublabel, iconState }) {
+    this._drewFace = true;
     const iconFor = name => {
       const n = name || key.icon;
       const st = name ? null : iconState;

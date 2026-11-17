@@ -30,16 +30,16 @@ plugin log (`logs\` in the plugin folder).
    library (save, insert, drag a group: outlines show where it lands).
 10. The Keypad tab shows the layout; Preview on a keypad key's settings draws it on the picture.
 
-## Key editor redesign (2026-11-01), once
+## Not yet seen on the dock (once, then fold into the list above)
 
-11. Your profile opens with the C172's stopwatch as tap start / stop, hold stop and reset
-    (1000 ms), and the dimmers as Rotary keys (tap 25, hold 5 every 100 ms). On the dock they
-    behave as before. Save once: the file is written in the new form.
-12. An autopilot annunciator as a Readout with State logic (e.g. APR: step 1 green LOC on
-    approach captured / active, step 2 white ARM on approach armed, otherwise clear) follows the
-    G1000 when armed and captured.
-13. A key with a tap and a hold action: a quick press does the tap, holding past 400 ms the hold,
-    never both. Try another hold time.
-14. Preview on dock with the aircraft loaded: the dock shows the editor's page and preview
-    values, edits follow, the round buttons page, and nothing pressed changes the cockpit. Stop
-    preview: the dock shows the sim again.
+The editor work since 2026-11-03 passes the tests here and has been used in the editor to build
+several profiles, but these draw on, or reach, the dock itself:
+
+11. **Level bar**: a part-filled bar keeps its rounded ends (the fix for the fill showing square).
+12. **Border** (tickbox and face layer), **separator** on a switch or button, and a value set to
+    **— (no bar)** showing its sublabel large where the bar was.
+13. **Label sizes**: 40 where a label shares the key, 65 when it is all the key shows; sublabels 25.
+14. **Preview Announcement** plays on the dock, also with MSFS not running (then NOT CONNECTED
+    comes back).
+15. **Preview on dock**: the editor's page on the dock, cut off from the sim; Stop preview returns.
+16. **Pause / Break** as a keyboard shortcut reaches MSFS.

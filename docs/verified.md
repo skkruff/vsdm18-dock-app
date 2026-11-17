@@ -47,6 +47,17 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-17, code review of everything since 2026-10-30 (about 2,500 changed lines; all tests
+  also on Node 20.8.1; a spelling and doubled-word scan of code, editor text and docs found
+  nothing). Fixed: (1) an announcement played from the editor was hidden by the NOT CONNECTED
+  screen and by preview mode; it now shows over them while it plays (engine test). (2) A state-logic
+  key with a custom face for one step lost the automatic border on every step; the border now
+  follows what was drawn (engine test). (3) keys-helper.ps1 had its Windows line endings changed
+  by the Pause edit; restored (only the Pause lines differ from the version tested in flight).
+  Checked, no change needed: press handling (tap / hold, ramps, springs, swallowed presses),
+  level bar geometry, preview siloing, the editor's save rules, revert and prefill tracking, the
+  server's change protection. Still assumed: pause state unknown until the first change after
+  connecting; Pause key and the dock-side items in editor-test.md 11-16.
 - 2026-11-17, editor test + screenshots: library redesign (user): closed on load, faces A-Z under
   category / key type headings, details of the selection below (summary from the key, inline
   rename, category, notes, Insert, Delete); generated descriptions dropped from the shipped library.

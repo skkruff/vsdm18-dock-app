@@ -25,11 +25,15 @@ per keypad key.
 brief Phase 3 done, beyond it in features); it is now the shipped C172 profile (tests use
 `test/fixtures/profiles`). Code review done 2026-10-30 (see `verified.md`); README written.
 2026-11-01: **key editor redesign** to the user's schema (`docs/key-editor-schema.md`: types
-Switch / Button / Rotary / Readout / Decorative, tap / hold, readout state logic, preview mode)
-built and tested in the container (`plugin/migrate.js` converts old keys on read; editor in
-`editor/public/key-editor.js`); waiting for the user's dock test (`docs/editor-test.md` 11-14).
-Next: Phase 4 (second aircraft, using the new editor to find friction), Phase 4b (remaining
-polish, `docs/design-notes.md`), Phase 5.
+Switch / Button / Rotary / Readout / Decorative, tap / hold, readout state logic, preview mode;
+`plugin/migrate.js` converts old keys on read; editor in `editor/public/key-editor.js`).
+2026-11-03 to 11-17: editor polish while the user built default-aircraft profiles (DA62, XCub,
+Vixxen and others in their Documents folder, all working; the XCub VS selector wheel cannot be
+driven, `verified.md`): level bars, borders, no-bar values, sublabel / label sizes, Key Appearance
+Defaults, Aircraft Profile panel, library redesign, wording sweep. Review 2026-11-17 (`verified.md`).
+Dock-side items not yet seen: `docs/editor-test.md` 11-16.
+Next: third-party aircraft support (L: vars, observing K events; the user found VarDetect),
+then Phase 4b leftovers (`docs/design-notes.md`) and Phase 5 per `DESIGN_BRIEF.md`.
 
 ## Editor wording (user, 2026-11-17)
 

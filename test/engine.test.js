@@ -274,6 +274,26 @@ const text = uri => decodeURIComponent(uri);
     assert.match(f, /<rect x="7.5" y="7.5" width="129" height="129" rx="17" fill="none" stroke="#ff0000" stroke-width="6"\/>/, 'the layer\'s thickness, colour and corner');
     assert.doesNotThrow(() => validate({ id: 'b', fallback: true, pages: [{ keys: { 0: faced } }] }, 'b.json'));
   }
+  // Review 2026-11-17: a state-logic key with a face for one step keeps the border on the others.
+  {
+    const bordered = svg => /fill="none" stroke="#ffffff" stroke-width="3"\/>/.test(svg);
+    const lk = { type: 'readout', label: 'APR', border: true,
+      logic: { steps: [{ when: [{ read: { var: 'A', unit: 'bool' } }], look: 'on' }], otherwise: { look: 'clear' } },
+      logicFaces: { 0: { layers: [{ kind: 'text', text: 'LOC' }] } } };
+    assert.ok(!bordered(text(engine.keyImage(lk, 'step 1'))), 'the step with a face: its own layers');
+    assert.ok(bordered(text(engine.keyImage(lk, 'otherwise'))), 'the other step: automatic, with the border');
+  }
+  // Review 2026-11-17: an announcement played from the editor shows even with the sim not running.
+  {
+    const shown = [];
+    const simO = new FakeSim({});
+    const eO = new ProfileEngine({ redrawMs: 0, sim: simO, display: { image(s, img) { shown[s] = img; }, title() {}, alert() {} }, profiles: [], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 200, animateScenes: false });
+    eO.start(); // offline: NOT CONNECTED
+    eO.previewAnnouncement({ id: 'x', name: 'X', banner: ['CUB', 'XCUB'] });
+    assert.match(text(shown[2]), /aria-label="CUB"/, 'the announcement, over the offline screen');
+    await new Promise(r => setTimeout(r, 300));
+    assert.ok(!/aria-label="CUB"/.test(text(shown[2])), 'and the offline screen back after');
+  }
   // No status bar for a value (user, 2026-11-15): look 'none' draws no bar; the sublabel stays put.
   {
     const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));

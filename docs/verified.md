@@ -47,6 +47,13 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
 
 - 2026-10-27, sim: Phase 1 spike in MSFS 2024 with the C172 G1000 (log reviewed). Results in
   the table above and `aircraft/c172-controls.md`. Transponder code reads as plain decimal (1200).
+- 2026-11-25, user (sim, Aeroprakt Vixxen, third-party) with VarDetect: the START POWER switch
+  (flick up, drops back by itself after about 2.8 s; then START) is `L:SWITCH_STARTER_MOM`
+  (0 / 1); the aircraft sends K:SET_STARTER1_HELD 0 as it drops back. Writing the L: var from the
+  dock works (the engine starts with it at 1: first confirmed L: var write, via "Acts on:
+  Simvar"), but does not start the aircraft's countdown: that lives in the switch's click code,
+  which has no input event (`list STARTER` in sim:explore: only ELECTRICAL_STARTER_1, the START
+  button). User's choice: no timed approximation from our side.
 - 2026-11-17, code review of everything since 2026-10-30 (about 2,500 changed lines; all tests
   also on Node 20.8.1; a spelling and doubled-word scan of code, editor text and docs found
   nothing). Fixed: (1) an announcement played from the editor was hidden by the NOT CONNECTED

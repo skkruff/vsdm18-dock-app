@@ -27,7 +27,7 @@ class FakeHandle extends EventEmitter {
   setNotificationGroupPriority(...a) { return this.rec('setNotificationGroupPriority', a); }
   clearNotificationGroup(...a) { return this.rec('clearNotificationGroup', a); }
   last(name) { return this.calls.filter(c => c[0] === name).pop(); }
-  close() { this.emit('close'); }
+  close() { this.closed = true; this.emit('close'); }
   defIdFor(name) { return this.calls.filter(c => c[0] === 'addToDataDefinition' && c[2] === name).pop()[1]; }
   data(name, buf) { this.emit('simObjectData', { requestID: this.defIdFor(name), data: new RawBuffer(buf) }); }
 }
@@ -42,7 +42,9 @@ const C172_PATH = 'd:\\mfs2024\\official2024\\onestore\\asobo-aircraft-c172sp-as
 
 (async () => {
   let handle = new FakeHandle();
-  const sim = new SimConnectBackend({ openFn: async () => ({ recvOpen, handle }), aircraftDebounceMs: 20, pathWaitMs: 150 });
+  const learnHandles = []; // watch connections for Learn (observeEvents) get their own handles
+  const openFn = async name => (/Learn/.test(name) ? { recvOpen, handle: learnHandles[learnHandles.push(new FakeHandle()) - 1] } : { recvOpen, handle });
+  const sim = new SimConnectBackend({ openFn, aircraftDebounceMs: 20, pathWaitMs: 150 });
   const seen = { connected: 0, disconnected: 0, aircraft: [], exceptions: [] };
   sim.on('connected', () => seen.connected++);
   sim.on('disconnected', () => seen.disconnected++);
@@ -142,23 +144,30 @@ const C172_PATH = 'd:\\mfs2024\\official2024\\onestore\\asobo-aircraft-c172sp-as
   handle.emit('exception', { exception: 7, exceptionName: 'NAME_UNRECOGNIZED', sendId: mapId });
   assert.deepStrictEqual(seen.exceptions.pop(), { name: 'NAME_UNRECOGNIZED', about: 'event LANDING_LIGHTS_TOGGLE' });
 
-  // Watching sim events (Learn for events, user 2026-11-25): mapped once (sharing ids with sending),
-  // added to the watch group while watched, reported with their parameter, group cleared after.
+  // Watching sim events (Learn for events, user 2026-11-25): on connections of its own, in batches,
+  // closed afterwards; the main connection maps nothing (it ran out of maps, user report).
   {
     const got = [];
-    const stop = sim.observeEvents(['FUELSYSTEM_PUMP_TOGGLE', 'LANDING_LIGHTS_TOGGLE'], (n, v) => got.push([n, v]));
-    const adds = handle.calls.filter(c => c[0] === 'addClientEventToNotificationGroup');
-    assert.strictEqual(adds.length, 2);
-    assert.ok(adds.every(c => c[1] === 7 && c[3] === false), 'watch group, not maskable (the event still reaches the sim)');
-    assert.strictEqual(handle.calls.filter(c => c[0] === 'mapClientEventToSimEvent').length, 2, 'LANDING_LIGHTS_TOGGLE was already mapped');
-    const pumpId = handle.calls.filter(c => c[0] === 'mapClientEventToSimEvent').find(c => c[2] === 'FUELSYSTEM_PUMP_TOGGLE')[1];
-    handle.emit('event', { groupID: 7, clientEventId: pumpId, data: 1 });
-    handle.emit('event', { groupID: 7, clientEventId: pumpId, data: 4294967295 });
-    assert.deepStrictEqual(got, [['FUELSYSTEM_PUMP_TOGGLE', 1], ['FUELSYSTEM_PUMP_TOGGLE', -1]], 'parameter, signed');
+    const mainMaps = handle.calls.filter(c => c[0] === 'mapClientEventToSimEvent').length;
+    const names = Array.from({ length: 1700 }, (_, i) => `EV_${i}`).concat(['FUELSYSTEM_PUMP_TOGGLE']);
+    const stop = sim.observeEvents(names, (n, v, p) => got.push([n, v, p]));
+    await sleep(50);
+    assert.strictEqual(learnHandles.length, 3, '1,701 events: three watch connections of up to 800');
+    assert.strictEqual(handle.calls.filter(c => c[0] === 'mapClientEventToSimEvent').length, mainMaps, 'nothing mapped on the main connection');
+    const pumpHandle = learnHandles.find(h => h.calls.some(c => c[0] === 'mapClientEventToSimEvent' && c[2] === 'FUELSYSTEM_PUMP_TOGGLE'));
+    const pumpId = pumpHandle.calls.find(c => c[0] === 'mapClientEventToSimEvent' && c[2] === 'FUELSYSTEM_PUMP_TOGGLE')[1];
+    assert.ok(pumpHandle.calls.filter(c => c[0] === 'addClientEventToNotificationGroup').every(c => c[3] === false), 'not maskable: the event still reaches the sim');
+    pumpHandle.emit('event', { groupID: 1, clientEventId: pumpId, data: 0 });
+    pumpHandle.emit('eventEx1', { groupID: 1, clientEventId: pumpId, data: [1, 0, 0, 0, 0] });
+    pumpHandle.emit('eventEx1', { groupID: 1, clientEventId: pumpId, data: [4294967295, 2, 0, 0, 0] });
+    assert.deepStrictEqual(got.map(g => [g[0], g[1]]), [['FUELSYSTEM_PUMP_TOGGLE', 0], ['FUELSYSTEM_PUMP_TOGGLE', 1], ['FUELSYSTEM_PUMP_TOGGLE', -1]], 'plain and extended events; first parameter, signed');
+    assert.deepStrictEqual(got[2][2], [-1, 2, 0, 0, 0], 'all parameters');
     stop();
-    assert.ok(handle.last('clearNotificationGroup') && handle.last('clearNotificationGroup')[1] === 7, 'group cleared when nobody watches');
-    handle.emit('event', { groupID: 7, clientEventId: pumpId, data: 2 });
-    assert.strictEqual(got.length, 2, 'nothing after stopping');
+    assert.ok(learnHandles.every(h => h.closed), 'watch connections closed');
+    pumpHandle.emit('eventEx1', { groupID: 1, clientEventId: pumpId, data: [3, 0, 0, 0, 0] });
+    assert.strictEqual(got.length, 3, 'nothing after stopping');
+    sim.send({ event: 'SET_STARTER1_HELD', value: 1 });
+    assert.strictEqual(handle.last('mapClientEventToSimEvent')[2], 'SET_STARTER1_HELD', 'the main connection still maps and sends its own events');
   }
 
   // Writing a simvar: one data definition per variable, reused, value as a float64.

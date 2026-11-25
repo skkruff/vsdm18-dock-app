@@ -30,10 +30,15 @@ const AIRCRAFT_LOADED_EVENT = 1;
 // pause, 8 sim pause. SIMULATION TIME keeps running in active pause (user test, 2026-10-30), so
 // stopwatches follow this instead.
 const PAUSE_EVENT = 3;
-// Notification group for watching sim (K:) events fire, e.g. for Learn (user, 2026-11-25). Its
-// events are added only while someone watches and the group is cleared afterwards, so the sim does
-// not report every event during normal flying.
-const OBSERVE_GROUP = 7;
+// Watching sim (K:) events fire, for Learn (user, 2026-11-25). On connections of its own, opened
+// for the watch and closed after: SimConnect limits how many events one client may map, and
+// mapping the whole catalog on the main connection used up its maps, so the plugin's own events
+// (a START key's SET_STARTER1_HELD) stopped working until a restart (user report, same day).
+// Closing a connection frees its maps. Events are split into batches below the limit.
+const OBSERVE_GROUP = 1;
+const OBSERVE_BATCH = 800;
+// The parameter arrives unsigned: -1 shows as 4294967295.
+const signed = v => (typeof v === 'number' && v > 0x7fffffff ? v - 0x100000000 : v);
 const AIRCRAFT_STATE_REQUEST = 2;
 const AIRCRAFT_VARS = [
   { name: 'TITLE', unit: null, type: 'string' },
@@ -57,8 +62,7 @@ class SimConnectBackend extends EventEmitter {
     this.handle = null;
     this.subs = new Map(); // specKey -> { spec, defId, listeners: Set, value }
     this.events = new Map(); // event name -> client event id
-    this.eventNames = new Map(); // client event id -> event name
-    this.observers = new Set(); // callbacks watching sim events (observeEvents)
+
     this.writeDefs = new Map(); // 'name|unit' -> data definition used to set that simvar
     this.sent = new Map(); // SimConnect send id -> what it was, for readable exceptions
     this.oneShots = new Map(); // defId -> resolve
@@ -85,8 +89,6 @@ class SimConnectBackend extends EventEmitter {
     const { recvOpen, handle } = await this.openFn(this.appName, Protocol.KittyHawk);
     this.handle = handle;
     this.events.clear();
-    this.eventNames.clear();
-    this.observers.clear();
     this.writeDefs.clear();
     this.sent.clear();
 
@@ -95,13 +97,6 @@ class SimConnectBackend extends EventEmitter {
       name: e.exceptionName || String(e.exception), about: this.sent.get(e.sendId) || `send id ${e.sendId}`,
     }));
     handle.on('event', e => {
-      if (e.groupID === OBSERVE_GROUP && this.observers.size) {
-        const name = this.eventNames.get(e.clientEventId);
-        // The parameter arrives unsigned: -1 shows as 4294967295.
-        const data = e.data > 0x7fffffff ? e.data - 0x100000000 : e.data;
-        if (name) for (const cb of [...this.observers]) cb(name, data);
-        return;
-      }
       if (e.clientEventId !== PAUSE_EVENT) return;
       this.pauseFlags = e.data;
       this.emit('pause', e.data);
@@ -215,27 +210,50 @@ class SimConnectBackend extends EventEmitter {
       const id = this.nextId++;
       this._track(this.handle.mapClientEventToSimEvent(id, event), about);
       this.events.set(event, id);
-      this.eventNames.set(id, event);
     }
     return this.events.get(event);
   }
 
-  // Calls cb(name, parameter) for each of the named sim events as it fires, whoever sends it (the
-  // cockpit, a mouse click, other programs). Returns a function that stops watching. Only one
-  // watch at a time is needed (Learn); a second shares the same events.
-  observeEvents(names, cb) {
+  // Calls cb(name, value, params) for each of the named sim events as it fires, whoever sends it
+  // (the cockpit, a click, other programs): value is its first parameter, params all of them
+  // (events an aircraft sends with parameters arrive as EVENT_EX1, with up to five). Returns a
+  // function that stops watching and closes the watch connections. onError(message) reports a
+  // batch that could not connect.
+  observeEvents(names, cb, onError = () => {}) {
     if (!this.handle) throw new Error('not connected');
-    if (!this.observers.size) {
-      for (const name of names) {
-        const id = this._eventId(name, `observe ${name}`);
-        this._track(this.handle.addClientEventToNotificationGroup(OBSERVE_GROUP, id, false), `observe ${name}`);
+    const handles = [];
+    let stopped = false;
+    const batches = [];
+    for (let i = 0; i < names.length; i += OBSERVE_BATCH) batches.push(names.slice(i, i + OBSERVE_BATCH));
+    batches.forEach(async (batch, n) => {
+      try {
+        const { handle } = await this.openFn(`${this.appName} Learn ${n + 1}`, Protocol.KittyHawk);
+        if (stopped) { try { handle.close(); } catch (e) { /* gone */ } return; }
+        handles.push(handle);
+        handle.on('exception', () => { /* names this sim does not know: skipped */ });
+        const byId = new Map();
+        batch.forEach((name, i) => {
+          const id = i + 1;
+          byId.set(id, name);
+          handle.mapClientEventToSimEvent(id, name);
+          handle.addClientEventToNotificationGroup(OBSERVE_GROUP, id, false);
+        });
+        handle.setNotificationGroupPriority(OBSERVE_GROUP, GROUP_PRIORITY_HIGHEST);
+        const report = (id, params) => {
+          const name = byId.get(id);
+          if (!name || stopped) return;
+          const p = params.map(signed);
+          cb(name, p[0], p);
+        };
+        handle.on('event', e => report(e.clientEventId, [e.data]));
+        handle.on('eventEx1', e => report(e.clientEventId, (e.data || []).slice(0, 5)));
+      } catch (e) {
+        onError(`watch connection ${n + 1}: ${e.message || e}`);
       }
-      this._track(this.handle.setNotificationGroupPriority(OBSERVE_GROUP, GROUP_PRIORITY_HIGHEST), 'observe events');
-    }
-    this.observers.add(cb);
+    });
     return () => {
-      if (!this.observers.delete(cb) || this.observers.size || !this.handle) return;
-      this._track(this.handle.clearNotificationGroup(OBSERVE_GROUP), 'stop observing events');
+      stopped = true;
+      for (const h of handles.splice(0)) { try { h.close(); } catch (e) { /* gone */ } }
     };
   }
 

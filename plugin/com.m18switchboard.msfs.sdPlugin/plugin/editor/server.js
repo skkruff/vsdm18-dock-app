@@ -116,13 +116,14 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
         if (!listening) { noise.add(name); return; }
         if (noise.has(name)) return;
         const s = seen.get(name) || { name, value, changes: 0, kind: 'event' };
-        s.value = value;
+        // One click can be reported twice (plain and with parameters): keep a real value.
+        if (value || !s.value) s.value = value;
         s.changes++;
         seen.set(name, s);
         if (windowTimer) return;
         clearTimeout(timer);
         windowTimer = setTimeout(finish, LEARN_WINDOW_MS);
-      });
+      }, message => log('learn events', { error: message }));
       setTimeout(() => { listening = true; }, LEARN_NOISE_MS);
     });
   }

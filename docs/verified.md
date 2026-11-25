@@ -58,6 +58,15 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   is held UP by hand while pressing START, and both are released together. The sim's 2.8 s
   self-reset stands in for the hand you cannot use with a mouse; "hold while pressed" on the L: var
   is the real procedure.
+- 2026-11-25, user (sim, Vixxen): Learn for events found FUELSYSTEM_PUMP_TOGGLE but not its pump
+  number; On release works (SET_STARTER1_HELD 1 / 0). After a Learn, no sim event could be sent
+  until VSD Craft restarted. Causes, from the SimConnect library (not yet confirmed in the plugin
+  log): (1) an aircraft's events with parameters reach clients as EVENT_EX1 (up to five values),
+  and only the plain message (no value) was read; (2) Learn mapped ~2,000 events on the plugin's
+  main connection, and SimConnect limits maps per client (TOO_MANY_MAPS / TOO_MANY_EVENT_NAMES), so
+  events mapped afterwards (the START key's) failed for the rest of the session. Fixed: Learn
+  watches on connections of its own (batches of 800), closed when it ends, so the main connection
+  maps nothing for it; both message kinds are read. Unit tests; to be confirmed in the sim.
 - 2026-11-25, unit + editor tests only: On release for sim events (user asked: SET_STARTER1_HELD 1
   on press, 0 on release, for the Vixxen's START button).
 - 2026-11-25, unit + editor tests only: Learn for sim (K:) events. The sim layer maps every SDK

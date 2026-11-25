@@ -117,7 +117,8 @@ const commands = {
     if (stopEvents) { stopEvents(); stopEvents = null; return out('EVENTS stopped'); }
     const names = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'plugin', 'com.m18switchboard.msfs.sdPlugin', 'catalog', 'events.json'), 'utf8'))
       .map(e => e.name).filter(n => !/(^|_)AXIS_/.test(n));
-    stopEvents = sim.observeEvents(names, (name, value) => out(`K      ${name} ${value}`));
+    stopEvents = sim.observeEvents(names, (name, value, params) => out(`K      ${name} ${(params || [value]).join(' ').replace(/( 0)+$/, '')}`),
+      message => out(`ERROR  ${message}`));
     out(`EVENTS watching ${names.length} sim events; type events again to stop`);
   },
   async help() { HELP.forEach(out); },

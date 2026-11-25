@@ -275,6 +275,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.waitForFunction(() => document.querySelector('#inspector .field input[placeholder^="e.g. BAROMETRIC"]').value === 'FUELSYSTEM_PUMP_TOGGLE', null, { timeout: 5000 });
     await save();
     assert.deepStrictEqual(file().pages[1].keys['2'].press, { event: 'FUELSYSTEM_PUMP_TOGGLE', value: 1 }, 'event and its value');
+    // On release (user, 2026-11-25).
+    await page.fill(`#inspector .field:has(> span:text-is("On release")) input`, '0');
+    await save();
+    assert.deepStrictEqual(file().pages[1].keys['2'].press, { event: 'FUELSYSTEM_PUMP_TOGGLE', value: 1, release: 0 });
 
     // Look: the font is a global setting.
     await page.click('#lookPanel summary');

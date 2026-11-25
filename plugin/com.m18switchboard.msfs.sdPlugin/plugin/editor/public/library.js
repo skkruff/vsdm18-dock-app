@@ -164,7 +164,7 @@ function actionText(key, a) {
   if (a.keypad !== undefined) return `keypad ${typeof a.keypad === 'string' ? a.keypad : a.keypad.preset || a.keypad.title || '(own)'}`;
   if (a.timer !== undefined) return `stopwatch ${a.timer}: ${a.action || 'toggle'}`;
   if (a.keys !== undefined) return `keys ${a.keys}${a.whileHeld ? ' (held)' : ''}`;
-  if (a.event !== undefined) return `${a.event}${a.toggleValue ? ' 1/0' : a.value !== undefined ? ` = ${a.value}` : ''}`;
+  if (a.event !== undefined) return `${a.event}${a.toggleValue ? ' 1/0' : a.value !== undefined ? ` = ${a.value}` : ''}${a.release !== undefined ? `, ${a.release} on release` : ''}`;
   const t = a.var && a.var.var ? a.var.var : a.input || (key.read && key.read.input) || '?';
   const x = a.scale ? ` ×${a.scale}` : '';
   const rep = a.repeatMs ? ` every ${a.repeatMs} ms` : '';

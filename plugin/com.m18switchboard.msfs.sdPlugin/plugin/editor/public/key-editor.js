@@ -508,6 +508,9 @@ function actionEditor(key, a, set, { allowSpring = true, repeat = false } = {}) 
       } } }, 'Send now'))));
     box.append(field('Value', input(a.value, v => setA('value', num(v)), { type: 'number' })));
     box.append(field('Toggle 1/0', el('input', { type: 'checkbox', checked: a.toggleValue ? true : null, on: { change: e => setA('toggleValue', e.target.checked || undefined) } })));
+    // Sent again with this value when the dock key is let go (user, 2026-11-25), for events that
+    // hold something while pressed. Only on a plain press: a tap acts on release already.
+    if (allowSpring) box.append(field('On release', input(a.release, v => setA('release', num(v)), { type: 'number', placeholder: 'nothing' }), 'Sends the event again with this value when you let go, e.g. 0 to let a starter go'));
   }
   if (['cycle', 'step', 'set', 'spring'].includes(kind)) box.append(...actsOn(key, a));
   if (repeat && kind !== 'spring' && kind !== 'keypad') {

@@ -58,6 +58,8 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   is held UP by hand while pressing START, and both are released together. The sim's 2.8 s
   self-reset stands in for the hand you cannot use with a mouse; "hold while pressed" on the L: var
   is the real procedure.
+- 2026-11-25, unit + editor tests only: On release for sim events (user asked: SET_STARTER1_HELD 1
+  on press, 0 on release, for the Vixxen's START button).
 - 2026-11-25, unit + editor tests only: Learn for sim (K:) events. The sim layer maps every SDK
   catalog event (axis events left out) and adds it, non-maskable, to a watch group while Learn
   listens; the group is cleared afterwards. Events firing in the first second are noise. Also

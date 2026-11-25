@@ -814,6 +814,25 @@ const text = uri => decodeURIComponent(uri);
     eW.keyDown(0); eW.keyUp(0);
     assert.deepStrictEqual(simW.sets.splice(0), [['WHEEL', 0]], 'wraps at 350');
   }
+  // Sim event with On release (user, 2026-11-25): SET_STARTER1_HELD 1 while held, 0 when let go.
+  {
+    const simE = new FakeSim({});
+    const prof = { id: 'e', fallback: true, pages: [{ name: 'P', keys: {
+      0: { type: 'button', label: 'START', press: { event: 'SET_STARTER1_HELD', value: 1, release: 0 } },
+      1: { type: 'button', label: 'SWAP', press: { event: 'COM_STBY_RADIO_SWAP' } },
+    } }] };
+    const eE = new ProfileEngine({ redrawMs: 0, sim: simE, display: { image() {}, title() {}, alert() {} }, profiles: [prof], renderer: new Renderer(null), announceMs: 1, announceAircraftMs: 1 });
+    eE.start();
+    simE.emit('connected');
+    simE.emit('aircraft', { title: 'X', atcModel: '', path: 'x' });
+    await new Promise(r => setTimeout(r, 30));
+    eE.keyDown(0);
+    assert.deepStrictEqual(simE.sent.splice(0), [{ event: 'SET_STARTER1_HELD', value: 1 }], 'on press');
+    eE.keyUp(0);
+    assert.deepStrictEqual(simE.sent.splice(0), [{ event: 'SET_STARTER1_HELD', value: 0 }], 'on release');
+    eE.keyDown(1); eE.keyUp(1);
+    assert.deepStrictEqual(simE.sent.splice(0), [{ event: 'COM_STBY_RADIO_SWAP', value: 0 }], 'without On release: nothing when let go');
+  }
   // Sim paused (user, 2026-11-01): 1 in any pause, from Pause_EX1; unknown until reported.
   {
     const { validate } = require(path.join(pluginDir, 'plugin', 'profiles'));

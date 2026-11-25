@@ -902,12 +902,15 @@ class ProfileEngine {
     const own = target && this.watches.get(sourceKey(target));
     const current = own && own.value !== undefined ? own.value : key.read ? this.watches.get(sourceKey(key.read))?.value : undefined;
     let value;
-    if (phase === 'up') value = a.release;
-    else if (a.event) {
-      value = a.toggleValue ? (current ? 0 : 1) : (a.value ?? 0);
-      this.log('press', { event: a.event, value });
+    if (a.event) {
+      // On release (user, 2026-11-25): e.g. SET_STARTER1_HELD 1 while held, 0 when let go.
+      if (phase === 'up') { if (a.release === undefined) return; value = a.release; }
+      else value = a.toggleValue ? (current ? 0 : 1) : (a.value ?? 0);
+      this.log('press', { event: a.event, value, phase });
       return this.sim.send({ event: a.event, value });
-    } else if (a.cycle) {
+    }
+    if (phase === 'up') value = a.release;
+    else if (a.cycle) {
       value = nextInCycle(a.cycle, current);
     } else if (a.step !== undefined) {
       if (current === undefined) throw new Error('no current value to step from');

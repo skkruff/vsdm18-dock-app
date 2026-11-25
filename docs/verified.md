@@ -64,7 +64,8 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   14:47:26.700 / .709 / .800, again 14:48:04.901 / .909 / 05.021). With the second key below, the
   second press was not reported at all and the first stayed held. Repeatable. Likely the key
   matrix (rows / columns); not fixable in the plugin, which never hears two keys down. Profiles
-  must not rely on two dock keys held together.
+  must not rely on two dock keys held together. User's choice for the Vixxen: START POWER as a
+  latching key (cycle 0 / 1 on the L: var), switched off by hand after the start.
 - 2026-11-17, code review of everything since 2026-10-30 (about 2,500 changed lines; all tests
   also on Node 20.8.1; a spelling and doubled-word scan of code, editor text and docs found
   nothing). Fixed: (1) an announcement played from the editor was hidden by the NOT CONNECTED

@@ -40,3 +40,10 @@ Slots read like a page: top-left first. Profiles use slot numbers, never raw coo
 - `titleParametersDidChange` arrives with every `willAppear` (font HarmonyOS Sans, size 10,
   bottom-aligned, white).
 - keyDown carries `userDesiredState`; not needed.
+
+## One key at a time (user test, 2026-11-25)
+
+The M18 (with VSD Craft) does not report two keys held together. Pressing a second key while one is
+held either reports the first as released and the second as a short tap (about 0.1 s, even if
+held), or ignores the second press, depending on where the two keys sit relative to each other.
+Design profiles so that no function needs two dock keys at once. Details in `verified.md`.

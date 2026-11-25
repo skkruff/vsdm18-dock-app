@@ -57,9 +57,14 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   Later the same day, from the A32 iS POH (A32-iS-129-POH, engine start steps 15-19): START POWER
   is held UP by hand while pressing START, and both are released together. The sim's 2.8 s
   self-reset stands in for the hand you cannot use with a mouse; "hold while pressed" on the L: var
-  is the real procedure. Open: holding the START POWER dock key and pressing the START dock key
-  released START POWER and START did nothing (user); the plugin log is to show whether the dock
-  reports one key at a time.
+  is the real procedure.
+- 2026-11-25, user (dock, plugin log): **the M18 reports one key at a time.** Holding one key and
+  pressing another: with the second key to the right, the dock reported the first released and
+  the second pressed 9 ms later, then released about 0.1 s later although still held (log
+  14:47:26.700 / .709 / .800, again 14:48:04.901 / .909 / 05.021). With the second key below, the
+  second press was not reported at all and the first stayed held. Repeatable. Likely the key
+  matrix (rows / columns); not fixable in the plugin, which never hears two keys down. Profiles
+  must not rely on two dock keys held together.
 - 2026-11-17, code review of everything since 2026-10-30 (about 2,500 changed lines; all tests
   also on Node 20.8.1; a spelling and doubled-word scan of code, editor text and docs found
   nothing). Fixed: (1) an announcement played from the editor was hidden by the NOT CONNECTED

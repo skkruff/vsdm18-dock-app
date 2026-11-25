@@ -58,6 +58,10 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   is held UP by hand while pressing START, and both are released together. The sim's 2.8 s
   self-reset stands in for the hand you cannot use with a mouse; "hold while pressed" on the L: var
   is the real procedure.
+- 2026-11-25, user (sim, Vixxen): **Learn for sim events confirmed** after the fix: FUEL PUMP 1 and 2
+  learned as FUELSYSTEM_PUMP_TOGGLE with values 1 and 2 (events with parameters, EVENT_EX1), and
+  sim events still send afterwards. LANE A / LANE B work through the simvar
+  RECIP ENG LEFT MAGNETO:1 (found with VarDetect).
 - 2026-11-25, user (sim, Vixxen): Learn for events found FUELSYSTEM_PUMP_TOGGLE but not its pump
   number; On release works (SET_STARTER1_HELD 1 / 0). After a Learn, no sim event could be sent
   until VSD Craft restarted. Causes, from the SimConnect library (not yet confirmed in the plugin

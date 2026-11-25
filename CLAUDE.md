@@ -31,11 +31,12 @@ Switch / Button / Rotary / Readout / Decorative, tap / hold, readout state logic
 Vixxen and others in their Documents folder, all working; the XCub VS selector wheel cannot be
 driven, `verified.md`): level bars, borders, no-bar values, sublabel / label sizes, Key Appearance
 Defaults, Aircraft Profile panel, library redesign, wording sweep. Review 2026-11-17 (`verified.md`).
-Dock-side items not yet seen: `docs/editor-test.md` 11-16.
+All of it confirmed on the dock by the user (2026-11-25).
 Third-party aircraft (from 2026-11-25): VarDetect (user's tool, reads L: vars through its own
-WASM module) finds names; L: var writes confirmed on the Vixxen; Learn for K events built (to be
-tried in the sim). The M18 reports one key at a time (`docs/hardware.md`).
-Next: more third-party aircraft,
+WASM module) finds names; L: var writes and Learn for sim (K:) events (with parameters, on
+separate watch connections) confirmed on the Vixxen; sim events have On release. The M18 reports
+one key at a time (`docs/hardware.md`).
+Next (user): finish the Vixxen layout, then a more complex aircraft (Black Square Caravan or Baron),
 then Phase 4b leftovers (`docs/design-notes.md`) and Phase 5 per `DESIGN_BRIEF.md`.
 
 ## Editor wording (user, 2026-11-17)

@@ -58,6 +58,12 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   is held UP by hand while pressing START, and both are released together. The sim's 2.8 s
   self-reset stands in for the hand you cannot use with a mouse; "hold while pressed" on the L: var
   is the real procedure.
+- 2026-11-25, user (dock + sim): **confirmed** everything listed as not yet seen: level bars keep
+  their rounded ends (face layer and rotary Level bar); Border (tickbox and layer), separators on
+  switches and buttons, no-bar values with the sublabel as status; label sizes 40 / 65 and
+  sublabels 25; Preview Announcement on the dock, also with MSFS not running; Preview on dock;
+  Pause / Break shortcut; readout Show value / State bar; Sends × (DA62 dimmer, tap and ramp);
+  Sim paused source.
 - 2026-11-25, user (sim, Vixxen): **Learn for sim events confirmed** after the fix: FUEL PUMP 1 and 2
   learned as FUELSYSTEM_PUMP_TOGGLE with values 1 and 2 (events with parameters, EVENT_EX1), and
   sim events still send afterwards. LANE A / LANE B work through the simvar

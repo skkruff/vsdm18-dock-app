@@ -30,16 +30,10 @@ plugin log (`logs\` in the plugin folder).
    library (save, insert, drag a group: outlines show where it lands).
 10. The Keypad tab shows the layout; Preview on a keypad key's settings draws it on the picture.
 
-## Not yet seen on the dock (once, then fold into the list above)
+## Since 2026-11-03 (confirmed by the user 2026-11-25)
 
-The editor work since 2026-11-03 passes the tests here and has been used in the editor to build
-several profiles, but these draw on, or reach, the dock itself:
-
-11. **Level bar**: a part-filled bar keeps its rounded ends (the fix for the fill showing square).
-12. **Border** (tickbox and face layer), **separator** on a switch or button, and a value set to
-    **— (no bar)** showing its sublabel large where the bar was.
-13. **Label sizes**: 40 where a label shares the key, 65 when it is all the key shows; sublabels 25.
-14. **Preview Announcement** plays on the dock, also with MSFS not running (then NOT CONNECTED
-    comes back).
-15. **Preview on dock**: the editor's page on the dock, cut off from the sim; Stop preview returns.
-16. **Pause / Break** as a keyboard shortcut reaches MSFS.
+11. **Faces and looks**: level bars keep their rounded ends; borders, separators, no-bar values
+    (sublabel as status); labels 40 / 65, sublabels 25.
+12. **Preview Announcement** on the dock (also with MSFS not running); **Preview on dock**.
+13. **Learn** for sim events (e.g. a fuel pump: FUELSYSTEM_PUMP_TOGGLE with its pump number), and
+    sim events still sending afterwards.

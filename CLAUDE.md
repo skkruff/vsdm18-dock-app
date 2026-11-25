@@ -32,7 +32,10 @@ Vixxen and others in their Documents folder, all working; the XCub VS selector w
 driven, `verified.md`): level bars, borders, no-bar values, sublabel / label sizes, Key Appearance
 Defaults, Aircraft Profile panel, library redesign, wording sweep. Review 2026-11-17 (`verified.md`).
 Dock-side items not yet seen: `docs/editor-test.md` 11-16.
-Next: third-party aircraft support (L: vars, observing K events; the user found VarDetect),
+Third-party aircraft (from 2026-11-25): VarDetect (user's tool, reads L: vars through its own
+WASM module) finds names; L: var writes confirmed on the Vixxen; Learn for K events built (to be
+tried in the sim). The M18 reports one key at a time (`docs/hardware.md`).
+Next: more third-party aircraft,
 then Phase 4b leftovers (`docs/design-notes.md`) and Phase 5 per `DESIGN_BRIEF.md`.
 
 ## Editor wording (user, 2026-11-17)
@@ -94,7 +97,8 @@ data folder is still `%APPDATA%\HotSpot\StreamDock`.
 - `scripts/`: `make-icons.js` (placeholder PNGs), `deploy.js` (copy to `%APPDATA%`, Windows),
   `index-icons.js` (lists the user's icon library into `docs/icon-index.md`),
   `sim-spike.js` (Phase 1: standalone sim test, `npm run sim:spike`), `sim-explore.js`
-  (lists an aircraft's input events and reports cockpit changes, `npm run sim:explore`).
+  (lists an aircraft's input events and reports cockpit changes; `events` prints sim events as
+  they fire; `npm run sim:explore`).
 - `test/`: `fake-host.js` (stand-in Stream Dock host), `icons.test.js`, `simconnect.test.js`
   (backend against a fake SimConnect handle), `engine.test.js` (engine with the real profiles
   against a fake sim), `store.test.js` (profile folder, library merging), `catalog.test.js`, `keys.test.js`, `fake-sim.js`. Run all

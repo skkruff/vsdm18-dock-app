@@ -264,6 +264,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('dialog.browse .browse-row:has-text("BAROMETRIC") .mono');
     await save();
     assert.strictEqual(file().pages[1].keys['2'].press.event, 'BAROMETRIC');
+    // Learn for sim events (user, 2026-11-25): click the control in the cockpit; the event it sends,
+    // with its value. Whatever fires in the first second is noise and ignored.
+    await page.click(`#inspector .field:has(> span:text-is("Event")) button:text-is("Learn")`);
+    await sleep(300);
+    h.sim.fireEvent('LANDING_LIGHTS_TOGGLE'); // already firing on its own: noise
+    await sleep(1000);
+    h.sim.fireEvent('LANDING_LIGHTS_TOGGLE'); // noise stays ignored
+    h.sim.fireEvent('FUELSYSTEM_PUMP_TOGGLE', 1);
+    await page.waitForFunction(() => document.querySelector('#inspector .field input[placeholder^="e.g. BAROMETRIC"]').value === 'FUELSYSTEM_PUMP_TOGGLE', null, { timeout: 5000 });
+    await save();
+    assert.deepStrictEqual(file().pages[1].keys['2'].press, { event: 'FUELSYSTEM_PUMP_TOGGLE', value: 1 }, 'event and its value');
 
     // Look: the font is a global setting.
     await page.click('#lookPanel summary');

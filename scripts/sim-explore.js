@@ -17,6 +17,7 @@ const HELP = [
   '  set <input> <value>     set an input event, then show it 1 s later',
   '  watch <SIMVAR> [unit]   print a simvar whenever it changes (unit defaults to number)',
   '  event <EVENT> [value]   send a classic sim event',
+  '  events                  print sim events as they fire (again to stop); axis events left out',
   '  help, q',
 ];
 
@@ -110,9 +111,19 @@ const commands = {
     out(`WATCH  ${name} (${unit})`);
   },
   async event(name, value = '0') { out(`EVENT  ${name} ${value}`); sim.send({ event: name, value: Number(value) }); },
+  // Sim (K:) events as they fire, from the cockpit or anywhere (user, 2026-11-25). Every event in
+  // the SDK catalog except axis events, which stream while a control is held.
+  async events() {
+    if (stopEvents) { stopEvents(); stopEvents = null; return out('EVENTS stopped'); }
+    const names = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'plugin', 'com.m18switchboard.msfs.sdPlugin', 'catalog', 'events.json'), 'utf8'))
+      .map(e => e.name).filter(n => !/(^|_)AXIS_/.test(n));
+    stopEvents = sim.observeEvents(names, (name, value) => out(`K      ${name} ${value}`));
+    out(`EVENTS watching ${names.length} sim events; type events again to stop`);
+  },
   async help() { HELP.forEach(out); },
 };
 
+let stopEvents = null;
 const rl = readline.createInterface({ input: process.stdin });
 rl.on('line', async line => {
   const [cmd, ...args] = line.trim().split(/\s+/);

@@ -68,7 +68,9 @@ never touches this folder: shipped profiles are copied in only when you don't ha
     - **Browse…** (simvars): every simvar in the MSFS 2024 SDK (about 1,700) by category with
       descriptions and units, common ones first (★), searchable ("nav1", "fuel", "heading"); **Test** reads one from the sim to check this
       aircraft has it. Any other name (also L:vars) can be typed in.
-  - Sim events for presses: **Browse…** lists every key event in the MSFS 2024 SDK (about 2,100,
+  - Sim events for presses: **Learn** (click the control in the cockpit: the event it sends, with
+    its value, e.g. FUELSYSTEM_PUMP_TOGGLE 1 for pump 1; whatever fires in the first second is
+    ignored as noise, axis events are left out; several candidates: you choose). **Browse…** lists every key event in the MSFS 2024 SDK (about 2,100,
     common ones first) with what value it takes; **Send** fires one now so
     you can see what it does.
   - Look per value (switch), icon per value (e.g. the magneto icons).

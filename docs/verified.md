@@ -58,6 +58,12 @@ means read in SDK/library code but not run on the hardware or sim. **Assumed** m
   is held UP by hand while pressing START, and both are released together. The sim's 2.8 s
   self-reset stands in for the hand you cannot use with a mouse; "hold while pressed" on the L: var
   is the real procedure.
+- 2026-11-25, unit + editor tests only: Learn for sim (K:) events. The sim layer maps every SDK
+  catalog event (axis events left out) and adds it, non-maskable, to a watch group while Learn
+  listens; the group is cleared afterwards. Events firing in the first second are noise. Also
+  `events` in sim:explore. Not yet run against MSFS: whether the sim reports events sent by a
+  third-party aircraft's click code to a watching client (VarDetect sees them, e.g.
+  K:FUELSYSTEM_PUMP_TOGGLE 1 on the Vixxen's fuel pump 1), and how long mapping ~2,000 events takes.
 - 2026-11-25, user (dock, plugin log): **the M18 reports one key at a time.** Holding one key and
   pressing another: with the second key to the right, the dock reported the first released and
   the second pressed 9 ms later, then released about 0.1 s later although still held (log

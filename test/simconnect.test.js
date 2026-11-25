@@ -23,6 +23,9 @@ class FakeHandle extends EventEmitter {
   setDataOnSimObject(...a) { return this.rec('setDataOnSimObject', a); }
   subscribeInputEvent(...a) { return this.rec('subscribeInputEvent', a); }
   unsubscribeInputEvent(...a) { return this.rec('unsubscribeInputEvent', a); }
+  addClientEventToNotificationGroup(...a) { return this.rec('addClientEventToNotificationGroup', a); }
+  setNotificationGroupPriority(...a) { return this.rec('setNotificationGroupPriority', a); }
+  clearNotificationGroup(...a) { return this.rec('clearNotificationGroup', a); }
   last(name) { return this.calls.filter(c => c[0] === name).pop(); }
   close() { this.emit('close'); }
   defIdFor(name) { return this.calls.filter(c => c[0] === 'addToDataDefinition' && c[2] === name).pop()[1]; }
@@ -138,6 +141,25 @@ const C172_PATH = 'd:\\mfs2024\\official2024\\onestore\\asobo-aircraft-c172sp-as
   const mapId = 100 + handle.calls.findIndex(c => c[0] === 'mapClientEventToSimEvent');
   handle.emit('exception', { exception: 7, exceptionName: 'NAME_UNRECOGNIZED', sendId: mapId });
   assert.deepStrictEqual(seen.exceptions.pop(), { name: 'NAME_UNRECOGNIZED', about: 'event LANDING_LIGHTS_TOGGLE' });
+
+  // Watching sim events (Learn for events, user 2026-11-25): mapped once (sharing ids with sending),
+  // added to the watch group while watched, reported with their parameter, group cleared after.
+  {
+    const got = [];
+    const stop = sim.observeEvents(['FUELSYSTEM_PUMP_TOGGLE', 'LANDING_LIGHTS_TOGGLE'], (n, v) => got.push([n, v]));
+    const adds = handle.calls.filter(c => c[0] === 'addClientEventToNotificationGroup');
+    assert.strictEqual(adds.length, 2);
+    assert.ok(adds.every(c => c[1] === 7 && c[3] === false), 'watch group, not maskable (the event still reaches the sim)');
+    assert.strictEqual(handle.calls.filter(c => c[0] === 'mapClientEventToSimEvent').length, 2, 'LANDING_LIGHTS_TOGGLE was already mapped');
+    const pumpId = handle.calls.filter(c => c[0] === 'mapClientEventToSimEvent').find(c => c[2] === 'FUELSYSTEM_PUMP_TOGGLE')[1];
+    handle.emit('event', { groupID: 7, clientEventId: pumpId, data: 1 });
+    handle.emit('event', { groupID: 7, clientEventId: pumpId, data: 4294967295 });
+    assert.deepStrictEqual(got, [['FUELSYSTEM_PUMP_TOGGLE', 1], ['FUELSYSTEM_PUMP_TOGGLE', -1]], 'parameter, signed');
+    stop();
+    assert.ok(handle.last('clearNotificationGroup') && handle.last('clearNotificationGroup')[1] === 7, 'group cleared when nobody watches');
+    handle.emit('event', { groupID: 7, clientEventId: pumpId, data: 2 });
+    assert.strictEqual(got.length, 2, 'nothing after stopping');
+  }
 
   // Writing a simvar: one data definition per variable, reused, value as a float64.
   sim.setVar({ name: 'TRANSPONDER STATE:1', unit: 'number' }, 4);

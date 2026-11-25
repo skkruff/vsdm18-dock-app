@@ -16,6 +16,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 const LEARN_TIMEOUT_MS = 30000;
 const LEARN_WINDOW_MS = 1500; // after the first change, keep collecting for this long
 const LEARN_READ_MS = 1500; // reading each input event's value before listening
+const LEARN_NOISE_MS = 1000; // Learn for events: what fires in the first second is noise
 const CATALOG = path.join(__dirname, '..', '..', 'catalog');
 
 function send(res, status, body, type = 'application/json; charset=utf-8') {
@@ -87,6 +88,42 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
         clearTimeout(timer);
         windowTimer = setTimeout(finish, LEARN_WINDOW_MS);
       });
+    });
+  }
+
+  // Learn for sim (K:) events (user, 2026-11-25): third-party aircraft often work a control by
+  // sending a standard event (FUELSYSTEM_PUMP_TOGGLE with the pump number) instead of an input
+  // event. Every event of the SDK catalog is watched; for the first second whatever fires is
+  // noise (axes, the aircraft's own systems) and ignored, then the first event that fires opens
+  // the same window as Learn: [{ name, value (its parameter), changes }], first first.
+  async function learnEvents() {
+    if (!sim.connected) throw new Error('MSFS is not connected');
+    if (!sim.observeEvents) throw new Error('watching events is not available');
+    const names = catalog('events').map(e => e.name).filter(n => !/(^|_)AXIS_/.test(n));
+    return new Promise((resolve, reject) => {
+      const noise = new Set();
+      const seen = new Map();
+      let listening = false;
+      let windowTimer = null;
+      let stop = () => {};
+      const finish = () => {
+        stop();
+        if (noise.size) log('learn events', { ignored: [...noise].slice(0, 20), candidates: [...seen.keys()] });
+        resolve({ candidates: [...seen.values()] });
+      };
+      const timer = setTimeout(() => { stop(); reject(new Error('no event within 30 s')); }, LEARN_TIMEOUT_MS);
+      stop = sim.observeEvents(names, (name, value) => {
+        if (!listening) { noise.add(name); return; }
+        if (noise.has(name)) return;
+        const s = seen.get(name) || { name, value, changes: 0, kind: 'event' };
+        s.value = value;
+        s.changes++;
+        seen.set(name, s);
+        if (windowTimer) return;
+        clearTimeout(timer);
+        windowTimer = setTimeout(finish, LEARN_WINDOW_MS);
+      });
+      setTimeout(() => { listening = true; }, LEARN_NOISE_MS);
     });
   }
 
@@ -221,7 +258,7 @@ function createEditorServer({ store, engine, sim, icons, config, look = {}, appl
       applyLook(s);
       return { ok: true };
     }],
-    ['POST', /^\/api\/learn$/, () => learn()],
+    ['POST', /^\/api\/learn$/, async (m, req) => { const { kinds } = await readBody(req); return (kinds || []).includes('event') ? learnEvents() : learn(); }],
     // Previews: { keys: { slot: keyDef }, values: { slot: value } } -> { images: { slot: uri } }
     ['POST', /^\/api\/render$/, async (m, req) => {
       const { keys = {}, values = {}, sources = {} } = await readBody(req);

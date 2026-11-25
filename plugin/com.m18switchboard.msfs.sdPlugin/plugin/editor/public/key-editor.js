@@ -497,6 +497,11 @@ function actionEditor(key, a, set, { allowSpring = true, repeat = false } = {}) 
   if (kind === 'event') {
     const evInput = input(a.event, v => { a.event = v; changed(); }, { placeholder: 'e.g. BAROMETRIC' });
     box.append(field('Event', el('div', { class: 'inline' }, evInput,
+      el('button', { title: 'Click the control in the cockpit: the event it sends, with its value', on: { click: () => learnEventInto(evInput, c => {
+        a.event = c.name;
+        if (c.value) a.value = c.value; else delete a.value;
+        changed(); renderInspector();
+      }) } }, 'Learn'),
       el('button', { on: { click: () => browse('events', choice => { a.event = choice.name; if (choice.value !== undefined) a.value = choice.value; changed(); renderInspector(); }) } }, 'Browse…'),
       el('button', { title: 'Send it to the sim now, to see what it does', on: { click: async () => {
         try { await api('POST', '/api/send-event', { event: a.event, value: a.value }); status(`Sent ${a.event}`, 'good'); } catch (e) { status(e.message, 'bad'); }

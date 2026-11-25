@@ -35,6 +35,12 @@ class FakeSim extends EventEmitter {
     return () => vars.forEach(v => this.varSubs.get(v.name).delete(cb));
   }
   send(a) { this.sent.push(a); }
+  // Sim events as they fire (Learn for events): fireEvent(name, value) reports one.
+  observeEvents(names, cb) {
+    this.eventWatch = { names: new Set(names), cb };
+    return () => { this.eventWatch = null; };
+  }
+  fireEvent(name, value = 0) { if (this.eventWatch && this.eventWatch.names.has(name)) this.eventWatch.cb(name, value); }
   // Writing a simvar: recorded; the fake keeps it unless the name is in readOnly.
   setVar(spec, v) {
     (this.varSets = this.varSets || []).push([spec.name, v]);

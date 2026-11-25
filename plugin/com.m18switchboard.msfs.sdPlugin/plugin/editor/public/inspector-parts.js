@@ -201,6 +201,29 @@ async function learnInto(inputEl, apply) {
   }
 }
 
+// Learn for sim (K:) events (user, 2026-11-25): click the control in the cockpit; the event it
+// sends, with its parameter (e.g. FUELSYSTEM_PUMP_TOGGLE 1, the pump number). apply(candidate).
+async function learnEventInto(inputEl, apply) {
+  status('Learning: click the control in the cockpit (30 s; give it a second to listen first)…');
+  inputEl.disabled = true;
+  const detail = c => `${c.value ? `with ${c.value}` : 'no value'}${c.changes > 1 ? `, sent ${c.changes} times` : ''}`;
+  try {
+    const { candidates } = await api('POST', '/api/learn', { kinds: ['event'] });
+    if (candidates.length === 1) {
+      apply(candidates[0]);
+      status(`Learned ${candidates[0].name}${candidates[0].value ? ` (${candidates[0].value})` : ''}`, 'good');
+    } else {
+      chooseFrom(`${candidates.length} events were sent. Which one is it?`,
+        candidates.map(c => ({ name: c.name, detail: detail(c), c })),
+        ch => { apply(ch.c || candidates.find(x => x.name === ch.name)); status(`Chose ${ch.name}`, 'good'); });
+    }
+  } catch (e) {
+    status(`Learn failed: ${e.message}`, 'bad');
+  } finally {
+    inputEl.disabled = false;
+  }
+}
+
 // Editor for a sim source: { input } or { var, unit }. onChange(newRead | null).
 function sourceEditor(read, onChange, { allowNone = false, unit = 'number' } = {}) {
   const box = el('div', { class: 'source' });
